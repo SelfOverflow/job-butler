@@ -16,8 +16,9 @@
 
 ```mermaid
 graph TD
-    subgraph ContainerImage ["Standardized Container (job-butler:latest)"]
-        FastAPIApp["FastAPI Dashboard & WebSocket API"]
+    subgraph ContainerImage ["Standardized Container Runtime"]
+        NextJSFrontend["Next.js + React Frontend (Tailwind CSS, App Router)"]
+        FastAPIApp["FastAPI REST & WebSocket Backend API"]
         WorkerDaemon["Continuous Ingestion & Application Daemon"]
         PlaywrightChromium["Headless Chromium & Stealth Drivers"]
         TypstEngine["Typst Binary (ATS Resume Compiler)"]
@@ -42,6 +43,7 @@ graph TD
         S3Bucket[("Amazon S3 (Optional Resume Backups)")]
     end
 
+    NextJSFrontend <-->|REST & WebSocket| FastAPIApp
     ContainerImage --> LocalRuntime
     ContainerImage --> AWSRuntime
     LocalCompose --> LocalVolDB
@@ -74,7 +76,8 @@ graph TD
 | **Artifacts** | Local filesystem (`./artifacts/resumes/`) | Persistent EBS + optional S3 backup |
 | **Browser Runner** | Headless Playwright Chromium | Headless Playwright Chromium |
 | **Resume Compiler** | Embedded Typst CLI | Embedded Typst CLI |
-| **UI Dashboard** | `http://localhost:8000` | `http://<EC2_PUBLIC_IP>:8000` (or reverse proxy / Caddy with free Let's Encrypt SSL) |
+| **Frontend UI** | Next.js (React + Tailwind CSS) on `http://localhost:3000` | Next.js standalone on `http://<EC2_IP>:3000` (or behind Caddy/Nginx) |
+| **Backend API** | FastAPI REST & WebSockets on `http://localhost:8000` | FastAPI on `http://<EC2_IP>:8000` |
 
 ---
 
@@ -262,9 +265,10 @@ screening_question_bank:
 
 ---
 
-## 6. Real-Time UI Dashboard & Human-in-the-Loop Hub
+## 6. Real-Time UI Dashboard (Next.js + React + Tailwind CSS) & HITL Hub
 
-* **Real-Time Stream**: Live updates showing scraped positions, live validation status, tailoring events, and application results.
+* **Modern Decoupled Frontend**: Built with **Next.js (App Router)**, **React.js**, and styled with **Tailwind CSS**. Communicates with the FastAPI backend via type-safe REST calls and a resilient WebSocket connection for real-time telemetry.
+* **Real-Time Stream**: Live streaming timeline showing scouted positions, deep liveness validation checks, ATS tailoring progress, and application results.
 * **HITL Escalation Center**:
   * Displays jobs requiring user action (portal login, CAPTCHA, MFA).
   * Direct access to one-click tailored resume download, copy-ready answers to screening questions, and a "Mark as Applied" button.
@@ -272,7 +276,7 @@ screening_question_bank:
   * In-browser visual form and YAML editor allowing seamless editing of candidate contact details, target roles, salary floors, atomic bullets, and screening questions at any time.
   * Real-time schema validation with instant error feedback and automatic backup creation on save.
 * **Upskilling & Trend Analytics**:
-  * Aggregated hiring demand metrics across all ingested postings.
+  * Interactive charts (Tremor / Recharts) displaying in-demand tech stacks across all ingested postings.
   * ROI-ranked recommendations highlighting skills that would unlock the highest number of eligible roles.
 
 ---

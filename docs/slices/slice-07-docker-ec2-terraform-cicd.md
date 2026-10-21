@@ -2,29 +2,37 @@
 
 ## 1. Usable Product Delivered at Slice End
 At the completion of Slice 7, you will have a containerized, 1-click deployable platform ready for both local 24/7 execution and automated AWS deployment:
-- Run `make up` (or `docker compose up -d`) $\rightarrow$ Instantly starts the entire Job Butler stack locally inside Docker (Web Dashboard + Autopilot Daemon + Playwright + Typst) with persistent `./data` and `./artifacts` volumes.
-- Run `make test` $\rightarrow$ Executes the full TDD test matrix (`ruff`, `mypy --strict`, `pytest --cov`).
-- Run `cd terraform && terraform apply` $\rightarrow$ Automates complete AWS cloud deployment to a low-cost EC2 instance (`t4g.small` / `t3.micro`, ~$3–$8/mo or $0 Free Tier), provisions an attached persistent EBS volume, and starts the container.
+- Run `make up` (or `docker compose up -d`) $\rightarrow$ Starts the entire Job Butler stack locally inside Docker:
+  * **Next.js Frontend** (React + Tailwind CSS) on `http://localhost:3000`.
+  * **FastAPI Backend & WebSocket Event Hub** on `http://localhost:8000`.
+  * **Autopilot Worker Daemon** (Scouting, link checking, tailoring, applying).
+  * **Playwright Headless Chromium & Typst Engine**.
+  * Mounted persistent volumes for SQLite (`./data`) and resumes/artifacts (`./artifacts`).
+- Run `make test` $\rightarrow$ Executes the full TDD test matrix (backend `pytest`, frontend `npm test`, `mypy --strict`, `ruff`).
+- Run `cd terraform && terraform apply` $\rightarrow$ Automates complete AWS deployment to a low-cost EC2 instance (`t4g.small` / `t3.micro`, ~$3–$8/mo or $0 Free Tier), provisions an attached persistent EBS volume, and starts the container stack.
 - Push code to GitHub $\rightarrow$ Automated GitHub Actions CI/CD tests the codebase and updates the EC2 instance with zero downtime.
 
 ```bash
 # Example usable command right after Slice 7:
 make up
 # Output:
-# [✓] Building container job-butler:latest (Python 3.11 + Playwright Chromium + Typst)
-# [✓] Container job-butler-web started at http://localhost:8000
+# [✓] Building multi-stage container (Next.js standalone + FastAPI + Playwright + Typst)
+# [✓] Container job-butler-frontend started at http://localhost:3000
+# [✓] Container job-butler-backend started at http://localhost:8000
 # [✓] Container job-butler-worker started (Autopilot daemon active)
 ```
 
 ## 2. Components & Architecture
 ```
 job_butler/
-├── Dockerfile               # Multi-stage image: Python 3.11, Playwright Chromium, Typst CLI
-├── docker-compose.yml       # Local 24/7 orchestrator with persistent volume mounts
+├── Dockerfile               # Multi-stage image: Next.js standalone + Python 3.11 + Playwright + Typst
+├── docker-compose.yml       # Local 24/7 orchestrator (frontend, backend, worker, volumes)
 ├── Makefile                 # Developer CLI: make up, make down, make test, make lint
+├── frontend/                # Next.js 14 App Router + Tailwind CSS
+├── src/                     # Python core backend, agents, scheduler
 ├── .github/
 │   └── workflows/
-│       ├── ci.yml           # Runs lint, type checking, and pytest TDD suite
+│       ├── ci.yml           # Runs Python and Next.js test matrices
 │       └── deploy.yml       # Builds container & deploys to EC2 on merge
 └── terraform/
     ├── main.tf              # AWS provider and module orchestration
@@ -36,20 +44,29 @@ job_butler/
         └── ssm/             # SSM Parameter Store for LLM & Firecrawl API keys
 ```
 
-## 3. TDD & Infrastructure Validation Specification
+## 3. Containerization Strategy
+* **Frontend**: Built via Next.js `output: 'standalone'` for a lightweight Node.js production image with optimized asset caching.
+* **Backend**: Multi-stage `python:3.11-slim` with:
+  * Headless Playwright Chromium (`playwright install --with-deps chromium`)
+  * Pre-compiled Typst CLI binary in `/usr/local/bin/typst`
+* **Local Compose**:
+  * Orchestrates `frontend` (port 3000) and `backend` (port 8000).
+  * Direct volume mounts for `./data` (SQLite database) and `./artifacts` (PDF resumes).
+
+## 4. TDD & Infrastructure Validation Specification
 Tests in `tests/integration/test_slice7_infra.py`:
 
 1. `test_dockerfile_build_and_entrypoints()`:
-   - Validates that the multi-stage Docker build succeeds and packages Python, Playwright Chromium, and the Typst CLI binary.
+   - Validates that Docker build succeeds for both Next.js frontend and Python backend services.
 2. `test_docker_compose_environment_variables()`:
-   - Verifies volume mappings for `./data` and `./artifacts` and port binding to `8000`.
+   - Verifies volume mappings for `./data` and `./artifacts` and port bindings to `3000` and `8000`.
 3. `test_terraform_syntax_and_plan()`:
    - Runs `terraform validate` and `terraform plan` against a mock AWS provider; asserts valid resource graph and outputs.
 4. `test_github_actions_workflow_syntax()`:
-   - Validates `.github/workflows/ci.yml` and `deploy.yml` YAML syntax and step dependencies.
+   - Validates `.github/workflows/ci.yml` and `deploy.yml` YAML syntax and test step dependencies.
 
-## 4. Acceptance Criteria
+## 5. Acceptance Criteria
 - [ ] `docker compose up --build -d` runs locally without errors.
-- [ ] UI is reachable at `http://localhost:8000` with live autopilot daemon in the container.
+- [ ] Next.js dashboard reachable at `http://localhost:3000` connected to FastAPI backend at port `8000`.
 - [ ] `terraform validate` and `terraform plan` execute cleanly.
 - [ ] GitHub Actions CI workflow passes 100% on master.
