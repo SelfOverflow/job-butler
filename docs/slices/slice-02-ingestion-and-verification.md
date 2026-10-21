@@ -58,9 +58,9 @@ Scores are calculated across 4 weighted vectors:
 ```
 src/
 ├── storage/
-│   ├── database.py          # SQLite engine & session maker
-│   ├── models.py            # JobPosting, IngestionLog, ApplicationRecord ORM models
-│   └── repository.py        # CRUD queries (insert_job, list_active_jobs, archive_expired)
+│   ├── database.py          # SQLite engine & session maker (WAL mode + 30s timeout)
+│   ├── models.py            # JobPosting, IngestionLog, ApplicationRecord, AuditLog ORM models
+│   └── repository.py        # CRUD queries (insert_job, list_active_jobs, record_audit_event, query_audit_logs)
 ├── ingestion/
 │   ├── base.py              # AbstractJobSource protocol and RawJobPosting DTO
 │   ├── firecrawl_client.py  # Firecrawl API wrapper (scrape, search, crawl)
@@ -88,7 +88,9 @@ Tests in `tests/unit/test_slice2_scout.py` and `tests/integration/test_slice2_st
    - Compares an identical job description in Bengaluru (+5) vs an unboosted region; asserts correct point differential.
 5. `test_firecrawl_scraper_response_parsing()`:
    - Feeds a recorded Firecrawl scrape response; asserts extraction of title, company, description, and link.
-6. `test_cli_scout_list_command()`:
+6. `test_audit_event_logging()`:
+   - Records an action event with actor, status, and duration; asserts persistence in `audit_logs` table and correct JSON payload retrieval.
+7. `test_cli_scout_list_command()`:
    - Seeds mock jobs into SQLite and executes `job-butler scout list` via `CliRunner`; asserts tabular display.
 
 ## 5. Acceptance Criteria

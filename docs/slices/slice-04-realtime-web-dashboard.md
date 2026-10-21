@@ -33,12 +33,15 @@ job_butler/
 │   │   │   └── page.tsx     # Filterable jobs table with ATS match badges & PDF downloads
 │   │   ├── profile/
 │   │   │   └── page.tsx     # Visual form & YAML profile editor with backup history
+│   │   ├── audit/
+│   │   │   └── page.tsx     # Centralized action audit log explorer & inspector
 │   │   └── hitl/
 │   │       └── page.tsx     # Intervention queue for blockers (login, CAPTCHA)
 │   ├── components/
 │   │   ├── Sidebar.tsx
 │   │   ├── LiveFeed.tsx     # WebSocket streaming ticker
 │   │   ├── JobCard.tsx      # Job card with ATS score pill and PDF link
+│   │   ├── AuditLogViewer.tsx # Searchable, filterable audit log table with JSON drawer
 │   │   ├── ProfileForm.tsx  # Form editor with Pydantic validation feedback
 │   │   └── YamlEditor.tsx   # Raw YAML editor with validation & save
 │   └── lib/
@@ -50,6 +53,7 @@ job_butler/
         ├── ws_manager.py    # WebSocket broadcaster
         └── routes/
             ├── api.py       # REST endpoints: GET /api/jobs, GET /api/profile, PUT /api/profile
+            ├── audit_api.py # Audit endpoints: GET /api/audit (filters by actor, action, status)
             └── artifacts.py # Static file delivery for compiled PDFs
 ```
 
@@ -67,12 +71,14 @@ Tests are split between backend API contract tests and frontend component tests:
 3. `test_put_profile_api_success()`: Updates preferences via `PUT /api/profile`; asserts HTTP 200, file updated, and backup saved.
 4. `test_put_profile_api_validation_error()`: Injects malformed fields; asserts HTTP 422 with structured field errors.
 5. `test_jobs_list_api()`: Asserts `GET /api/jobs` returns active jobs with match scores and PDF links.
-6. `test_websocket_event_broadcasting()`: Connects to `/ws/events` and verifies JSON message delivery.
+6. `test_get_audit_logs_api()`: Asserts `GET /api/audit` returns paginated audit records with actor/status filtering.
+7. `test_websocket_event_broadcasting()`: Connects to `/ws/events` and verifies JSON message delivery.
 
 ### Frontend Component Tests (`frontend/__tests__/`)
 1. `JobCard.test.tsx`: Renders job card; asserts title, company, ATS score badge, and download link render correctly.
-2. `ProfileForm.test.tsx`: Simulates user changing minimum salary and clicking save; verifies `PUT /api/profile` is invoked.
-3. `LiveFeed.test.tsx`: Simulates incoming WebSocket messages and verifies real-time list updates.
+2. `AuditLogViewer.test.tsx`: Renders audit table; asserts actor tags, action badges, and drawer display for log JSON details.
+3. `ProfileForm.test.tsx`: Simulates user changing minimum salary and clicking save; verifies `PUT /api/profile` is invoked.
+4. `LiveFeed.test.tsx`: Simulates incoming WebSocket messages and verifies real-time list updates.
 
 ## 5. Acceptance Criteria
 - [ ] 100% test pass rate with `pytest tests/unit/test_slice4*` and `npm test` in `frontend/`.

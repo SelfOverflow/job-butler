@@ -266,9 +266,13 @@ screening_question_bank:
 
 ---
 
-## 6. Real-Time UI Dashboard (Next.js + React + Tailwind CSS) & HITL Hub
+## 6. Real-Time UI Dashboard & Human-in-the-Loop Hub
 
 * **Modern Decoupled Frontend**: Built with **Next.js (App Router)**, **React.js**, and styled with **Tailwind CSS**. Communicates with the FastAPI backend via type-safe REST calls and a resilient WebSocket connection for real-time telemetry.
+* **Centralized Action Audit Explorer (`/audit`)**:
+  * Complete historical ledger of every single action performed by the agent (scouting, verifying, tailoring, applying) or the human (resolving blockers, updating preferences).
+  * Filterable by Actor (`agent` vs `human`), Action Type, and Status (`SUCCESS`, `WARNING`, `FAILURE`).
+  * Deep inspection drawer showing exact input parameters, diffs, execution duration, and full stack traces for failures.
 * **Real-Time Stream**: Live streaming timeline showing scouted positions, deep liveness validation checks, ATS tailoring progress, and application results.
 * **HITL Escalation Center**:
   * Displays jobs requiring user action (portal login, CAPTCHA, MFA).
@@ -282,20 +286,51 @@ screening_question_bank:
 
 ---
 
-## 7. Cost-Effective Terraform & GitHub Actions CI/CD
+## 7. Centralized Audit Logging, CloudWatch Monitoring & Error Tracking
 
-### 7.1 Terraform Architecture (AWS EC2)
+### 7.1 Centralized Action Audit Trail (`audit_logs`)
+Every state change, automated action, and human interaction is recorded in a dedicated relational table:
+
+| Column | Type | Description |
+| :--- | :--- | :--- |
+| `id` | `VARCHAR(36)` | Unique UUID primary key |
+| `timestamp` | `DATETIME` | ISO 8601 UTC timestamp |
+| `actor` | `VARCHAR(50)` | `agent:scout`, `agent:tailor`, `agent:navigator`, `agent:autopilot`, `human:user` |
+| `action` | `VARCHAR(50)` | `JOB_DISCOVERED`, `LINK_VERIFIED`, `RESUME_TAILORED`, `FORM_SUBMITTED`, `HITL_ESCALATED`, `PROFILE_UPDATED` |
+| `target_id` | `VARCHAR(100)` | Associated `job_id` or `bullet_id` (nullable) |
+| `status` | `VARCHAR(20)` | `SUCCESS`, `WARNING`, `FAILURE` |
+| `duration_ms` | `INTEGER` | Execution duration in milliseconds |
+| `metadata` | `JSON` | Structured context payload (inputs, diffs, error details, response codes) |
+
+### 7.2 CloudWatch Structured Logging & Metric Alarms
+* **Standardized JSON Log Format**: Python backend emits structured JSON log entries:
+  ```json
+  {"timestamp": "2026-10-22T01:15:00Z", "level": "ERROR", "service": "navigator", "action": "FORM_SUBMISSION_FAILED", "job_id": "job_01", "error": "Timeout 30000ms exceeded", "stack_trace": "..."}
+  ```
+* **Local Mode**: Logs streamed cleanly to terminal and written to `./data/logs/job_butler.log`.
+* **AWS Cloud Mode**: 
+  * Docker `awslogs` log driver or CloudWatch Unified Agent streams logs directly to AWS CloudWatch Log Group `/job-butler/production` with 30-day retention.
+  * **CloudWatch Metric Filter & Alarm**: Monitors `level == "ERROR"`; triggers an alarm if error count exceeds 5 in 15 minutes.
+
+---
+
+## 8. Cost-Effective Terraform & GitHub Actions CI/CD
+
+### 8.1 Terraform Architecture (AWS EC2)
 * **`ec2` module**:
   * Provisions a low-cost `t4g.small` (ARM64) or `t3.micro` EC2 instance.
   * Attaches an elastic IP and security group (ports 22, 80, 443, 8000).
   * Provisions an attached persistent EBS volume for SQLite database storage and resume artifacts.
   * `user_data` script installs Docker & Docker Compose and pulls the application container.
+* **`cloudwatch` module**:
+  * Provisions CloudWatch Log Group `/job-butler/production` with 30-day retention.
+  * Provisions CloudWatch Metric Filter and Alarm for application errors.
 * **`ssm` module**:
-  * Securely stores LLM API keys (`GEMINI_API_KEY`, `OPENAI_API_KEY`, etc.) in AWS Systems Manager Parameter Store.
+  * Securely stores LLM API keys (`GEMINI_API_KEY`, `OPENAI_API_KEY`, etc.) and Firecrawl keys in AWS Systems Manager Parameter Store.
 * **`s3` module (Optional)**:
   * Low-cost S3 bucket for cold-storage backups of generated resumes.
 
-### 7.2 GitHub Actions Workflows
+### 8.2 GitHub Actions Workflows
 * **`ci.yml`**:
   * Triggered on every commit/PR: executes `ruff` linting, `mypy` strict type checks, and `pytest` TDD suite.
 * **`deploy.yml`**:
@@ -303,7 +338,7 @@ screening_question_bank:
 
 ---
 
-## 8. Incremental TDD Slice Delivery Roadmap (Usable Product at Every Step)
+## 9. Incremental TDD Slice Delivery Roadmap (Usable Product at Every Step)
 
 Every slice is implemented through the **Red $\rightarrow$ Green $\rightarrow$ Refactor** cycle, culminating in a concrete, runnable feature you can execute immediately:
 

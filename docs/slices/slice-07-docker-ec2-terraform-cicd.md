@@ -38,6 +38,7 @@ job_butler/
     └── modules/
         ├── ec2/             # EC2 instance, launch template, user_data, security group
         ├── ebs/             # Persistent EBS volume for SQLite & artifacts
+        ├── cloudwatch/      # CloudWatch Log Group (/job-butler/production) & Metric Error Alarm
         └── ssm/             # SSM Parameter Store for LLM & Firecrawl API keys
 ```
 
