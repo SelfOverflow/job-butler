@@ -1,23 +1,48 @@
 # Slice 2: Job Scout & Live Link Verifier CLI
 
 ## 1. Usable Product Delivered at Slice End
-At the completion of Slice 2, you will have a working job scouting CLI that fetches live postings using **Firecrawl** and ATS endpoints, verifies their links are active, deduplicates records, and saves them to SQLite:
-- Run `job-butler scout run --limit 10` $\rightarrow$ Scrapes jobs matching your target roles, tests every URL with live HTTP status probes, and persists active jobs into SQLite.
-- Run `job-butler scout list` $\rightarrow$ Prints an interactive terminal table of all active discovered jobs, their companies, locations, source, and liveness status.
-- Run `job-butler scout verify` $\rightarrow$ Re-checks existing jobs in the database and archives expired listings.
+At the completion of Slice 2, you will have a working job scouting CLI that fetches live postings using **Firecrawl** and direct ATS endpoints, runs deep SPA liveness checks, discards excluded employers, applies your geographic market boost, and saves active postings to SQLite:
+- Run `job-butler scout run --limit 20` $\rightarrow$ Scrapes jobs matching target roles, verifies active URLs via deep ATS checks, filters out excluded companies (OakNorth, Tejas, Stepswatch), applies regional score boosts, and persists active jobs into SQLite.
+- Run `job-butler scout list` $\rightarrow$ Prints an interactive terminal table of active jobs, displaying fit score, company, location, tier badge, and liveness status.
+- Run `job-butler scout verify` $\rightarrow$ Re-verifies all stored jobs and purges/archives closed roles.
 
 ```bash
 # Example usable command right after Slice 2:
 job-butler scout list
 # Output:
-# ID       Company     Title                     Location    Active  Source
-# -------------------------------------------------------------------------
-# job_01   Stripe      Sr Backend Engineer       Remote      [LIVE]  Greenhouse
-# job_02   Anthropic   Distributed Systems Eng   SF, CA      [LIVE]  Lever
-# job_03   OpenAI      AI Platform Engineer      Remote      [LIVE]  Firecrawl
+# ID       Score  Tier     Company     Title                     Location    Active  Source
+# -----------------------------------------------------------------------------------------
+# job_01   94     Tier 1   Stripe      Sr Full-Stack Engineer    Bengaluru   [LIVE]  Greenhouse
+# job_02   92     Tier 2   Klarna      Lead Mobile Engineer      Stockholm   [LIVE]  Firecrawl
+# job_03   88     Tier 3   Careem      Senior React Native Eng   Dubai, UAE  [LIVE]  Lever
 ```
 
-## 2. Components & Architecture
+## 2. Ingestion & Verification Guardrails
+
+### 2.1 Deep ATS Live Verification (Zero Dead Links Rule)
+Before presenting or saving any job posting, the verifier performs deep inspection:
+* **Ashby SPAs**: Inspects `window.__appData` payload for `"posting": null` or `"jobBoard": null` (excludes if null).
+* **Workday SPAs**: Inspects configuration payload for `postingAvailable: true` (excludes if false).
+* **Standard ATS (Greenhouse, Lever, SmartRecruiters, Workable)**: Verifies presence of active application form and absence of expired markers ("job no longer available", "position has been filled", "404").
+
+### 2.2 Hard Employer Exclusions
+Postings from current or former employers are automatically purged:
+* **OakNorth** (`oaknorth.com`, `oaknorth.co.uk`, OakNorth India)
+* **Tejas Networks** (`tejasnetworks.com`, Tejas Networks Ltd)
+* **Stepswatch** (Stepswatch SASU)
+
+### 2.3 Multi-Dimensional Fit Rubric & Sourcing Priority
+Scores are calculated across 4 weighted vectors:
+1. **Hard Requirements & Visa Gate (Pass/Fail)**: Rejects foreign roles that state "No visa sponsorship" or "Citizens/PR only".
+2. **Tech Stack Match (40%)**: React Native, React, TypeScript, Node.js, Python, Cloud.
+3. **Seniority & Scope (30%)**: Lead / Senior / Staff engineering scope.
+4. **Market Hierarchy Boost**:
+   - **Tier 1 (India Domestic)**: +5 boost for Bengaluru / Remote India; +3 boost for Delhi NCR, Hyderabad, Pune, Mumbai.
+   - **Tier 2 (EU & Nordics)**: +4 boost for Sweden, Denmark, Norway, Finland, Germany, Netherlands, etc. (EU Blue Card / Visa Sponsorship).
+   - **Tier 3 (GCC / Middle East)**: +2 boost for UAE (Dubai, Abu Dhabi), Saudi Arabia, Qatar.
+   - **Tier 4 (Worldwide / Global Remote)**: Standard score for UK, US, Australia, Singapore, Global Remote.
+
+## 3. Components & Architecture
 ```
 src/
 ├── storage/
@@ -26,32 +51,36 @@ src/
 │   └── repository.py        # CRUD queries (insert_job, list_active_jobs, archive_expired)
 ├── ingestion/
 │   ├── base.py              # AbstractJobSource protocol and RawJobPosting DTO
-│   ├── firecrawl_client.py  # Firecrawl API wrapper (scrape, search, map)
+│   ├── firecrawl_client.py  # Firecrawl API wrapper (scrape, search, crawl)
 │   ├── sources/
 │   │   ├── firecrawl_source.py # Firecrawl job search adapter
 │   │   ├── greenhouse.py    # Greenhouse board API adapter
 │   │   └── lever.py         # Lever board API adapter
-│   ├── verifier.py          # HTTP link liveness and expired DOM text probe
+│   ├── verifier.py          # Deep ATS live link checker (Ashby, Workday, Greenhouse, Lever)
+│   ├── filter.py            # Employer exclusion filter & visa gate
+│   ├── scorer.py            # Multi-dimensional rubric + market priority boost
 │   └── deduplicator.py      # Title + Company + Location content hasher
 └── cli_scout.py             # Subcommands: `job-butler scout run/list/verify`
 ```
 
-## 3. TDD Red-Phase Test Specification
+## 4. TDD Red-Phase Test Specification
 Tests in `tests/unit/test_slice2_scout.py` and `tests/integration/test_slice2_storage.py`:
 
-1. `test_firecrawl_scraper_response_parsing()`:
-   - Feeds a recorded Firecrawl scrape response; asserts extraction of job title, company, description, and link.
-2. `test_greenhouse_and_lever_parsers()`:
-   - Validates ATS board endpoints without making live web calls.
-3. `test_link_verifier_live_vs_expired()`:
-   - Mocks HTTP 200 (live) vs 404 / 410 (expired) vs 200 with "job no longer available" text.
-4. `test_job_repository_deduplication()`:
-   - Asserts inserting the same job twice updates `last_verified_at` without creating duplicate records.
-5. `test_cli_scout_list_command()`:
+1. `test_employer_exclusion_filter()`:
+   - Feeds jobs from OakNorth, Tejas Networks, and Stepswatch; asserts they are strictly excluded.
+2. `test_deep_ats_verifier_ashby_closed_posting()`:
+   - Mocks Ashby HTML with `window.__appData = {"posting": null}`; asserts `is_active=False`.
+3. `test_deep_ats_verifier_workday_closed_posting()`:
+   - Mocks Workday payload with `postingAvailable: false`; asserts `is_active=False`.
+4. `test_market_hierarchy_scoring_boost()`:
+   - Compares an identical job description in Bengaluru (+5) vs an unboosted region; asserts correct point differential.
+5. `test_firecrawl_scraper_response_parsing()`:
+   - Feeds a recorded Firecrawl scrape response; asserts extraction of title, company, description, and link.
+6. `test_cli_scout_list_command()`:
    - Seeds mock jobs into SQLite and executes `job-butler scout list` via `CliRunner`; asserts tabular display.
 
-## 4. Acceptance Criteria
+## 5. Acceptance Criteria
 - [ ] 100% test pass rate with `pytest tests/unit/test_slice2* tests/integration/test_slice2*`
-- [ ] All network calls mocked with `respx` for deterministic, fast unit tests.
-- [ ] SQLite database initialized automatically in `./data/job_butler.db`.
-- [ ] CLI commands `job-butler scout run` and `job-butler scout list` work out of the box.
+- [ ] Excluded employers are never saved to the database.
+- [ ] Dead links (Ashby/Workday/404s) are rejected during verification.
+- [ ] CLI commands `job-butler scout run` and `job-butler scout list` work seamlessly.

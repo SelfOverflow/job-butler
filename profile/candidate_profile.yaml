@@ -1,0 +1,365 @@
+# Candidate Profile: Mohit Ranjan
+# Generated from verified career history in /home/maxx/codes/ai/ai-job-search
+
+personal_info:
+  full_name: "Mohit Ranjan"
+  email: "mohit.ranjan.910@gmail.com"
+  phone: "+91 93130 11144"
+  location:
+    city: "Delhi"
+    state: "Delhi NCR"
+    country: "India"
+    postal_code: "110001"
+    timezone: "Asia/Kolkata"
+  links:
+    linkedin: "https://www.linkedin.com/in/mohit-ranjan-759188169"
+    github: "https://github.com/MohitR1999"
+    portfolio: null
+  work_authorization:
+    citizen_countries: ["India"]
+    requires_visa_for_international: true
+    sponsorship_needed: "requires_sponsorship_outside_india"
+
+preferences:
+  target_roles:
+    - "Senior Full-Stack Engineer"
+    - "Technical Lead"
+    - "Lead Mobile Engineer"
+    - "Senior React Native Engineer"
+    - "Distributed Systems Engineer"
+    - "Staff Software Engineer"
+  
+  sourcing_hierarchy:
+    tier1_india_domestic:
+      description: "Resident, zero visa friction"
+      boost: 5
+      hubs: ["Bengaluru", "Bangalore", "Remote India"]
+      standard_hubs: ["Delhi NCR", "Gurugram", "Noida", "Hyderabad", "Pune", "Mumbai", "Chennai"]
+    tier2_eu_nordics:
+      description: "Top-Tier International Priority with Visa Sponsorship / EU Blue Card"
+      boost: 4
+      countries: ["Sweden", "Denmark", "Norway", "Finland", "Germany", "Netherlands", "Ireland", "France", "Spain", "Switzerland", "Poland", "Estonia", "Austria", "Belgium"]
+    tier3_gcc_middle_east:
+      description: "High Priority International with Visa Sponsorship / Relocation"
+      boost: 2
+      countries: ["UAE", "Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"]
+    tier4_worldwide_and_global_remote:
+      description: "All other worldwide hubs offering visa sponsorship & global remote open to India"
+      boost: 0
+      locations: ["United Kingdom", "United States", "Canada", "Australia", "New Zealand", "Singapore", "Japan", "Global Remote"]
+
+  excluded_employers:
+    - "OakNorth"
+    - "OakNorth Bank"
+    - "OakNorth India"
+    - "Tejas Networks"
+    - "Tejas Networks Ltd"
+    - "Stepswatch"
+    - "Stepswatch SASU"
+
+  cv_page_budget_rules:
+    india_domestic: 1
+    international_relocation: 2
+    cover_letter: 1
+
+skills_inventory:
+  frontend_and_web:
+    - name: "React.js"
+      proficiency: "expert"
+      years_of_experience: 5
+    - name: "Next.js"
+      proficiency: "advanced"
+      years_of_experience: 3
+    - name: "TypeScript"
+      proficiency: "expert"
+      years_of_experience: 5
+    - name: "JavaScript"
+      proficiency: "expert"
+      years_of_experience: 5
+    - name: "Tailwind CSS"
+      proficiency: "expert"
+      years_of_experience: 4
+    - name: "Zustand"
+      proficiency: "expert"
+      years_of_experience: 3
+    - name: "Redux"
+      proficiency: "advanced"
+      years_of_experience: 4
+    - name: "Turborepo"
+      proficiency: "expert"
+      years_of_experience: 2
+    - name: "Cytoscape.js"
+      proficiency: "advanced"
+      years_of_experience: 2
+    - name: "Highcharts.js"
+      proficiency: "advanced"
+      years_of_experience: 2
+
+  mobile_and_cross_platform:
+    - name: "React Native"
+      proficiency: "expert"
+      years_of_experience: 4
+    - name: "Expo"
+      proficiency: "expert"
+      years_of_experience: 3
+    - name: "EAS"
+      proficiency: "expert"
+      years_of_experience: 3
+    - name: "Native Modules (iOS/Android)"
+      proficiency: "advanced"
+      years_of_experience: 3
+
+  backend_and_apis:
+    - name: "Node.js"
+      proficiency: "expert"
+      years_of_experience: 5
+    - name: "Express.js"
+      proficiency: "expert"
+      years_of_experience: 5
+    - name: "Python"
+      proficiency: "expert"
+      years_of_experience: 5
+    - name: "FastAPI"
+      proficiency: "advanced"
+      years_of_experience: 3
+    - name: "Java"
+      proficiency: "intermediate"
+      years_of_experience: 2
+    - name: "RESTful APIs"
+      proficiency: "expert"
+      years_of_experience: 5
+    - name: "GraphQL"
+      proficiency: "advanced"
+      years_of_experience: 3
+    - name: "Microservices Architecture"
+      proficiency: "expert"
+      years_of_experience: 4
+    - name: "WebSockets"
+      proficiency: "expert"
+      years_of_experience: 4
+
+  cloud_and_devops:
+    - name: "Docker (Multi-stage, hardening)"
+      proficiency: "expert"
+      years_of_experience: 5
+    - name: "GitHub Actions CI/CD"
+      proficiency: "expert"
+      years_of_experience: 4
+    - name: "AWS (ECS, Lambda, S3, RDS, CloudWatch)"
+      proficiency: "advanced"
+      years_of_experience: 3
+    - name: "Terraform"
+      proficiency: "intermediate"
+      years_of_experience: 2
+    - name: "Linux & Shell"
+      proficiency: "advanced"
+      years_of_experience: 5
+
+  databases_and_distributed_systems:
+    - name: "PostgreSQL"
+      proficiency: "advanced"
+      years_of_experience: 4
+    - name: "MongoDB"
+      proficiency: "advanced"
+      years_of_experience: 4
+    - name: "Redis"
+      proficiency: "advanced"
+      years_of_experience: 4
+    - name: "Kafka"
+      proficiency: "intermediate"
+      years_of_experience: 2
+
+  ai_and_agentic_engineering:
+    - name: "Google Antigravity"
+      proficiency: "expert"
+      years_of_experience: 2
+    - name: "Claude Code"
+      proficiency: "expert"
+      years_of_experience: 2
+    - name: "MCP Servers"
+      proficiency: "expert"
+      years_of_experience: 2
+    - name: "LLM APIs & Prompt Engineering"
+      proficiency: "expert"
+      years_of_experience: 3
+
+work_experience:
+  - id: "exp_oaknorth_lead"
+    company: "OakNorth India"
+    title: "Technical Lead (Individual Contributor)"
+    location: "Gurugram, Haryana, India"
+    start_date: "2025-07"
+    end_date: null
+    is_current: true
+    summary: "Led high-impact mobile and full-stack personal savings architecture."
+    atomic_bullets:
+      - id: "b_oaknorth_1"
+        text: "Built OakNorth's Personal Savings App from scratch using React Native (Expo) and TypeScript, scaling architecture to support 100K+ active users."
+        skills: ["React Native", "Expo", "TypeScript", "Mobile Architecture"]
+        metrics:
+          users: 100000
+        tags: ["mobile", "greenfield", "scale", "fintech"]
+      - id: "b_oaknorth_2"
+        text: "Established core engineering foundation with Turborepo monorepo, GitHub Actions, EAS build pipelines, and automated test-driven development (TDD)."
+        skills: ["Turborepo", "GitHub Actions", "EAS", "TDD"]
+        tags: ["devops", "ci_cd", "productivity"]
+      - id: "b_oaknorth_3"
+        text: "Integrated Equifax, Experian, TrueLayer, Auth0, Segment, and Iterable for seamless KYC automation, PSD2 open banking compliance, authentication, and analytics."
+        skills: ["Open Banking", "PSD2", "KYC", "Auth0", "Segment", "TrueLayer"]
+        tags: ["fintech", "compliance", "integrations"]
+      - id: "b_oaknorth_4"
+        text: "Engineered and maintained automated CI/CD deployment pipelines on GitHub Actions built on top of multi-stage Docker images, driving 100% of production microservice deployments via containerization to eliminate environment drift and accelerate release velocity."
+        skills: ["Docker", "GitHub Actions", "CI/CD", "Microservices"]
+        metrics:
+          production_deployments_pct: 100
+        tags: ["devops", "docker", "release_velocity"]
+      - id: "b_oaknorth_5"
+        text: "Optimized analytics event pipelines to reduce third-party Sprig instrumentation costs by 50% while improving telemetry reliability."
+        skills: ["Analytics", "Cost Optimization"]
+        metrics:
+          cost_reduction_pct: 50
+        tags: ["cost_optimization", "telemetry"]
+
+  - id: "exp_tejas_sr_eng"
+    company: "Tejas Networks Ltd"
+    title: "Senior Engineer"
+    location: "Gurugram, Haryana, India"
+    start_date: "2024-04"
+    end_date: "2025-07"
+    is_current: false
+    summary: "Led frontend and microservices development for large-scale telecommunication network management systems."
+    atomic_bullets:
+      - id: "b_tejas_sr_1"
+        text: "Architected and built TejNMS network topology visualization using React.js, Cytoscape.js, and Express for BSNL's 500+ node MPLS-IP nationwide rollout, slashing operator errors by 90%."
+        skills: ["React.js", "Cytoscape.js", "Express.js", "MPLS-IP"]
+        metrics:
+          network_nodes: 500
+          error_reduction_pct: 90
+        tags: ["networking", "telecom", "visualization", "scale"]
+      - id: "b_tejas_sr_2"
+        text: "Engineered high-throughput BGP configuration microservice conforming strictly to ONF TAPI and REST architectural standards."
+        skills: ["BGP", "ONF TAPI", "RESTful APIs", "Microservices Architecture"]
+        tags: ["backend", "telecom", "protocols"]
+      - id: "b_tejas_sr_3"
+        text: "Hardened and maintained multi-stage Docker images for telecommunication network elements and EMS/NMS microservices, slashing container footprint by 45% across 500+ carrier-grade nodes."
+        skills: ["Docker", "Linux", "Container Hardening"]
+        metrics:
+          footprint_reduction_pct: 45
+          carrier_nodes: 500
+        tags: ["devops", "docker", "optimization"]
+      - id: "b_tejas_sr_4"
+        text: "Developed real-time device health reporting telemetry system using Highcharts.js, handling sub-second status refreshes."
+        skills: ["Highcharts.js", "JavaScript", "Telemetry"]
+        tags: ["frontend", "telemetry", "real_time"]
+
+  - id: "exp_tejas_rd_eng"
+    company: "Tejas Networks Ltd"
+    title: "Research & Development Engineer"
+    location: "Gurugram, Haryana, India"
+    start_date: "2021-07"
+    end_date: "2024-04"
+    is_current: false
+    summary: "Modernized carrier-grade network management system UIs and automated test harnesses."
+    atomic_bullets:
+      - id: "b_tejas_rd_1"
+        text: "Ported legacy Java Swing operator console to a modern React.js + DHTMLX single-page application, slashing interface load time from 30 seconds to 3 seconds (10x performance boost)."
+        skills: ["React.js", "DHTMLX", "JavaScript", "Performance"]
+        metrics:
+          load_time_before_sec: 30
+          load_time_after_sec: 3
+          speedup_factor: 10
+        tags: ["modernization", "performance", "frontend"]
+      - id: "b_tejas_rd_2"
+        text: "Designed and built interactive GUI for RSVP configuration, accelerating operator provisioning workflows by 80%."
+        skills: ["React.js", "RSVP", "UI/UX"]
+        metrics:
+          speedup_pct: 80
+        tags: ["frontend", "efficiency"]
+      - id: "b_tejas_rd_3"
+        text: "Automated end-to-end regression testing test harnesses using Selenium and TestNG, cutting QA verification cycle time by 60% with 90% test coverage."
+        skills: ["Selenium", "TestNG", "Java", "Test Automation"]
+        metrics:
+          cycle_time_reduction_pct: 60
+          test_coverage_pct: 90
+        tags: ["testing", "qa", "automation"]
+
+  - id: "exp_stepswatch_intern"
+    company: "Stepswatch SASU"
+    title: "Frontend Developer Intern"
+    location: "Remote, India"
+    start_date: "2020-03"
+    end_date: "2020-05"
+    is_current: false
+    summary: "Built cross-platform mobile interface and real-time messaging pipeline."
+    atomic_bullets:
+      - id: "b_stepswatch_1"
+        text: "Developed cross-platform mobile application interface using React Native, Redux, Express, and MongoDB following clean Flux architecture."
+        skills: ["React Native", "Redux", "Express.js", "MongoDB"]
+        tags: ["mobile", "react_native", "frontend"]
+      - id: "b_stepswatch_2"
+        text: "Implemented secure token-based JWT session authentication and authorization middleware protecting client-server endpoints."
+        skills: ["JWT", "Node.js", "Security"]
+        tags: ["security", "auth"]
+      - id: "b_stepswatch_3"
+        text: "Engineered real-time bidirectional messaging and notification pipeline via Socket.io with 98% operational uptime."
+        skills: ["Socket.io", "WebSockets", "Node.js"]
+        metrics:
+          uptime_pct: 98
+        tags: ["real_time", "messaging"]
+      - id: "b_stepswatch_4"
+        text: "Optimized client-side state caching and asynchronous networking, reducing data payload latency by 35% across iOS and Android."
+        skills: ["React Native", "Mobile Optimization"]
+        metrics:
+          latency_reduction_pct: 35
+        tags: ["mobile", "performance"]
+
+education:
+  - institution: "Delhi Technological University (DTU)"
+    degree: "B.Tech"
+    field_of_study: "Computer Engineering / Computer Science"
+    start_date: "2017"
+    end_date: "2021"
+    gpa: "8.36 / 10.0"
+    topics: ["Data Structures", "Algorithms", "Software Engineering", "Computer Networks", "Distributed Systems"]
+
+certifications:
+  - name: "AWS Cloud Practitioner Essentials"
+    issuer: "Amazon Web Services"
+    year: 2026
+  - name: "Using Python to Access Web Data"
+    issuer: "Coursera"
+  - name: "Java Programming Masterclass for Software Developers"
+    issuer: "Coursera"
+
+star_stories:
+  - id: "star_oaknorth_app"
+    situation: "OakNorth needed to launch a new consumer-facing Personal Savings mobile app with strict PSD2 compliance and bank-grade security on a tight deadline."
+    task: "Lead mobile development from scratch, establish the monorepo and CI/CD pipelines, and integrate KYC/banking vendors."
+    action: "Built the application using React Native (Expo) and TypeScript with Turborepo, created automated EAS and GitHub Actions build pipelines, and integrated TrueLayer, Equifax, and Auth0."
+    result: "Successfully scaled to 100K+ active users with 99.9% uptime, halved Sprig analytics costs, and enabled seamless automated production deployments."
+
+  - id: "star_tejas_mpls_topology"
+    situation: "BSNL operator technicians struggled with complex MPLS-IP network provisioning errors across 500+ nodes using legacy tools."
+    task: "Design and deliver a high-performance network topology visualization tool to drastically reduce configuration mistakes."
+    action: "Architected TejNMS using React.js, Cytoscape.js, and Express with real-time WebSocket telemetry updates and visual topology validation."
+    result: "Rolled out across 500+ carrier nodes, reducing operator configuration mistakes by 90%."
+
+screening_question_bank:
+  - question_pattern: "(?i)years of experience with (python|react native|react|typescript|node)"
+    answer_type: "number"
+    answer_value: 5
+  - question_pattern: "(?i)authorized to work in india"
+    answer_type: "boolean"
+    answer_value: true
+  - question_pattern: "(?i)require (visa )?sponsorship in india"
+    answer_type: "boolean"
+    answer_value: false
+  - question_pattern: "(?i)require (visa )?sponsorship (outside|in us|in uk|in eu|international)"
+    answer_type: "boolean"
+    answer_value: true
+  - question_pattern: "(?i)notice period"
+    answer_type: "text"
+    answer_value: "30 days (negotiable)"
+  - question_pattern: "(?i)expected salary|compensation"
+    answer_type: "text"
+    answer_value: "Competitive market rate based on role and location"

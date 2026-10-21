@@ -78,23 +78,42 @@ graph TD
 
 ---
 
-## 4. Targeted AI Agents Specification
+## 4. Targeted AI Agents & Ingestion Guardrails Specification
 
 ### 4.1 Resume & Cover Letter Tailor Agent
 * **Role**: Analyzes the active job description and generates an ATS-optimized resume and tailored cover letter.
-* **Zero-Hallucination Policy**:
-  * Consumes verified `atomic_bullets` from `candidate_profile.yaml`.
-  * The agent is strictly constrained to **rank, select, and emphasize existing verified facts and metrics**.
-  * Recompiles the selected bullets into an ATS-compliant, single-column **Typst PDF** and Markdown/plain text cover letter.
+* **Two-Stage Drafter-Reviewer Pattern**:
+  * **The Drafter**: Consumes verified `atomic_bullets` from `candidate_profile.yaml` across all 4 mandatory roles (OakNorth, Tejas Senior Eng, Tejas R&D, Stepswatch) and aligns them with 25–35 exact JD keywords.
+  * **The Reviewer**: Validates that zero unverified claims exist, ensures dates are normalized (`Mon YYYY - Mon YYYY`), and enforces the geographic page budget.
+* **Geographic Page Budget Rule**:
+  * **India Domestic**: Exactly 1 page.
+  * **International Relocation**: Exactly 2 pages.
+  * **Cover Letter**: Exactly 1 page (PDF + clean line-broken `.txt` for online form autofill).
+* **Automated ATS Text-Layer Verification**:
+  * Post-compilation step extracts the PDF text layer (`pypdf` / `pdftotext`) to confirm 100% extractable text, verbatim LinkedIn URL, and absence of CID replacement glitches.
 
 ### 4.2 Application Navigator Agent
 * **Role**: Drives browser interactions across diverse and dynamic application portals.
 * **Capabilities**:
   * Uses Playwright to load job application pages and extract form schemas.
-  * Employs LLM DOM reasoning to match input fields with candidate profile data (e.g. mapping "Years of experience with backend frameworks" $\rightarrow$ `6`).
+  * Employs LLM DOM reasoning to match input fields with candidate profile data (e.g. mapping "Years of experience with backend frameworks" $\rightarrow$ `5`).
+  * Uses pre-configured STAR stories from `candidate_profile.yaml` for behavioral application questions.
   * **Blocker Escalation**:
     * If the portal requires an account (e.g., Workday, Taleo), a CAPTCHA, or two-factor authentication, the agent pauses the workflow, screenshots the state, and posts an escalation event to the dashboard.
     * Once the user completes the account setup or solves the barrier on the dashboard, the agent resumes or marks the application completed.
+
+### 4.3 Ingestion Guardrails & Sourcing Scope
+* **Deep Live Link Verification**:
+  * Ashby SPAs: verifies `window.__appData` payload for active posting.
+  * Workday SPAs: checks `postingAvailable: true`.
+  * All ATS: SmartRecruiters, Greenhouse, Lever, Workable, etc.
+* **Employer Exclusions (Strict Auto-Purge)**:
+  * Never scrapes or applies to: **OakNorth**, **Tejas Networks**, **Stepswatch**.
+* **Market Sourcing Hierarchy Boost**:
+  * Tier 1: India Domestic (Bengaluru / Remote India +5, Delhi NCR / Hyderabad / Pune / Mumbai +3).
+  * Tier 2: EU & Nordics (Visa Sponsorship / EU Blue Card, +4).
+  * Tier 3: GCC / Middle East (Visa Sponsorship, +2).
+  * Tier 4: Worldwide Relocation & Global Remote.
 
 ---
 
