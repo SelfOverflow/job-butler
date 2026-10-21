@@ -5,7 +5,9 @@
 **Job Butler** is an autonomous, 24/7 career automation platform engineered for high cost-efficiency and zero wasted resources:
 1. **Local Environment**: Zero cloud costs. Runs via `docker compose` or directly with Python for local execution, local testing, and 24/7 operation on your home/office machine.
 2. **Cost-Optimized AWS Cloud Environment**: Deployed on low-cost **EC2 instances** (e.g., `t4g.micro` / `t4g.small` Graviton or `t3.micro`), running Docker / Docker Compose. 
-3. **External API-Based Intelligence**: No expensive self-hosted LLMs or GPU instances. All AI operations (resume tailoring, cover letter drafting, DOM reasoning) invoke external LLM APIs (Gemini, OpenAI, or Anthropic) via API keys passed through environment variables.
+3. **External API-Based Intelligence & Ingestion**:
+   - **Scraping**: Powered by the **Firecrawl API** (`FIRECRAWL_API_KEY`) to effortlessly bypass anti-bot defenses, handle JS-rendered portals, and scrape/crawl target job boards into clean markdown/structured data.
+   - **LLM Operations**: All AI operations (resume tailoring, cover letter drafting, DOM reasoning) invoke external LLM APIs (Gemini, OpenAI, or Anthropic) via API keys passed through environment variables. No expensive self-hosted LLMs or GPU instances.
 4. **Agent-Driven Codebase Design**: The repository is structured specifically so that coding AI agents can autonomously inspect, test, modify, and evolve the codebase with zero ambiguity—backed by strict typing, deterministic test fixtures, and comprehensive TDD suites.
 
 ---
@@ -21,8 +23,9 @@ graph TD
         TypstEngine["Typst Binary (ATS Resume Compiler)"]
     end
 
-    subgraph ExternalAPIs ["External Cloud AI Services"]
-        LLMAPI["External LLM APIs (Gemini / OpenAI / Anthropic via API Keys)"]
+    subgraph ExternalAPIs ["External Cloud Services"]
+        LLMAPI["External LLM APIs (Gemini / OpenAI / Anthropic)"]
+        FirecrawlAPI["Firecrawl API (Anti-Bot Web Scraping & Crawling)"]
     end
 
     subgraph LocalRuntime ["Local Execution (docker compose)"]
@@ -45,11 +48,13 @@ graph TD
     LocalCompose --> LocalVolPDF
     LocalCompose --> LocalEnv
     LocalCompose <-->|HTTPS API Calls| LLMAPI
+    LocalCompose <-->|Scraping Jobs| FirecrawlAPI
 
     EC2Instance --> EBSVolume
     EC2Instance --> SSMParams
     EC2Instance --> S3Bucket
     EC2Instance <-->|HTTPS API Calls| LLMAPI
+    EC2Instance <-->|Scraping Jobs| FirecrawlAPI
 ```
 
 ### Monthly Cost Comparison
@@ -63,6 +68,7 @@ graph TD
 | Component | Local Mode (`APP_ENV=local`) | AWS EC2 Mode (`APP_ENV=production`) |
 | :--- | :--- | :--- |
 | **Compute** | Local Host / Docker Engine | Single or Multi-Node EC2 (`t4g.small` / `t3.micro`) |
+| **Scraping Provider** | Firecrawl API via `.env` (`FIRECRAWL_API_KEY`) | Firecrawl API via SSM / env (`FIRECRAWL_API_KEY`) |
 | **LLM Provider** | External API via `.env` (`GEMINI_API_KEY`, etc.) | External API via SSM / EC2 env (`GEMINI_API_KEY`) |
 | **Database** | SQLite (`sqlite:///data/job_butler.db`) | SQLite on persistent EBS volume (`/data/job_butler.db`) |
 | **Artifacts** | Local filesystem (`./artifacts/resumes/`) | Persistent EBS + optional S3 backup |
@@ -274,3 +280,4 @@ Each slice is implemented with the **Red $\rightarrow$ Green $\rightarrow$ Refac
   * Skill demand frequency aggregator, trend visualizer, upskilling ROI recommendation logic.
 * **Slice 7: Dockerization, Low-Cost EC2 Terraform & CI/CD**
   * Multi-stage `Dockerfile`, `docker-compose.yml` for local runs, cost-effective EC2 Terraform modules (t4g.small/t3.micro, EBS, SSM), and GitHub Actions CI/CD workflows.
+

@@ -40,3 +40,4 @@ Tests will be constructed in `tests/unit/test_analytics.py`:
 - [ ] Deterministic mathematical calculations with zero hallucination.
 - [ ] UI receives structured trend and upskilling data via REST/WebSocket.
 - [ ] Strict type checking passes with `mypy --strict src/analytics`.
+

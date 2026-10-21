@@ -33,6 +33,7 @@ Before any production code is written, the following tests will be constructed i
    - Verifies loading from environment variables and `.env`.
    - Defaults `APP_ENV` to `"local"`.
    - Validates paths for SQLite database and artifacts.
+   - Validates optional API keys (`FIRECRAWL_API_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`).
 2. `test_candidate_profile_valid_schema()`:
    - Validates a complete `candidate_profile.yaml` fixture against `CandidateProfile`.
    - Asserts all bullet IDs are unique across experience and projects.
@@ -52,3 +53,4 @@ Before any production code is written, the following tests will be constructed i
 - [ ] Strict type checking passes with `mypy --strict src/profile src/config`
 - [ ] Linter clean with `ruff check`
 - [ ] Example `profile/candidate_profile.example.yaml` is provided and passes validation.
+

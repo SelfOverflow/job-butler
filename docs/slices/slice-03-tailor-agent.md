@@ -48,3 +48,4 @@ The following tests will be written in `tests/unit/test_tailor_agent.py`:
 - [ ] Typst compiler CLI invocation runs cleanly and outputs valid PDFs.
 - [ ] LLM client uses mocked responses in unit tests for fast, deterministic testing.
 - [ ] Output PDF verified to be single-column and selectable text.
+

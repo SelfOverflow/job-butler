@@ -54,3 +54,4 @@ The following tests will be constructed in `tests/unit/test_server.py` using `ht
 - [ ] Dashboard accessible at `http://localhost:8000` with sub-100ms load time.
 - [ ] Real-time updates push via WebSocket without requiring page reload.
 - [ ] Clean type annotations with `mypy --strict src/server`.
+

@@ -50,3 +50,4 @@ All browser tests will execute against local HTML mock fixtures served by an eph
 - [ ] 100% test pass rate with `pytest tests/unit/test_navigator*`
 - [ ] Tested against local mock pages without flakiness (no arbitrary sleeps; use Playwright locators with explicit expect conditions).
 - [ ] Non-blocking execution: runs headless by default with configurable `HEADLESS=false` for local debugging.
+
