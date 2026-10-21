@@ -2,24 +2,21 @@
 
 ## 1. Usable Product Delivered at Slice End
 At the completion of Slice 7, you will have a containerized, 1-click deployable platform ready for both local 24/7 execution and automated AWS deployment:
-- Run `make up` (or `docker compose up -d`) $\rightarrow$ Starts the entire Job Butler stack locally inside Docker:
-  * **Next.js Frontend** (React + Tailwind CSS) on `http://localhost:3000`.
-  * **FastAPI Backend & WebSocket Event Hub** on `http://localhost:8000`.
-  * **Autopilot Worker Daemon** (Scouting, link checking, tailoring, applying).
-  * **Playwright Headless Chromium & Typst Engine**.
-  * Mounted persistent volumes for SQLite (`./data`) and resumes/artifacts (`./artifacts`).
+- Run `make up` (or `docker compose up -d`) $\rightarrow$ Starts the lean Job Butler stack inside Docker on a single unified port `8000`:
+  * **Unified Server (FastAPI :8000)**: Serves both the compiled Next.js static export (`frontend/out`) and all REST/WebSocket APIs with zero Node.js server overhead.
+  * **Autopilot Worker Daemon**: Runs in background orchestrating hourly cycles.
+  * **Playwright Chromium & Typst Engine**: Bundled and managed with strict lifecycle cleanups.
+  * Mounted persistent volumes for SQLite WAL database (`./data`) and resumes/artifacts (`./artifacts`).
 - Run `make test` $\rightarrow$ Executes the full TDD test matrix (backend `pytest`, frontend `npm test`, `mypy --strict`, `ruff`).
-- Run `cd terraform && terraform apply` $\rightarrow$ Automates complete AWS deployment to a low-cost EC2 instance (`t4g.small` / `t3.micro`, ~$3–$8/mo or $0 Free Tier), provisions an attached persistent EBS volume, and starts the container stack.
+- Run `cd terraform && terraform apply` $\rightarrow$ Automates complete AWS deployment to a low-cost EC2 instance (`t4g.small` / `t3.micro`, ~$3–$8/mo or $0 Free Tier), provisions an attached persistent EBS volume, and starts the container stack on port 8000.
 - Push code to GitHub $\rightarrow$ Automated GitHub Actions CI/CD tests the codebase and updates the EC2 instance with zero downtime.
 
 ```bash
 # Example usable command right after Slice 7:
 make up
 # Output:
-# [✓] Building multi-stage container (Next.js standalone + FastAPI + Playwright + Typst)
-# [✓] Container job-butler-frontend started at http://localhost:3000
-# [✓] Container job-butler-backend started at http://localhost:8000
-# [✓] Container job-butler-worker started (Autopilot daemon active)
+# [✓] Building multi-stage container (Next.js static export + FastAPI + Playwright + Typst)
+# [✓] Container job-butler live at http://localhost:8000 (UI + API + Worker active)
 ```
 
 ## 2. Components & Architecture

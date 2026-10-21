@@ -42,6 +42,7 @@ src/
 - `ProfileLoader`:
   * Resolves environment variable placeholders (`${CANDIDATE_PHONE}`, `${CANDIDATE_CITY}`, etc.) dynamically using `.env` / system environment variables with fallback support `${VAR:-default}`.
   * Validates parsed data against `CandidateProfile` Pydantic model.
+  * Provides `.snapshot()` returning a deep-copied, frozen instance for concurrency-safe background sweep execution.
 - `ProfileUpdater`:
   * Validates proposed changes against Pydantic schema *before* writing to disk.
   * Creates timestamped backup in `profile/backups/candidate_profile_<timestamp>.yaml`.

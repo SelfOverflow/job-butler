@@ -17,9 +17,21 @@ job-butler scout list
 # job_03   88     Tier 3   Careem      Senior React Native Eng   Dubai, UAE  [LIVE]  Lever
 ```
 
-## 2. Ingestion & Verification Guardrails
+## 2. Ingestion, Persistence & Verification Guardrails
 
-### 2.1 Deep ATS Live Verification (Zero Dead Links Rule)
+### 2.1 SQLite Concurrency & WAL Mode (Dual-Process Protection)
+To prevent `sqlite3.OperationalError: database is locked` while the background worker and FastAPI web dashboard write concurrently:
+* Engine configuration enforces Write-Ahead Logging: `PRAGMA journal_mode=WAL;`.
+* Busy timeout is set to 30 seconds: `connect_args={"timeout": 30.0, "check_same_thread": False}`.
+* Scoped thread-safe sessions via SQLAlchemy's `async_sessionmaker` or scoped context manager.
+
+### 2.2 Firecrawl Credit Budget & Targeted Queries
+To protect your API credit allowance from unexpected exhaustion:
+* Uses targeted Firecrawl `/search` queries for specific role keywords and target locations rather than broad recursive `/crawl` sweeps.
+* Enforces a configurable daily credit ceiling via `MAX_DAILY_SCRAPE_CREDITS` in settings (defaults to 100 queries/day).
+* Caches raw search results for 12 hours to prevent redundant re-fetching of unchanged job feeds.
+
+### 2.3 Deep ATS Live Verification (Zero Dead Links Rule)
 Before presenting or saving any job posting, the verifier performs deep inspection:
 * **Ashby SPAs**: Inspects `window.__appData` payload for `"posting": null` or `"jobBoard": null` (excludes if null).
 * **Workday SPAs**: Inspects configuration payload for `postingAvailable: true` (excludes if false).

@@ -24,7 +24,7 @@ job-butler apply --job-id job_01
 src/
 ├── agents/
 │   └── navigator/
-│       ├── browser.py       # Playwright context manager with stealth flags
+│       ├── browser.py       # Strict Playwright lifecycle manager (timeout & zombie process guard)
 │       ├── form_inspector.py# DOM form field extractor
 │       ├── field_mapper.py  # Maps candidate data to detected input fields
 │       ├── barrier_detector.py # Detects login walls, CAPTCHAs, and 2FA
@@ -34,6 +34,13 @@ src/
 │       └── hitl.py          # HITL actions: GET /api/hitl/pending, POST /resolve, POST /skip
 └── cli_apply.py             # Subcommand: `job-butler apply`
 ```
+
+### 2.1 Chromium Lifecycle & Anti-Zombie Guards
+To ensure headless browser instances never leak memory or hang indefinitely on a 1GB/2GB EC2 or local host:
+* **Strict Context Scoping**: Every navigation uses an isolated `async with async_playwright() as p:` context.
+* **Hard Navigation Timeout**: Global navigation and action timeouts are set to 30 seconds (`page.set_default_navigation_timeout(30000)`).
+* **Guaranteed Teardown**: An outer `try ... finally: await context.close(); await browser.close()` block ensures that crashes, network timeouts, or unhandled exceptions always terminate the underlying Chromium process.
+* **Concurrency Ceiling**: A maximum of 1 active browser session is permitted simultaneously.
 
 ## 3. TDD Red-Phase Test Specification
 Tests in `tests/unit/test_slice5_navigator.py` and `tests/integration/test_slice5_apply.py`:

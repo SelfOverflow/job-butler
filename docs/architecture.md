@@ -17,47 +17,47 @@
 
 ```mermaid
 graph TD
-    subgraph ContainerImage ["Standardized Container Runtime"]
-        NextJSFrontend["Next.js + React Frontend (Tailwind CSS, App Router)"]
-        FastAPIApp["FastAPI REST & WebSocket Backend API"]
-        WorkerDaemon["Continuous Ingestion & Application Daemon"]
-        PlaywrightChromium["Headless Chromium & Stealth Drivers"]
+    subgraph ContainerImage ["Lean Single-Port Container (job-butler:latest :8000)"]
+        FastAPIApp["FastAPI Server (Port 8000)"]
+        NextJSStatic["Compiled Next.js Static UI (frontend/out)"]
+        WorkerDaemon["Continuous Autopilot Daemon (Hourly Cycle)"]
+        PlaywrightChromium["Headless Chromium (Strict Lifecycle Manager)"]
         TypstEngine["Typst Binary (ATS Resume Compiler)"]
     end
 
     subgraph ExternalAPIs ["External Cloud Services"]
         LLMAPI["External LLM APIs (Gemini / OpenAI / Anthropic)"]
-        FirecrawlAPI["Firecrawl API (Anti-Bot Web Scraping & Crawling)"]
+        FirecrawlAPI["Firecrawl API (Targeted Search Queries & Credit Budget)"]
     end
 
     subgraph LocalRuntime ["Local Execution (docker compose)"]
-        LocalCompose["docker compose up -d"]
-        LocalVolDB[("SQLite Volume: ./data/job_butler.db")]
+        LocalCompose["docker compose up -d (Port 8000)"]
+        LocalVolDB[("SQLite (WAL Mode + 30s Timeout): ./data/")]
         LocalVolPDF[("Artifacts Volume: ./artifacts/")]
         LocalEnv[".env (API Keys & Local Config)"]
     end
 
     subgraph AWSRuntime ["Cost-Effective AWS Cloud (Terraform)"]
         EC2Instance["Low-Cost EC2 Instance (t4g.small / t3.micro)"]
-        EBSVolume[("Persistent EBS / SQLite: /data/")]
+        EBSVolume[("Persistent EBS (SQLite WAL): /data/")]
         SSMParams["AWS SSM Parameter Store (API Keys)"]
         S3Bucket[("Amazon S3 (Optional Resume Backups)")]
     end
 
-    NextJSFrontend <-->|REST & WebSocket| FastAPIApp
+    FastAPIApp --- NextJSStatic
     ContainerImage --> LocalRuntime
     ContainerImage --> AWSRuntime
     LocalCompose --> LocalVolDB
     LocalCompose --> LocalVolPDF
     LocalCompose --> LocalEnv
     LocalCompose <-->|HTTPS API Calls| LLMAPI
-    LocalCompose <-->|Scraping Jobs| FirecrawlAPI
+    LocalCompose <-->|Targeted Scrapes| FirecrawlAPI
 
     EC2Instance --> EBSVolume
     EC2Instance --> SSMParams
     EC2Instance --> S3Bucket
     EC2Instance <-->|HTTPS API Calls| LLMAPI
-    EC2Instance <-->|Scraping Jobs| FirecrawlAPI
+    EC2Instance <-->|Targeted Scrapes| FirecrawlAPI
 ```
 
 ### Monthly Cost Comparison
@@ -70,15 +70,14 @@ graph TD
 
 | Component | Local Mode (`APP_ENV=local`) | AWS EC2 Mode (`APP_ENV=production`) |
 | :--- | :--- | :--- |
-| **Compute** | Local Host / Docker Engine | Single or Multi-Node EC2 (`t4g.small` / `t3.micro`) |
-| **Scraping Provider** | Firecrawl API via `.env` (`FIRECRAWL_API_KEY`) | Firecrawl API via SSM / env (`FIRECRAWL_API_KEY`) |
+| **Compute** | Local Host / Docker Engine | Single-Node EC2 (`t4g.small` / `t3.micro`) |
 | **LLM Provider** | External API via `.env` (`GEMINI_API_KEY`, etc.) | External API via SSM / EC2 env (`GEMINI_API_KEY`) |
-| **Database** | SQLite (`sqlite:///data/job_butler.db`) | SQLite on persistent EBS volume (`/data/job_butler.db`) |
+| **Database** | SQLite WAL Mode (`PRAGMA journal_mode=WAL;`, 30s timeout) | SQLite WAL Mode on persistent EBS volume (`/data/job_butler.db`) |
 | **Artifacts** | Local filesystem (`./artifacts/resumes/`) | Persistent EBS + optional S3 backup |
-| **Browser Runner** | Headless Playwright Chromium | Headless Playwright Chromium |
+| **Browser Runner** | Headless Chromium (Strict Lifecycle Context) | Headless Chromium (Strict Lifecycle Context) |
 | **Resume Compiler** | Embedded Typst CLI | Embedded Typst CLI |
-| **Frontend UI** | Next.js (React + Tailwind CSS) on `http://localhost:3000` | Next.js standalone on `http://<EC2_IP>:3000` (or behind Caddy/Nginx) |
-| **Backend API** | FastAPI REST & WebSockets on `http://localhost:8000` | FastAPI on `http://<EC2_IP>:8000` |
+| **Unified UI & API** | Port 8000 (FastAPI serves Next.js static export + API + WebSockets) | Port 8000 (`http://<EC2_IP>:8000` or behind Caddy/Nginx with SSL) |
+| **Local Frontend Dev** | `npm run dev` on port 3000 (proxies to :8000) | N/A (Production serves pre-compiled static export) |
 
 ---
 
@@ -132,8 +131,9 @@ The Candidate Profile is never static—it is designed to be updated at any poin
 * **Automated Backup Versioning**:
   * Every mutation automatically creates a timestamped snapshot in `profile/backups/candidate_profile_<YYYYMMDD_HHMMSS>.yaml` before writing changes.
   * Allows one-click rollback if accidental edits occur.
-* **Autopilot Hot-Reloading**:
-  * The 24/7 background worker reads the latest validated profile at the start of every sweep cycle. Any updated skills, new accomplishments, or adjusted location priorities are immediately applied without restarting services.
+* **Autopilot Hot-Reloading & Frozen Snapshot**:
+  * The 24/7 background worker reads the latest validated profile at the start of every sweep cycle.
+  * **Concurrency Protection**: The scheduler creates a deep immutable copy (frozen snapshot) for the cycle. Any edits made via the Web UI while a sweep is executing are applied to disk safely, and the active sweep completes without `KeyError` or race conditions. The subsequent hourly sweep automatically picks up the updated snapshot.
 * **Integrity & Fact-Hash Refresh**:
   * On profile save, the system recalculates deterministic hashes for modified bullets and validates all constraints (unique IDs, mandatory roles, normalized dates) before persisting.
 

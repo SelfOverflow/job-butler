@@ -1,20 +1,20 @@
 # Slice 4: Real-Time Web Dashboard (Next.js + React + Tailwind CSS)
 
 ## 1. Usable Product Delivered at Slice End
-At the completion of Slice 4, you will have a production-grade, responsive Web Dashboard built with **Next.js (App Router)**, **React.js**, and **Tailwind CSS**, connected to the FastAPI backend:
-- Run `job-butler serve` $\rightarrow$ Launches the backend API on port `8000` and serves the Next.js frontend on port `3000` (or unified port `8000` in production build).
-- Open `http://localhost:3000` in your browser to interact with:
+At the completion of Slice 4, you will have a production-grade, responsive Web Dashboard built with **Next.js (App Router)**, **React.js**, and **Tailwind CSS**, with a lean single-port production runtime:
+- Run `job-butler serve` $\rightarrow$ Launches on port `8000`. In production and container builds, FastAPI serves the pre-compiled Next.js static export (`frontend/out/`) directly on port `8000` alongside the REST and WebSocket endpoints, eliminating the Node.js server overhead and saving ~150MB of RAM.
+- For local frontend development, `make dev-frontend` runs Next.js on port `3000` with hot module reloading (HMR) proxying API requests to `:8000`.
+- Open `http://localhost:8000` (or `http://localhost:3000` in dev) to:
   * **Job Explorer**: Search, filter, and inspect all discovered postings with ATS match score badges and 1-click tailored PDF resume downloads.
   * **Interactive Profile & Preferences Editor (`/profile`)**: Edit candidate details, target roles, salary floors, skills, and screening questions with real-time schema validation and instant backup creation.
   * **Real-Time Live Feed**: Watch jobs being scouted, links verified, and resumes tailored via a resilient WebSocket stream with visual toast notifications.
-  * **HITL Escalation Center (`/hitl`)**: Interface for jobs flagged for manual intervention (expanded with action triggers in Slice 5).
+  * **HITL Escalation Center (`/hitl`)**: Interface for jobs flagged for manual intervention.
 
 ```bash
 # Example usable command right after Slice 4:
 job-butler serve
 # Output:
-# [✓] FastAPI Backend active at: http://localhost:8000
-# [✓] Next.js Dashboard active at: http://localhost:3000
+# [✓] Unified Job Butler Dashboard & API live at: http://localhost:8000
 # [✓] WebSocket event bus connected: ws://localhost:8000/ws/events
 ```
 

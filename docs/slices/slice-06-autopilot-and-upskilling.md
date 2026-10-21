@@ -3,8 +3,8 @@
 ## 1. Usable Product Delivered at Slice End
 At the completion of Slice 6, you will have a fully autonomous 24/7 background agent and an intelligent career advisory engine:
 - Run `job-butler autopilot start --interval 60` $\rightarrow$ Runs continuously in the background, executing the entire cycle every 60 minutes:
-  1. **Hot-Reloads Candidate Profile**: Dynamically reads the latest `candidate_profile.yaml` on each sweep, instantly adopting any newly added skills, edited bullets, or modified salary/location preferences without restarting.
-  2. Scouts fresh job postings via Firecrawl and ATS feeds.
+  1. **Snapshot Candidate Profile**: Takes an immutable in-memory snapshot (`profile.snapshot()`) at cycle start. Any profile edits made via the dashboard during the sweep are safely queued for the subsequent hourly run, avoiding mid-flight `KeyError` or race conditions.
+  2. Scouts fresh job postings via Firecrawl and ATS feeds within the daily credit quota.
   3. Verifies live links and prunes expired roles.
   4. Tailors resumes for all matching roles.
   5. Auto-submits direct applications and alerts the HITL dashboard for accounts/CAPTCHAs.
