@@ -2,13 +2,14 @@
 
 ## 1. System Overview & Philosophy
 
-**Job Butler** is an autonomous, 24/7 career automation platform engineered for high cost-efficiency and zero wasted resources:
-1. **Local Environment**: Zero cloud costs. Runs via `docker compose` or directly with Python for local execution, local testing, and 24/7 operation on your home/office machine.
-2. **Cost-Optimized AWS Cloud Environment**: Deployed on low-cost **EC2 instances** (e.g., `t4g.micro` / `t4g.small` Graviton or `t3.micro`), running Docker / Docker Compose. 
-3. **External API-Based Intelligence & Ingestion**:
+**Job Butler** is an autonomous, 24/7 career automation platform engineered for high cost-efficiency, complete self-containment, and zero wasted resources:
+1. **Self-Contained Monorepo**: Everything required to understand, develop, test, build, deploy, and operate the platform is strictly contained within this single repository—including frontend (Next.js), backend (FastAPI/Python), profile knowledge bases, infrastructure (Terraform), CI/CD (GitHub Actions), and agent guidance (`AGENTS.md`).
+2. **Local Environment**: Zero cloud costs. Runs via `docker compose` or directly with Python/Node for local execution, local testing, and 24/7 operation on your home/office machine.
+3. **Cost-Optimized AWS Cloud Environment**: Deployed on low-cost **EC2 instances** (e.g., `t4g.small` / `t3.micro`), running Docker / Docker Compose. 
+4. **External API-Based Intelligence & Ingestion**:
    - **Scraping**: Powered by the **Firecrawl API** (`FIRECRAWL_API_KEY`) to effortlessly bypass anti-bot defenses, handle JS-rendered portals, and scrape/crawl target job boards into clean markdown/structured data.
    - **LLM Operations**: All AI operations (resume tailoring, cover letter drafting, DOM reasoning) invoke external LLM APIs (Gemini, OpenAI, or Anthropic) via API keys passed through environment variables. No expensive self-hosted LLMs or GPU instances.
-4. **Agent-Driven Codebase Design**: The repository is structured specifically so that coding AI agents can autonomously inspect, test, modify, and evolve the codebase with zero ambiguity—backed by strict typing, deterministic test fixtures, and comprehensive TDD suites.
+5. **Agent-Driven Codebase Design**: The repository includes [AGENTS.md](file:///home/maxx/codes/job_butler/AGENTS.md) at its root so that coding AI agents have complete, grounded context to autonomously inspect, test, modify, and evolve the codebase with zero ambiguity—backed by strict typing, deterministic test fixtures, and comprehensive TDD suites.
 
 ---
 
