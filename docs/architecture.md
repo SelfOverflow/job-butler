@@ -117,7 +117,21 @@ graph TD
 
 ---
 
-## 5. Candidate Profile Data Structure
+## 5. Candidate Profile Data Structure & Mutability Architecture
+
+### 5.1 Mutability, Hot-Reloading & Backup Versioning
+The Candidate Profile is never static—it is designed to be updated at any point:
+* **Multiple Editing Channels**:
+  1. **Direct File Editing**: Edit `profile/candidate_profile.yaml` directly in any text editor.
+  2. **CLI Mutation Tooling**: Run `job-butler profile edit`, `job-butler profile update-preferences`, or `job-butler profile add-bullet`.
+  3. **Interactive Web UI Editor**: Edit contact info, target roles, salary floors, and atomic bullets directly via the Web Dashboard (`GET /api/profile` and `PUT /api/profile`).
+* **Automated Backup Versioning**:
+  * Every mutation automatically creates a timestamped snapshot in `profile/backups/candidate_profile_<YYYYMMDD_HHMMSS>.yaml` before writing changes.
+  * Allows one-click rollback if accidental edits occur.
+* **Autopilot Hot-Reloading**:
+  * The 24/7 background worker reads the latest validated profile at the start of every sweep cycle. Any updated skills, new accomplishments, or adjusted location priorities are immediately applied without restarting services.
+* **Integrity & Fact-Hash Refresh**:
+  * On profile save, the system recalculates deterministic hashes for modified bullets and validates all constraints (unique IDs, mandatory roles, normalized dates) before persisting.
 
 ```yaml
 # candidate_profile.yaml specification
@@ -254,6 +268,9 @@ screening_question_bank:
 * **HITL Escalation Center**:
   * Displays jobs requiring user action (portal login, CAPTCHA, MFA).
   * Direct access to one-click tailored resume download, copy-ready answers to screening questions, and a "Mark as Applied" button.
+* **Interactive Profile & Preferences Editor**:
+  * In-browser visual form and YAML editor allowing seamless editing of candidate contact details, target roles, salary floors, atomic bullets, and screening questions at any time.
+  * Real-time schema validation with instant error feedback and automatic backup creation on save.
 * **Upskilling & Trend Analytics**:
   * Aggregated hiring demand metrics across all ingested postings.
   * ROI-ranked recommendations highlighting skills that would unlock the highest number of eligible roles.

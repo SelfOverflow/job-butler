@@ -3,11 +3,12 @@
 ## 1. Usable Product Delivered at Slice End
 At the completion of Slice 6, you will have a fully autonomous 24/7 background agent and an intelligent career advisory engine:
 - Run `job-butler autopilot start --interval 60` $\rightarrow$ Runs continuously in the background, executing the entire cycle every 60 minutes:
-  1. Scouts fresh job postings via Firecrawl and ATS feeds.
-  2. Verifies live links and prunes expired roles.
-  3. Tailors resumes for all matching roles.
-  4. Auto-submits direct applications and alerts the HITL dashboard for accounts/CAPTCHAs.
-  5. Aggregates hiring trend signals and calculates upskilling ROI.
+  1. **Hot-Reloads Candidate Profile**: Dynamically reads the latest `candidate_profile.yaml` on each sweep, instantly adopting any newly added skills, edited bullets, or modified salary/location preferences without restarting.
+  2. Scouts fresh job postings via Firecrawl and ATS feeds.
+  3. Verifies live links and prunes expired roles.
+  4. Tailors resumes for all matching roles.
+  5. Auto-submits direct applications and alerts the HITL dashboard for accounts/CAPTCHAs.
+  6. Aggregates hiring trend signals and calculates upskilling ROI.
 - On the Web Dashboard (`http://localhost:8000`):
   * **Market Trends Panel**: Real-time frequency graphs of demanded skills across all target listings.
   * **Upskilling Recommendation Cards**: Shows high-ROI skills missing from your profile (e.g. *"Adding Kubernetes would unlock 14 matching roles (+28% uplift)"*).
