@@ -75,3 +75,4 @@ For complete system architecture and detailed slice blueprints, refer to:
 - [docs/architecture.md](docs/architecture.md)
 - [docs/slices/](docs/slices/)
 - [AGENTS.md](AGENTS.md)
+

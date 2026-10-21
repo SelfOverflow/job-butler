@@ -66,8 +66,8 @@ When writing code, tailoring resumes, or scraping jobs, you must observe these s
 
 ### 2.1 Candidate Identity
 - **Name**: Mohit Ranjan
-- **Location**: Delhi, India
-- **Phone**: `+91 93130 11144`
+- **Location**: Injected via `.env` (`${CANDIDATE_CITY}`, `${CANDIDATE_STATE}`, India)
+- **Phone**: Injected via `.env` (`${CANDIDATE_PHONE}`)
 - **Email**: `mohit.ranjan.910@gmail.com`
 - **LinkedIn Directive**: Always display the full verbatim LinkedIn URL on all CVs, cover letters, and applications: `https://www.linkedin.com/in/mohit-ranjan-759188169` (never trim or shorten).
 - **GitHub**: `https://github.com/MohitR1999`
@@ -131,3 +131,4 @@ make down         # Stop local Docker Compose containers
 - The candidate profile at `profile/candidate_profile.yaml` can be edited at any time directly, via CLI (`job-butler profile update`), or through the Web UI (`PUT /api/profile`).
 - Before any programmatic save, the system **MUST** create a timestamped backup in `profile/backups/candidate_profile_<YYYYMMDD_HHMMSS>.yaml`.
 - The 24/7 background scheduler dynamically re-reads `candidate_profile.yaml` on every sweep cycle (hot-reloading).
+

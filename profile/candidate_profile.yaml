@@ -3,13 +3,13 @@
 
 personal_info:
   full_name: "Mohit Ranjan"
-  email: "mohit.ranjan.910@gmail.com"
-  phone: "+91 93130 11144"
+  email: "${CANDIDATE_EMAIL:-mohit.ranjan.910@gmail.com}"
+  phone: "${CANDIDATE_PHONE}"
   location:
-    city: "Delhi"
-    state: "Delhi NCR"
+    city: "${CANDIDATE_CITY}"
+    state: "${CANDIDATE_STATE}"
     country: "India"
-    postal_code: "110001"
+    postal_code: "${CANDIDATE_POSTAL_CODE}"
     timezone: "Asia/Kolkata"
   links:
     linkedin: "https://www.linkedin.com/in/mohit-ranjan-759188169"

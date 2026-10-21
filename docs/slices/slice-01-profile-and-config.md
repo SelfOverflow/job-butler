@@ -36,6 +36,9 @@ src/
 ```
 
 ### Profile Models & Mutability Engine
+- `ProfileLoader`:
+  * Resolves environment variable placeholders (`${CANDIDATE_PHONE}`, `${CANDIDATE_CITY}`, etc.) dynamically using `.env` / system environment variables with fallback support `${VAR:-default}`.
+  * Validates parsed data against `CandidateProfile` Pydantic model.
 - `ProfileUpdater`:
   * Validates proposed changes against Pydantic schema *before* writing to disk.
   * Creates timestamped backup in `profile/backups/candidate_profile_<timestamp>.yaml`.
@@ -53,7 +56,9 @@ Tests in `tests/unit/test_slice1_profile.py`:
    - Validates reading `APP_ENV`, default SQLite path, artifact directory, and optional API keys.
 2. `test_candidate_profile_valid()`:
    - Loads `candidate_profile.yaml`; asserts all fields, 4 mandatory roles, and nested bullets parse accurately.
-3. `test_profile_updater_creates_backup_on_mutation()`:
+3. `test_profile_loader_env_variable_interpolation()`:
+   - Tests that `${CANDIDATE_PHONE}` and `${CANDIDATE_CITY}` are dynamically resolved from environment variables during YAML loading.
+4. `test_profile_updater_creates_backup_on_mutation()`:
    - Updates candidate preferences; asserts a backup file is created in `profile/backups/` matching prior state.
 4. `test_profile_updater_rejects_invalid_mutation()`:
    - Attempts to update with invalid email or missing mandatory fields; asserts `ValidationError` is raised and profile file remains untouched.
