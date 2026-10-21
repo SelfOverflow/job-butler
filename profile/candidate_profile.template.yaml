@@ -1,0 +1,169 @@
+# ==============================================================================
+# Job Butler - Candidate Profile Template
+# ==============================================================================
+# Instructions:
+# 1. Copy this file to `profile/candidate_profile.yaml`
+# 2. Fill in your details, career history, and preferences.
+# 3. Environment variables (e.g. ${CANDIDATE_PHONE}) are automatically interpolated from .env.
+# 4. Run `job-butler profile validate` to ensure all fields are correct.
+# ==============================================================================
+
+personal_info:
+  full_name: "Jane Doe"
+  email: "${CANDIDATE_EMAIL:-jane.doe@example.com}"
+  phone: "${CANDIDATE_PHONE}"
+  location:
+    city: "${CANDIDATE_CITY}"
+    state: "${CANDIDATE_STATE}"
+    country: "United States"
+    postal_code: "${CANDIDATE_POSTAL_CODE}"
+    timezone: "America/New_York"
+  links:
+    linkedin: "https://www.linkedin.com/in/janedoe" # Full verbatim URL
+    github: "https://github.com/janedoe"
+    portfolio: "https://janedoe.dev"
+  work_authorization:
+    citizen_countries: ["United States"]
+    requires_visa_for_international: false
+    sponsorship_needed: "none" # or "requires_sponsorship_outside_home_country"
+
+preferences:
+  target_roles:
+    - "Senior Software Engineer"
+    - "Tech Lead"
+    - "Backend Systems Architect"
+
+  sourcing_hierarchy:
+    tier1_primary_market:
+      description: "Domestic / Primary resident market (Zero visa friction)"
+      boost: 5
+      hubs: ["New York, NY", "San Francisco, CA", "Remote"]
+      standard_hubs: ["Austin, TX", "Seattle, WA", "Boston, MA"]
+    tier2_international_priority:
+      description: "Target relocation markets with visa sponsorship"
+      boost: 4
+      countries: ["United Kingdom", "Germany", "Netherlands", "Canada"]
+    tier3_secondary_relocation:
+      description: "High priority secondary markets"
+      boost: 2
+      countries: ["UAE", "Singapore", "Australia"]
+    tier4_worldwide:
+      description: "Worldwide remote and all other hubs"
+      boost: 0
+      locations: ["Global Remote"]
+
+  excluded_employers:
+    # Employers the agent must NEVER search for, recommend, or apply to:
+    - "Current Employer Inc"
+    - "Past Company LLC"
+
+  cv_page_budget_rules:
+    domestic: 1       # Exactly 1 page for domestic applications
+    international: 2  # Exactly 2 pages for international relocation applications
+    cover_letter: 1   # Exactly 1 page for cover letters
+
+skills_inventory:
+  languages_and_frameworks:
+    - name: "Python"
+      proficiency: "expert"
+      years_of_experience: 6
+    - name: "TypeScript"
+      proficiency: "advanced"
+      years_of_experience: 4
+    - name: "FastAPI"
+      proficiency: "expert"
+      years_of_experience: 4
+    - name: "React"
+      proficiency: "advanced"
+      years_of_experience: 4
+
+  cloud_and_infrastructure:
+    - name: "Docker"
+      proficiency: "expert"
+      years_of_experience: 5
+    - name: "AWS"
+      proficiency: "advanced"
+      years_of_experience: 4
+    - name: "Kubernetes"
+      proficiency: "intermediate"
+      years_of_experience: 2
+    - name: "PostgreSQL"
+      proficiency: "expert"
+      years_of_experience: 5
+
+work_experience:
+  - id: "exp_company_alpha"
+    company: "Alpha Technologies"
+    title: "Senior Backend Engineer"
+    location: "New York, NY (Remote)"
+    start_date: "2023-01"
+    end_date: null # Present
+    is_current: true
+    summary: "Led high-throughput distributed microservices development."
+    atomic_bullets:
+      - id: "b_alpha_1"
+        text: "Architected event-driven ingestion pipeline handling 25,000 requests per second with 99.99% uptime."
+        skills: ["Python", "FastAPI", "Kafka", "PostgreSQL", "Distributed Systems"]
+        metrics:
+          throughput_rps: 25000
+          uptime_pct: 99.99
+        tags: ["backend", "scaling", "distributed_systems"]
+      - id: "b_alpha_2"
+        text: "Reduced P99 database query latency by 45% by implementing distributed Redis caching and query indexing."
+        skills: ["Redis", "PostgreSQL", "Query Optimization"]
+        metrics:
+          latency_reduction_pct: 45
+        tags: ["performance", "caching"]
+
+  - id: "exp_company_beta"
+    company: "Beta Systems"
+    title: "Software Engineer"
+    location: "Boston, MA"
+    start_date: "2020-06"
+    end_date: "2022-12"
+    is_current: false
+    summary: "Full-stack development for enterprise client portals."
+    atomic_bullets:
+      - id: "b_beta_1"
+        text: "Engineered customer onboarding portal using React, TypeScript, and Node.js, reducing sign-up friction by 30%."
+        skills: ["React", "TypeScript", "Node.js"]
+        metrics:
+          conversion_uplift_pct: 30
+        tags: ["fullstack", "frontend"]
+
+education:
+  - institution: "University of Example"
+    degree: "B.S."
+    field_of_study: "Computer Science"
+    start_date: "2016"
+    end_date: "2020"
+    gpa: "3.8 / 4.0"
+
+certifications:
+  - name: "AWS Certified Solutions Architect"
+    issuer: "Amazon Web Services"
+    year: 2024
+
+star_stories:
+  - id: "star_incident_resolution"
+    situation: "Critical payments outage during peak traffic period."
+    task: "Identify root cause and restore transaction processing without data loss."
+    action: "Diagnosed database connection pool exhaustion, deployed zero-downtime connection pooling patch, and instituted circuit-breaker pattern."
+    result: "Recovered all stalled transactions within 12 minutes with zero data corruption."
+
+screening_question_bank:
+  - question_pattern: "(?i)years of experience with (python|backend)"
+    answer_type: "number"
+    answer_value: 6
+  - question_pattern: "(?i)authorized to work in (the )?(us|united states)"
+    answer_type: "boolean"
+    answer_value: true
+  - question_pattern: "(?i)require (visa )?sponsorship"
+    answer_type: "boolean"
+    answer_value: false
+  - question_pattern: "(?i)notice period"
+    answer_type: "text"
+    answer_value: "2 weeks"
+  - question_pattern: "(?i)expected (salary|compensation)"
+    answer_type: "text"
+    answer_value: "Competitive market rate"

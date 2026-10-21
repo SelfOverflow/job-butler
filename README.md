@@ -40,15 +40,27 @@ job_butler/
 
 ## Quickstart
 
-### Local Execution (Docker Compose)
+### 1. Zero-Friction Setup for Any Candidate
+Job Butler is completely data-driven. Any candidate can set up and run the platform in 3 quick steps:
+
 ```bash
-# 1. Copy sample environment file and configure API keys
+# Step 1: Copy environment file and enter your API keys & contact info
 cp .env.example .env
 
-# 2. Start the complete stack (Next.js frontend on 3000, FastAPI backend on 8000)
+# Step 2: Initialize your candidate profile from template
+job-butler profile init
+# (Or manually: cp profile/candidate_profile.template.yaml profile/candidate_profile.yaml)
+
+# Step 3: Validate your profile
+job-butler profile validate
+```
+
+### 2. Local 24/7 Execution (Docker Compose)
+```bash
+# Start the full stack (Next.js frontend on 3000, FastAPI backend on 8000)
 make up
 
-# 3. Access the dashboard
+# Open the dashboard
 open http://localhost:3000
 ```
 

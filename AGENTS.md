@@ -60,55 +60,33 @@ job_butler/
 
 ---
 
-## 2. Immutable Candidate Profile & Domain Rules
+## 2. Universal Data-Driven Design & Candidate Independence
 
-When writing code, tailoring resumes, or scraping jobs, you must observe these strict candidate rules:
+### 2.1 Critical Rule: Zero Hardcoding of Candidate Data
+While this repository is currently initialized with career data for **Mohit Ranjan**, **ALL Python backend logic, ATS scoring algorithms, Typst resume templates, and scraping filters MUST be 100% generic and data-driven**:
+- **Never hardcode names, phone numbers, emails, LinkedIn URLs, employers, or locations in source code**.
+- All personal identity, career history, excluded employers, target roles, and market tiers MUST be parsed dynamically from `profile/candidate_profile.yaml` (and environment variables).
+- Any developer or job seeker must be able to fork/clone this repository, provide their own `candidate_profile.yaml` and `.env`, and run the entire platform with zero friction.
 
-### 2.1 Candidate Identity
-- **Name**: Mohit Ranjan
-- **Location**: Injected via `.env` (`${CANDIDATE_CITY}`, `${CANDIDATE_STATE}`, India)
-- **Phone**: Injected via `.env` (`${CANDIDATE_PHONE}`)
-- **Email**: `mohit.ranjan.910@gmail.com`
-- **LinkedIn Directive**: Always display the full verbatim LinkedIn URL on all CVs, cover letters, and applications: `https://www.linkedin.com/in/mohit-ranjan-759188169` (never trim or shorten).
-- **GitHub**: `https://github.com/MohitR1999`
-
-### 2.2 Mandatory 4 Roles (Never Omit)
-Every generated resume MUST explicitly include all 4 full-time and internship positions:
-1. **OakNorth India** — Technical Lead (Individual Contributor) (Jul 2025 - Present)
-2. **Tejas Networks Ltd** — Senior Engineer (Apr 2024 - Jul 2025)
-3. **Tejas Networks Ltd** — Research & Development Engineer (Jul 2021 - Apr 2024)
-4. **Stepswatch SASU** — Frontend Developer Intern (Mar 2020 - May 2020)
-
-### 2.3 Excluded Employers (Hard Auto-Purge)
-Never search for, scrape, recommend, or apply to postings from:
-- **OakNorth** (`oaknorth.com`, `oaknorth.co.uk`, OakNorth Bank, OakNorth India)
-- **Tejas Networks** (`tejasnetworks.com`, Tejas Networks Ltd)
-- **Stepswatch** (Stepswatch SASU)
-
-### 2.4 Sourcing Scope & Regional Boost Hierarchy
-- **Tier 1 (India Domestic)**: Resident, zero visa friction.
-  - +5 point boost: Bengaluru / Bangalore, Remote India.
-  - +3 point boost: Delhi NCR, Gurugram, Noida, Hyderabad, Pune, Mumbai, Chennai.
-- **Tier 2 (EU & Nordics)**: Top-tier international priority (Visa Sponsorship / EU Blue Card, +4 point boost).
-  - Sweden, Denmark, Norway, Finland, Germany, Netherlands, Ireland, France, Spain, Switzerland, etc.
-- **Tier 3 (GCC / Middle East)**: High-priority international (Visa Sponsorship / Relocation, +2 point boost).
-  - UAE (Dubai, Abu Dhabi), Saudi Arabia, Qatar, Kuwait, Bahrain, Oman.
-- **Tier 4 (Worldwide Relocation & Global Remote)**: Base score.
-  - UK, US, Canada, Australia, Singapore, Japan, Worldwide Remote.
-
-### 2.5 Zero Hallucination & ATS Standards
-- **Zero Hallucination Constraint**: Resumes are generated **strictly by selecting, ranking, and highlighting verified atomic bullet IDs** from `profile/candidate_profile.yaml`. The agent is strictly forbidden from fabricating metrics, projects, or employment history.
-- **Geographic Page Budget Rule**:
-  - India Domestic: Exactly **1 page**.
-  - International Relocation: Exactly **2 pages**.
-  - Cover Letter: Exactly **1 page** (compile to both PDF and clean line-broken `.txt`).
-- **Standard ATS Headings**: Canonical headers only (`Professional Experience`, `Technical Skills`, `Education`, `Projects`, `Certifications`).
-- **Date Normalization**: Strictly `Mon YYYY - Mon YYYY` (or `Mon YYYY - Present`) using a single ASCII hyphen `-`.
-- **Text Layer Extraction Verification**: Every compiled PDF must be verified via `pypdf`/`pdftotext` to confirm 100% extractable text and presence of 25–35 exact JD keywords.
+### 2.2 Active Candidate Workspace Context (Mohit Ranjan)
+When evaluating the active configuration in this repository, the agent operates with these parameters loaded from `profile/candidate_profile.yaml`:
+- **Identity**: Mohit Ranjan, Delhi, India (Location & Phone masked via `.env`).
+- **LinkedIn Directive**: Full verbatim LinkedIn URL rendered on all generated documents.
+- **Active Excluded Employers**: OakNorth, Tejas Networks, Stepswatch (loaded from `preferences.excluded_employers`).
+- **Active Target Roles**: Senior Full-Stack Engineer, Technical Lead, Lead Mobile Engineer, Senior React Native Engineer, Distributed Systems Engineer.
+- **Active Market Tiers**: Tier 1 (India Domestic +5/+3), Tier 2 (EU & Nordics +4), Tier 3 (GCC +2), Tier 4 (Worldwide).
 
 ---
 
-## 3. Engineering & SDLC Guidelines (Strict TDD)
+## 3. Zero-Friction Setup for New Candidates (`job-butler profile init`)
+Any new user can adopt Job Butler in 3 steps:
+1. `cp .env.example .env` (configure API keys & masked contact info).
+2. `cp profile/candidate_profile.template.yaml profile/candidate_profile.yaml` (or run `job-butler profile init`).
+3. Run `job-butler profile validate` or `make up`.
+
+---
+
+## 4. Engineering & SDLC Guidelines (Strict TDD)
 
 Any code modification in this repo must follow standard **Test-Driven Development (TDD)**:
 1. **Red**: Write a failing unit or integration test defining the behavior.
@@ -127,7 +105,7 @@ make down         # Stop local Docker Compose containers
 
 ---
 
-## 4. Candidate Profile Mutability Protocol
+## 5. Candidate Profile Mutability Protocol
 - The candidate profile at `profile/candidate_profile.yaml` can be edited at any time directly, via CLI (`job-butler profile update`), or through the Web UI (`PUT /api/profile`).
 - Before any programmatic save, the system **MUST** create a timestamped backup in `profile/backups/candidate_profile_<YYYYMMDD_HHMMSS>.yaml`.
 - The 24/7 background scheduler dynamically re-reads `candidate_profile.yaml` on every sweep cycle (hot-reloading).

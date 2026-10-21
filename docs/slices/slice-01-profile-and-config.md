@@ -1,21 +1,24 @@
 # Slice 1: Candidate Profile & Config Core
 
 ## 1. Usable Product Delivered at Slice End
-At the completion of Slice 1, you will have a working, interactive CLI tool to manage, validate, query, and **edit/update** your career profile at any point:
+At the completion of Slice 1, you will have a working, interactive CLI tool to scaffold, manage, validate, query, and edit any candidate profile with zero friction:
+- Run `job-butler profile init` $\rightarrow$ Scaffolds a new `profile/candidate_profile.yaml` from `profile/candidate_profile.template.yaml` (interactive or template mode) for any user.
 - Run `job-butler profile validate` $\rightarrow$ Validates `candidate_profile.yaml` for:
-  * Complete personal identity (verbatim LinkedIn URL, email, location).
-  * Unique fact-hashed `atomic_bullets` across all 4 mandatory roles (OakNorth, Tejas Sr Eng, Tejas R&D, Stepswatch).
-  * Excluded employer configuration (OakNorth, Tejas Networks, Stepswatch).
+  * Complete personal identity (full verbatim LinkedIn URL, email, location).
+  * Unique fact-hashed `atomic_bullets` across all career positions.
+  * Configured employer exclusions and target roles.
   * Structured STAR stories for behavioral Q&A.
 - Run `job-butler profile update --set "preferences.min_base_salary=180000"` $\rightarrow$ Safely updates profile values via CLI, automatically creating a timestamped backup before saving.
-- Run `job-butler profile add-bullet --role-id exp_oaknorth_lead --text "..." --skills "..."` $\rightarrow$ Interactively appends a verified atomic bullet with automatic ID generation and fact hashing.
+- Run `job-butler profile add-bullet --role-id <ROLE_ID> --text "..." --skills "..."` $\rightarrow$ Interactively appends a verified atomic bullet with automatic ID generation and fact hashing.
 - Run `job-butler profile backups` $\rightarrow$ Lists historical profile backups with 1-click restore capability.
 - Run `job-butler profile query "Are you authorized to work in India?"` $\rightarrow$ Resolves answers against the screening bank.
 - Run `job-butler profile export-master` $\rightarrow$ Compiles your canonical profile into an ATS-aligned Markdown master resume.
 
 ```bash
 # Example usable command right after Slice 1:
-job-butler profile validate --profile profile/candidate_profile.yaml
+job-butler profile init
+# Output: [✓] Scaffolding candidate_profile.yaml from template... Ready to edit!
+job-butler profile validate
 # Output: [✓] Profile valid: Mohit Ranjan (17 atomic bullets, 4 roles, 2 STAR stories, 6 screening answers registered)
 ```
 
