@@ -1,52 +1,57 @@
-# Slice 2: Deterministic Ingestion & Link Verification Engine
+# Slice 2: Job Scout & Live Link Verifier CLI
 
-## 1. Goal & Scope
-Build a high-performance job scraping, verification, and persistence pipeline. It leverages the **Firecrawl API** to seamlessly bypass anti-bot protections, render JavaScript pages, and crawl target job boards and career search engines into clean markdown and structured postings. Additionally supports direct ATS feeds (Greenhouse, Lever), verifies that listings are live and active via HTTP probes, deduplicates entries, and persists records into SQLite.
+## 1. Usable Product Delivered at Slice End
+At the completion of Slice 2, you will have a working job scouting CLI that fetches live postings using **Firecrawl** and ATS endpoints, verifies their links are active, deduplicates records, and saves them to SQLite:
+- Run `job-butler scout run --limit 10` $\rightarrow$ Scrapes jobs matching your target roles, tests every URL with live HTTP status probes, and persists active jobs into SQLite.
+- Run `job-butler scout list` $\rightarrow$ Prints an interactive terminal table of all active discovered jobs, their companies, locations, source, and liveness status.
+- Run `job-butler scout verify` $\rightarrow$ Re-checks existing jobs in the database and archives expired listings.
+
+```bash
+# Example usable command right after Slice 2:
+job-butler scout list
+# Output:
+# ID       Company     Title                     Location    Active  Source
+# -------------------------------------------------------------------------
+# job_01   Stripe      Sr Backend Engineer       Remote      [LIVE]  Greenhouse
+# job_02   Anthropic   Distributed Systems Eng   SF, CA      [LIVE]  Lever
+# job_03   OpenAI      AI Platform Engineer      Remote      [LIVE]  Firecrawl
+```
 
 ## 2. Components & Architecture
 ```
 src/
 ├── storage/
-│   ├── __init__.py
-│   ├── database.py          # SQLAlchemy engine, session maker, DB initialization
+│   ├── database.py          # SQLite engine & session maker
 │   ├── models.py            # JobPosting, IngestionLog, ApplicationRecord ORM models
-│   └── repository.py        # CRUD operations for jobs and status tracking
-└── ingestion/
-    ├── __init__.py
-    ├── base.py              # AbstractJobSource protocol and RawJobPosting DTO
-    ├── firecrawl_client.py  # Wrapper client for Firecrawl API (scrape, crawl, map)
-    ├── sources/
-    │   ├── firecrawl_source.py # Firecrawl-based web scraping adapter for job boards
-    │   ├── greenhouse.py    # Greenhouse board API adapter
-    │   └── lever.py         # Lever board API adapter
-    ├── verifier.py          # HTTP link liveness and 'expired posting' DOM checker
-    └── deduplicator.py      # Content hashing (normalized title + company + location)
+│   └── repository.py        # CRUD queries (insert_job, list_active_jobs, archive_expired)
+├── ingestion/
+│   ├── base.py              # AbstractJobSource protocol and RawJobPosting DTO
+│   ├── firecrawl_client.py  # Firecrawl API wrapper (scrape, search, map)
+│   ├── sources/
+│   │   ├── firecrawl_source.py # Firecrawl job search adapter
+│   │   ├── greenhouse.py    # Greenhouse board API adapter
+│   │   └── lever.py         # Lever board API adapter
+│   ├── verifier.py          # HTTP link liveness and expired DOM text probe
+│   └── deduplicator.py      # Title + Company + Location content hasher
+└── cli_scout.py             # Subcommands: `job-butler scout run/list/verify`
 ```
 
-## 3. TDD Test Specification (Red Phase)
-Before implementation, the following unit and integration tests will be written in `tests/unit/` and `tests/integration/`:
+## 3. TDD Red-Phase Test Specification
+Tests in `tests/unit/test_slice2_scout.py` and `tests/integration/test_slice2_storage.py`:
 
-1. `test_raw_job_posting_normalization()`:
-   - Asserts cleaning of HTML entities, whitespace normalization, and ISO timestamp parsing.
-2. `test_firecrawl_scraper_adapter()`:
-   - Uses a recorded mock response from Firecrawl `/scrape` and `/map` endpoints.
-   - Asserts extraction of markdown JD, job title, company name, location, and metadata.
-3. `test_greenhouse_source_adapter()`:
-   - Uses a recorded JSON fixture of a Greenhouse jobs endpoint.
-   - Asserts correct extraction of title, company, location, URL, and raw markdown/text description.
-3. `test_lever_source_adapter()`:
-   - Uses a recorded JSON fixture of a Lever jobs endpoint.
-   - Asserts extraction of categories (team, commitment, location) and application URL.
-4. `test_link_verifier_live_url()`:
-   - Mocks HTTP 200 OK with valid job content; asserts `is_active=True`.
-5. `test_link_verifier_expired_url()`:
-   - Mocks HTTP 404, 410, and HTTP 200 with "This job has been filled / expired" text; asserts `is_active=False`.
-6. `test_deduplication_and_repository_upsert()`:
-   - Verifies duplicate postings across multiple runs update `last_verified_at` without duplicating database rows.
+1. `test_firecrawl_scraper_response_parsing()`:
+   - Feeds a recorded Firecrawl scrape response; asserts extraction of job title, company, description, and link.
+2. `test_greenhouse_and_lever_parsers()`:
+   - Validates ATS board endpoints without making live web calls.
+3. `test_link_verifier_live_vs_expired()`:
+   - Mocks HTTP 200 (live) vs 404 / 410 (expired) vs 200 with "job no longer available" text.
+4. `test_job_repository_deduplication()`:
+   - Asserts inserting the same job twice updates `last_verified_at` without creating duplicate records.
+5. `test_cli_scout_list_command()`:
+   - Seeds mock jobs into SQLite and executes `job-butler scout list` via `CliRunner`; asserts tabular display.
 
 ## 4. Acceptance Criteria
-- [ ] 100% test pass rate with `pytest tests/unit/test_ingestion* tests/unit/test_storage*`
-- [ ] Hermetic tests using `respx` / mock HTTP clients (no real external network calls during unit tests)
-- [ ] Strict type checking passes with `mypy --strict src/ingestion src/storage`
-- [ ] Clean SQLite migration and persistence verified.
-
+- [ ] 100% test pass rate with `pytest tests/unit/test_slice2* tests/integration/test_slice2*`
+- [ ] All network calls mocked with `respx` for deterministic, fast unit tests.
+- [ ] SQLite database initialized automatically in `./data/job_butler.db`.
+- [ ] CLI commands `job-butler scout run` and `job-butler scout list` work out of the box.

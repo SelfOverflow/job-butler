@@ -262,22 +262,29 @@ screening_question_bank:
 
 ---
 
-## 8. Incremental TDD Slice Delivery Roadmap
+## 8. Incremental TDD Slice Delivery Roadmap (Usable Product at Every Step)
 
-Each slice is implemented with the **Red $\rightarrow$ Green $\rightarrow$ Refactor** cycle:
+Every slice is implemented through the **Red $\rightarrow$ Green $\rightarrow$ Refactor** cycle, culminating in a concrete, runnable feature you can execute immediately:
 
-* **Slice 1: Candidate Profile & Config Core**
-  * Pydantic schemas for `CandidateProfile`, validation rules, YAML loaders, atomic bullet verification tests.
-* **Slice 2: Deterministic Ingestion & Link Verification Engine**
-  * Base scraper interfaces, Greenhouse & Lever scrapers, HTTP link live-checker, deduplication cache.
-* **Slice 3: Resume & Cover Letter Tailor Agent (API-driven LLM)**
-  * ATS keyword extractor, atomic bullet selection engine (zero hallucination constraint), Typst PDF compiler and tests.
-* **Slice 4: Application Navigator Agent & HITL Escalation**
-  * Playwright form automation for direct ATS targets, blocker detection (CAPTCHA/login detection), fallback queue manager.
-* **Slice 5: Real-Time UI Dashboard & Human Escalation Interface**
-  * FastAPI REST + WebSocket backend, real-time activity stream, interactive HITL resolution interface, analytics & upskill graphs.
-* **Slice 6: Analytics, Market Trends & Upskilling Engine**
-  * Skill demand frequency aggregator, trend visualizer, upskilling ROI recommendation logic.
-* **Slice 7: Dockerization, Low-Cost EC2 Terraform & CI/CD**
-  * Multi-stage `Dockerfile`, `docker-compose.yml` for local runs, cost-effective EC2 Terraform modules (t4g.small/t3.micro, EBS, SSM), and GitHub Actions CI/CD workflows.
+* **[Slice 1: Candidate Profile & Config Core](slices/slice-01-profile-and-config.md)**
+  * **Runnable Output**: `job-butler profile validate`, `job-butler profile query "screening question"`, and `job-butler profile export-master`.
+  * Validates your profile schema, guarantees unique fact-hashed atomic bullets, and tests automated screening answers.
+* **[Slice 2: Job Scout & Live Link Verifier CLI](slices/slice-02-ingestion-and-verification.md)**
+  * **Runnable Output**: `job-butler scout run` and `job-butler scout list`.
+  * Scrapes target jobs via Firecrawl and ATS feeds, checks active link liveness, deduplicates into SQLite, and displays active roles in a formatted terminal table.
+* **[Slice 3: AI Resume Tailor & ATS Scorer CLI](slices/slice-03-tailor-agent.md)**
+  * **Runnable Output**: `job-butler tailor --job-id <ID>`.
+  * Evaluates ATS fit score, extracts JD keywords, selects verified atomic bullets (zero hallucinations), and compiles a ready-to-submit ATS PDF via Typst.
+* **[Slice 4: Real-Time Web Dashboard](slices/slice-04-realtime-web-dashboard.md)**
+  * **Runnable Output**: `job-butler serve` at `http://localhost:8000`.
+  * Modern web UI streaming real-time WebSocket events, listing active jobs, displaying ATS match badges, and providing 1-click tailored PDF resume downloads.
+* **[Slice 5: Auto-Apply Navigator & HITL Escalation](slices/slice-05-auto-apply-and-hitl.md)**
+  * **Runnable Output**: `job-butler apply --job-id <ID>` & Web Dashboard HITL Queue.
+  * Headless Playwright submits direct ATS forms with confirmation screenshots; automatically escalates account portals, CAPTCHAs, and 2FA to the Web Dashboard with 1-click resolution.
+* **[Slice 6: 24/7 Autopilot Scheduler & Upskilling Insights](slices/slice-06-autopilot-and-upskilling.md)**
+  * **Runnable Output**: `job-butler autopilot start` & `job-butler analytics report`.
+  * 24/7 background worker running hourly cycles; real-time dashboard analytics displaying market demand heatmaps and mathematical upskilling recommendations.
+* **[Slice 7: Dockerization, Low-Cost EC2 Terraform & CI/CD](slices/slice-07-docker-ec2-terraform-cicd.md)**
+  * **Runnable Output**: `make up` (local Docker Compose) & `terraform apply` (AWS EC2 deployment).
+  * Multi-stage `Dockerfile`, 1-click local Docker Compose, Terraform modules for low-cost EC2/EBS/SSM, and GitHub Actions automated CI/CD workflows.
 
