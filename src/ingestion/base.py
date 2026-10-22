@@ -2,8 +2,17 @@
 
 import html
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
+
+# progress(stage, done, total, detail): called with done=0 when a stage starts and
+# after each completed step, so callers can render progress without coupling.
+ProgressFn = Callable[[str, int, int, str], None]
+
+
+def no_progress(stage: str, done: int, total: int, detail: str) -> None:
+    pass
 
 
 @dataclass(frozen=True)

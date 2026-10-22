@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass, field
 import httpx
 from sqlalchemy.orm import Session
 
+from src.ingestion.base import ProgressFn, no_progress
 from src.ingestion.deduplicator import dedupe
 from src.ingestion.discovery import discover
 from src.ingestion.filter import drop_excluded
@@ -37,11 +38,12 @@ def run_sweep(
     http: httpx.Client,
     firecrawl: FirecrawlClient | None,
     limit: int | None = None,
+    progress: ProgressFn = no_progress,
 ) -> SweepReport:
     """One full scout cycle. Only the top `limit` jobs by score are verified and saved."""
     started = time.monotonic()
     report = SweepReport()
-    jobs, report.errors = discover(profile, firecrawl, http)
+    jobs, report.errors = discover(profile, firecrawl, http, progress)
     report.discovered = len(jobs)
 
     kept = drop_excluded(jobs, profile.preferences.excluded_employers)
@@ -54,8 +56,11 @@ def run_sweep(
     report.rejected = len(scored) - len(eligible)
     eligible.sort(key=lambda pair: pair[1].score, reverse=True)
 
-    for job, score in eligible[:limit]:
+    to_verify = eligible[:limit]
+    progress("verify", 0, len(to_verify), "")
+    for done, (job, score) in enumerate(to_verify, start=1):
         liveness = verify(job.url, http)
+        progress("verify", done, len(to_verify), job.url)
         if liveness.status == "closed":
             report.closed += 1
             continue
@@ -87,11 +92,16 @@ def run_sweep(
     return report
 
 
-def verify_stored(session: Session, http: httpx.Client) -> dict[str, int]:
+def verify_stored(
+    session: Session, http: httpx.Client, progress: ProgressFn = no_progress
+) -> dict[str, int]:
     """Re-check every active job; closed ones are deactivated, unknown ones kept."""
     counts = {"live": 0, "closed": 0, "unknown": 0}
-    for row in repo.list_active(session):
+    rows = repo.list_active(session)
+    progress("verify", 0, len(rows), "")
+    for done, row in enumerate(rows, start=1):
         liveness = verify(row.url, http)
+        progress("verify", done, len(rows), row.url)
         counts[liveness.status] += 1
         if liveness.status == "closed":
             repo.mark_inactive(session, row.id)

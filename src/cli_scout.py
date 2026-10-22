@@ -6,10 +6,21 @@ from typing import Annotated
 
 import httpx
 import typer
+from rich.console import Console
+from rich.progress import (
+    BarColumn,
+    MofNCompleteColumn,
+    Progress,
+    SpinnerColumn,
+    TaskID,
+    TextColumn,
+    TimeElapsedColumn,
+)
 from sqlalchemy.orm import Session
 
 from src.cli_common import friendly_errors, profile_loader
 from src.config.settings import Settings
+from src.ingestion.base import ProgressFn
 from src.ingestion.firecrawl_client import FirecrawlClient
 from src.ingestion.pipeline import run_sweep, verify_stored
 from src.storage import repository as repo
@@ -40,6 +51,36 @@ def _session() -> Iterator[Session]:
         engine.dispose()
 
 
+STAGES = {
+    "search": "Searching Firecrawl",
+    "boards": "Fetching company boards",
+    "verify": "Verifying links",
+}
+
+
+@contextmanager
+def _progress_bars() -> Iterator[ProgressFn]:
+    """One live bar per pipeline stage, on stderr so stdout stays scriptable."""
+    columns = (
+        SpinnerColumn(),
+        TextColumn("{task.description:<24}"),
+        BarColumn(bar_width=30),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+        TextColumn("[dim]{task.fields[detail]}"),
+    )
+    with Progress(*columns, console=Console(stderr=True)) as bars:
+        tasks: dict[str, TaskID] = {}
+
+        def update(stage: str, done: int, total: int, detail: str) -> None:
+            if stage not in tasks:
+                tasks[stage] = bars.add_task(STAGES.get(stage, stage), total=total, detail="")
+            short = detail if len(detail) <= 50 else detail[:49] + "…"
+            bars.update(tasks[stage], completed=done, total=total, detail=short)
+
+        yield update
+
+
 def _http() -> httpx.Client:
     return httpx.Client(headers={"User-Agent": USER_AGENT})
 
@@ -67,7 +108,8 @@ def run(
             typer.echo(
                 "[!] FIRECRAWL_API_KEY not set: only preferences.watched_companies are scanned."
             )
-        report = run_sweep(profile, session, http, firecrawl, limit=limit)
+        with _progress_bars() as progress:
+            report = run_sweep(profile, session, http, firecrawl, limit=limit, progress=progress)
     typer.echo(
         f"[✓] Discovered {report.discovered}: excluded {report.excluded}, "
         f"duplicates {report.duplicates}, visa-rejected {report.rejected}, "
@@ -125,7 +167,7 @@ def list_jobs(
 @scout_app.command()
 def verify() -> None:
     """Re-check every active job's link; closed postings are deactivated."""
-    with _http() as http, _session() as session:
-        counts = verify_stored(session, http)
+    with _http() as http, _session() as session, _progress_bars() as progress:
+        counts = verify_stored(session, http, progress)
     summary = ", ".join(f"{status} {n}" for status, n in counts.items())
     typer.echo(f"[✓] Verified: {summary}")

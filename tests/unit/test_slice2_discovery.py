@@ -121,3 +121,13 @@ def test_discover_stops_searching_when_budget_runs_out(http: httpx.Client, tmp_p
     assert search.call_count == 1  # Remaining role queries skipped once the budget is spent.
     assert len(jobs) == len(GREENHOUSE_JOBS["jobs"])  # Boards found so far are still fetched.
     assert len(errors) == 1 and "budget" in errors[0]
+
+
+def test_discover_reports_search_progress(http: httpx.Client, tmp_path: Path) -> None:
+    respx.post(SEARCH).respond(200, json={"success": True, "data": {"web": []}, "creditsUsed": 1})
+    events: list[tuple[str, int, int, str]] = []
+    profile = _profile()
+    discover(profile, FirecrawlClient("k", http, tmp_path, 100), http, lambda *e: events.append(e))
+    n = len(profile.preferences.target_roles)
+    searches = [(d, t) for s, d, t, _ in events if s == "search"]
+    assert searches == [(i, n) for i in range(n + 1)]

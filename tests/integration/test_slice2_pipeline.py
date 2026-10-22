@@ -130,3 +130,24 @@ def test_verify_stored_deactivates_closed_jobs(session: Session, http: httpx.Cli
         e.details["liveness"]: e.status for e in repo.query_audit(session, action="LINK_VERIFIED")
     }
     assert statuses == {"closed": "WARNING", "unknown": "WARNING"}
+
+
+def test_progress_events_cover_each_stage(session: Session, http: httpx.Client) -> None:
+    events: list[tuple[str, int, int, str]] = []
+    run_sweep(_profile(), session, http, firecrawl=None, progress=lambda *e: events.append(e))
+
+    boards = [e for e in events if e[0] == "boards"]
+    assert [(done, total) for _, done, total, _ in boards] == [(0, 2), (1, 2), (2, 2)]
+    assert boards[1][3] == "Hooli"
+    verifies = [e for e in events if e[0] == "verify"]
+    assert [(done, total) for _, done, total, _ in verifies] == [(0, 3), (1, 3), (2, 3), (3, 3)]
+    assert verifies[1][3] == GOOD["absolute_url"]
+    assert not [e for e in events if e[0] == "search"]  # no Firecrawl client
+
+    events.clear()
+    verify_stored(session, http, progress=lambda *e: events.append(e))
+    assert [(s, d, t) for s, d, t, _ in events] == [
+        ("verify", 0, 2),
+        ("verify", 1, 2),
+        ("verify", 2, 2),
+    ]

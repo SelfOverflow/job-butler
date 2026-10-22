@@ -12,7 +12,7 @@ from urllib.parse import parse_qs, urlsplit
 
 import httpx
 
-from src.ingestion.base import RawJobPosting
+from src.ingestion.base import ProgressFn, RawJobPosting, no_progress
 from src.ingestion.filter import is_excluded_employer
 from src.ingestion.firecrawl_client import (
     BudgetExceededError,
@@ -59,20 +59,27 @@ def boards_from_results(results: Iterable[SearchResult]) -> list[WatchedCompany]
 
 
 def discover(
-    profile: CandidateProfile, firecrawl: FirecrawlClient | None, http: httpx.Client
+    profile: CandidateProfile,
+    firecrawl: FirecrawlClient | None,
+    http: httpx.Client,
+    progress: ProgressFn = no_progress,
 ) -> tuple[list[RawJobPosting], list[str]]:
     """Search, collect boards, drop excluded employers, and fetch every board."""
     errors: list[str] = []
     results: list[SearchResult] = []
     if firecrawl is not None:
-        for query in build_queries(profile):
+        queries = build_queries(profile)
+        progress("search", 0, len(queries), "")
+        for done, query in enumerate(queries, start=1):
             try:
                 results += firecrawl.search(query, limit=RESULTS_PER_QUERY, tbs=RECENCY)
             except BudgetExceededError as exc:
                 errors.append(str(exc))
+                progress("search", len(queries), len(queries), "budget exhausted")
                 break
             except FirecrawlError as exc:
                 errors.append(f"{query}: {exc}")
+            progress("search", done, len(queries), query)
 
     boards: dict[tuple[str, str], WatchedCompany] = {}
     for board in [*profile.preferences.watched_companies, *boards_from_results(results)]:
@@ -80,5 +87,5 @@ def discover(
     excluded = profile.preferences.excluded_employers
     wanted = [b for b in boards.values() if not is_excluded_employer(b.name, excluded)]
 
-    jobs, fetch_errors = fetch_watched(wanted, http)
+    jobs, fetch_errors = fetch_watched(wanted, http, progress)
     return jobs, errors + fetch_errors
