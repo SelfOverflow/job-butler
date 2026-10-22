@@ -2,7 +2,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from src.profile.loader import ProfileLoader
 from src.profile.models import CandidateProfile
@@ -27,7 +27,7 @@ def loader(tmp_path: Path) -> ProfileLoader:
 
 
 @pytest.fixture
-def sessions(tmp_path: Path) -> Iterator[object]:
+def sessions(tmp_path: Path) -> Iterator[sessionmaker[Session]]:
     engine = make_engine(f"sqlite:///{tmp_path / 'jobs.db'}")
     init_db(engine)
     yield session_factory(engine)
@@ -50,14 +50,31 @@ class Recorder:
 
 
 def _pilot(
-    loader: ProfileLoader, sessions: object, rec: Recorder, sleeps: list[float], **kw: object
+    loader: ProfileLoader,
+    sessions: sessionmaker[Session],
+    rec: Recorder,
+    sleeps: list[float],
+    interval_minutes: float = 60,
+    max_backoff_factor: int = 8,
+    jitter: float = 0.1,
 ) -> Autopilot:
     stages = [rec.stage("sweep"), rec.stage("tailor"), rec.stage("prepare")]
-    return Autopilot(loader, sessions, stages, sleep=sleeps.append, rng=lambda: 0.5, **kw)  # type: ignore[arg-type]
+    return Autopilot(
+        loader,
+        sessions,
+        stages,
+        sleep=sleeps.append,
+        rng=lambda: 0.5,
+        interval_minutes=interval_minutes,
+        max_backoff_factor=max_backoff_factor,
+        jitter=jitter,
+    )
 
 
-def test_autopilot_cycle_orchestration(loader: ProfileLoader, sessions: object) -> None:
-    rec, sleeps = Recorder(), []
+def test_autopilot_cycle_orchestration(
+    loader: ProfileLoader, sessions: sessionmaker[Session]
+) -> None:
+    rec, sleeps = Recorder(), list[float]()
     report = _pilot(loader, sessions, rec, sleeps).run_cycle()
 
     assert [name for name, _ in rec.calls] == ["sweep", "tailor", "prepare"]
@@ -66,24 +83,25 @@ def test_autopilot_cycle_orchestration(loader: ProfileLoader, sessions: object) 
         "tailor": "tailor done",
         "prepare": "prepare done",
     }
-    with sessions() as s:  # type: ignore[operator]
-        session: Session = s
+    with sessions() as session:
         [event] = repo.query_audit(session, action="AUTOPILOT_CYCLE")
         assert (event.actor, event.status) == ("agent:autopilot", "SUCCESS")
         assert event.details["stages"]["tailor"] == "tailor done"
 
 
-def test_failing_stage_is_isolated(loader: ProfileLoader, sessions: object) -> None:
+def test_failing_stage_is_isolated(loader: ProfileLoader, sessions: sessionmaker[Session]) -> None:
     rec = Recorder(fail={"tailor"})
     report = _pilot(loader, sessions, rec, []).run_cycle()
     assert [name for name, _ in rec.calls] == ["sweep", "tailor", "prepare"]  # prepare still ran
     assert not report.ok and report.results["tailor"] == "failed: tailor exploded"
-    with sessions() as s:  # type: ignore[operator]
+    with sessions() as s:
         [event] = repo.query_audit(s, action="AUTOPILOT_CYCLE")
         assert event.status == "WARNING"
 
 
-def test_hot_reload_and_frozen_snapshot(loader: ProfileLoader, sessions: object) -> None:
+def test_hot_reload_and_frozen_snapshot(
+    loader: ProfileLoader, sessions: sessionmaker[Session]
+) -> None:
     rec = Recorder()
     pilot = _pilot(loader, sessions, rec, [])
     pilot.run_cycle()
@@ -97,15 +115,19 @@ def test_hot_reload_and_frozen_snapshot(loader: ProfileLoader, sessions: object)
     assert "profile" in report.warnings[0]
 
 
-def test_no_profile_ever_loaded_fails_the_cycle(tmp_path: Path, sessions: object) -> None:
+def test_no_profile_ever_loaded_fails_the_cycle(
+    tmp_path: Path, sessions: sessionmaker[Session]
+) -> None:
     rec = Recorder()
     bad = ProfileLoader(tmp_path / "missing.yaml", env=ENV)
     report = _pilot(bad, sessions, rec, []).run_cycle()
     assert not report.ok and rec.calls == [] and "Profile not found" in report.warnings[0]
 
 
-def test_exponential_backoff_with_jitter(loader: ProfileLoader, sessions: object) -> None:
-    rec, sleeps = Recorder(fail={"sweep"}), []
+def test_exponential_backoff_with_jitter(
+    loader: ProfileLoader, sessions: sessionmaker[Session]
+) -> None:
+    rec, sleeps = Recorder(fail={"sweep"}), list[float]()
     pilot = _pilot(
         loader, sessions, rec, sleeps, interval_minutes=10, max_backoff_factor=4, jitter=0.1
     )
@@ -120,14 +142,16 @@ def test_exponential_backoff_with_jitter(loader: ProfileLoader, sessions: object
     assert sleeps == [600.0]  # a clean cycle resets to the base interval
 
 
-def test_jitter_spreads_the_interval(loader: ProfileLoader, sessions: object) -> None:
+def test_jitter_spreads_the_interval(
+    loader: ProfileLoader, sessions: sessionmaker[Session]
+) -> None:
     sleeps: list[float] = []
     pilot = Autopilot(
         loader,
         sessions,
         [Recorder().stage("sweep")],
         sleep=sleeps.append,
-        rng=lambda: 0.0,  # type: ignore[arg-type]
+        rng=lambda: 0.0,
         interval_minutes=10,
         jitter=0.1,
     )

@@ -94,7 +94,7 @@ class Autopilot:
 
     def next_delay(self) -> float:
         """Interval x backoff (2^failures, capped) x jitter in [1 - j, 1 + j]."""
-        backoff = min(2**self.consecutive_failures, self.max_backoff_factor)
+        backoff = min(1 << self.consecutive_failures, self.max_backoff_factor)
         return self.interval_s * backoff * (1 + self.jitter * (2 * self._rng() - 1))
 
     def run(
