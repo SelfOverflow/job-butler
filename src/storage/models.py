@@ -80,7 +80,8 @@ class ApplicationRecord(Base):
     status: Mapped[str] = mapped_column(String(20), index=True)
     barrier: Mapped[str | None] = mapped_column(String(40))
     plan: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)  # Field -> value.
-    questions: Mapped[list[str]] = mapped_column(JSON, default=list)  # Unanswered, required.
+    # Unanswered required fields: [{label, kind, options}] so the UI can render inputs.
+    questions: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     answers: Mapped[dict[str, str]] = mapped_column(JSON, default=dict)  # From the candidate.
     screenshot: Mapped[str | None]
     error: Mapped[str | None] = mapped_column(Text)

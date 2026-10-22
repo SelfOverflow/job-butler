@@ -10,6 +10,8 @@ from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
 from src.storage.models import PENDING_STATUSES, ApplicationStatus
 
+QUESTIONS = [{"label": "Why us?", "kind": "textarea", "options": []}]
+
 
 @pytest.fixture
 def session(tmp_path: Path) -> Iterator[Session]:
@@ -31,7 +33,7 @@ def test_save_and_update_application(session: Session) -> None:
     job_id = _job(session, 1)
     plan = [{"label": "First Name", "value": "Jane", "source": "profile"}]
     record = repo.save_application(
-        session, job_id, status=ApplicationStatus.NEEDS_INPUT, plan=plan, questions=["Why us?"]
+        session, job_id, status=ApplicationStatus.NEEDS_INPUT, plan=plan, questions=QUESTIONS
     )
     session.commit()
     created = record.updated_at
@@ -40,7 +42,7 @@ def test_save_and_update_application(session: Session) -> None:
     assert (record.status, record.plan, record.questions, record.answers) == (
         "needs_input",
         plan,
-        ["Why us?"],
+        QUESTIONS,
         {},
     )
 
