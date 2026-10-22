@@ -67,3 +67,8 @@ def test_dedupe_keeps_first_occurrence() -> None:
     dup = replace(first, company="HOOLI", source="firecrawl")
     other = _job(company="Pied Piper")
     assert dedupe([first, dup, other]) == [first, other]
+
+
+def test_raw_posting_trims_whitespace() -> None:
+    job = RawJobPosting(" Tech Lead\n", "GovTech ", "  Singapore ", "https://x", "d", "greenhouse")
+    assert (job.title, job.company, job.location) == ("Tech Lead", "GovTech", "Singapore")

@@ -25,6 +25,11 @@ class RawJobPosting:
     source: str  # Adapter name, e.g. "greenhouse", "lever", "firecrawl".
     posted_at: datetime | None = None
 
+    def __post_init__(self) -> None:
+        # Sources are sloppy ("GovTech "); trimming keeps dedupe keys and display clean.
+        for name in ("title", "company", "location"):
+            object.__setattr__(self, name, getattr(self, name).strip())
+
 
 def words(text: str) -> tuple[str, ...]:
     """Case- and punctuation-insensitive word tuple: `"Acme, Corp."` -> `("acme", "corp")`."""
