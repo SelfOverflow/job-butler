@@ -51,3 +51,32 @@ def test_docker_compose_configuration() -> None:
     assert any("./artifacts:" in v or "artifacts" in v for v in vol_strs), (
         "Must mount artifacts volume"
     )
+
+
+def test_terraform_structure() -> None:
+    tf_dir = REPO_ROOT / "terraform"
+    assert tf_dir.is_dir(), "terraform/ directory must exist"
+
+    # Root files
+    assert (tf_dir / "main.tf").is_file()
+    assert (tf_dir / "variables.tf").is_file()
+    assert (tf_dir / "outputs.tf").is_file()
+
+    # Modules
+    for mod in ("ec2", "ebs", "cloudwatch", "ssm"):
+        mod_dir = tf_dir / "modules" / mod
+        assert mod_dir.is_dir(), f"Module {mod} directory must exist"
+        assert (mod_dir / "main.tf").is_file()
+        assert (mod_dir / "variables.tf").is_file()
+        assert (mod_dir / "outputs.tf").is_file()
+
+    main_content = (tf_dir / "main.tf").read_text(encoding="utf-8")
+    assert 'provider "aws"' in main_content
+    for mod in ("ec2", "ebs", "cloudwatch", "ssm"):
+        assert f'module "{mod}"' in main_content
+
+    # Check CloudWatch module has log group and error alarm
+    cw_content = (tf_dir / "modules" / "cloudwatch" / "main.tf").read_text(encoding="utf-8")
+    assert "aws_cloudwatch_log_group" in cw_content
+    assert "aws_cloudwatch_metric_alarm" in cw_content
+
