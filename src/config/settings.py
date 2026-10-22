@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     profile_path: Path = Path("profile/candidate_profile.yaml")
 
     firecrawl_api_key: str | None = None
+    max_daily_scrape_credits: int = 100
+    firecrawl_state_dir: Path = Path("data/firecrawl")  # Shared credit budget + 12h cache.
     gemini_api_key: str | None = None
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
