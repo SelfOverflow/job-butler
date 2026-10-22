@@ -72,3 +72,22 @@ def test_dedupe_keeps_first_occurrence() -> None:
 def test_raw_posting_trims_whitespace() -> None:
     job = RawJobPosting(" Tech Lead\n", "GovTech ", "  Singapore ", "https://x", "d", "greenhouse")
     assert (job.title, job.company, job.location) == ("Tech Lead", "GovTech", "Singapore")
+
+
+@pytest.mark.parametrize(
+    ("haystack", "needle", "expected"),
+    [
+        (("a", "b", "c"), ("b",), True),
+        (("a", "b", "c"), ("b", "c"), True),
+        (("a", "b", "a", "c"), ("a", "c"), True),  # second occurrence of the first word
+        (("a", "b", "c"), ("c", "d"), False),
+        (("a",), (), False),
+        ((), ("a",), False),
+    ],
+)
+def test_contains_phrase(
+    haystack: tuple[str, ...], needle: tuple[str, ...], expected: bool
+) -> None:
+    from src.ingestion.base import contains_phrase
+
+    assert contains_phrase(haystack, needle) is expected

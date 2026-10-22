@@ -39,7 +39,19 @@ def words(text: str) -> tuple[str, ...]:
 def contains_phrase(haystack: tuple[str, ...], needle: tuple[str, ...]) -> bool:
     """True if `needle` occurs as a contiguous run of whole words in `haystack`."""
     n = len(needle)
-    return n > 0 and any(haystack[i : i + n] == needle for i in range(len(haystack) - n + 1))
+    if n == 0:
+        return False
+    if n == 1:
+        return needle[0] in haystack  # C-level scan; this is the hot path in scoring.
+    start = 0
+    while True:  # Only compare at positions where the first word occurs.
+        try:
+            i = haystack.index(needle[0], start)
+        except ValueError:
+            return False
+        if haystack[i : i + n] == needle:
+            return True
+        start = i + 1
 
 
 def html_to_text(markup: str) -> str:
