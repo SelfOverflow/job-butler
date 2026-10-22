@@ -16,7 +16,7 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    HOST=0.0.0.0 \
+    HOST=127.0.0.1 \
     PORT=8000 \
     DATABASE_URL=sqlite:////app/data/jobs.db \
     ARTIFACTS_DIR=/app/artifacts \
