@@ -30,7 +30,10 @@ def mock_ats() -> Iterator[MockATS]:
         def do_POST(self) -> None:  # noqa: N802 - http.server naming
             length = int(self.headers.get("Content-Length", 0))
             state.submissions.append(self.rfile.read(length))
-            body = b"<html><body><h1>Thank you for applying!</h1></body></html>"
+            if self.path.startswith("/reject"):  # Simulates a portal that silently rejects.
+                body = b"<html><body><p>Something went wrong. Please try again.</p></body></html>"
+            else:
+                body = b"<html><body><h1>Thank you for applying!</h1></body></html>"
             self.send_response(200)
             self.send_header("Content-Type", "text/html")
             self.send_header("Content-Length", str(len(body)))

@@ -41,3 +41,11 @@ def fill_form(page: Page, plan: FillPlan) -> None:
             page.set_input_files(spec.selector, value)
         else:
             page.fill(spec.selector, value)
+
+
+def submit_form(page: Page, plan: FillPlan) -> None:
+    """Click the submit control of the form that holds the planned fields, then wait."""
+    anchor = plan.planned[0].field.selector
+    form = page.locator(f"form:has({anchor})")
+    form.locator("button[type=submit], input[type=submit], button:not([type])").first.click()
+    page.wait_for_load_state("domcontentloaded")
