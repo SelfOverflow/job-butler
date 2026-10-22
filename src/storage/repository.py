@@ -36,8 +36,10 @@ def get_job(session: Session, job_id: str) -> JobPosting | None:
     return session.get(JobPosting, job_id)
 
 
-def list_active(session: Session, min_score: int | None = None) -> list[JobPosting]:
-    query = select(JobPosting).where(JobPosting.is_active)
+def list_active(
+    session: Session, min_score: int | None = None, active_only: bool = True
+) -> list[JobPosting]:
+    query = select(JobPosting).where(JobPosting.is_active) if active_only else select(JobPosting)
     if min_score is not None:
         query = query.where(JobPosting.score >= min_score)
     query = query.order_by(JobPosting.score.desc(), JobPosting.discovered_at)
@@ -81,6 +83,7 @@ def query_audit(
     action: str | None = None,
     status: str | None = None,
     limit: int = 100,
+    offset: int = 0,
 ) -> list[AuditLog]:
     """Newest first; filters are optional exact matches."""
     query = select(AuditLog)
@@ -92,5 +95,9 @@ def query_audit(
         if value is not None:
             query = query.where(column == value)
     # rowid breaks ties between events logged within the same microsecond.
-    query = query.order_by(AuditLog.timestamp.desc(), literal_column("rowid").desc()).limit(limit)
+    query = (
+        query.order_by(AuditLog.timestamp.desc(), literal_column("rowid").desc())
+        .limit(limit)
+        .offset(offset)
+    )
     return list(session.scalars(query))
