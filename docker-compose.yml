@@ -1,0 +1,27 @@
+services:
+  job-butler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: job-butler:latest
+    container_name: job-butler
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+      - ./profile:/app/profile
+    env_file:
+      - .env
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DATABASE_URL=sqlite:////app/data/jobs.db
+      - ARTIFACTS_DIR=/app/artifacts
+      - PROFILE_PATH=/app/profile/candidate_profile.yaml
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
