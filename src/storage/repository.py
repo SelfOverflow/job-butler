@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from sqlalchemy import literal_column, select
+from sqlalchemy import Integer, func, literal_column, select
 from sqlalchemy.orm import Session
 
 from src.ingestion.base import RawJobPosting
@@ -101,3 +101,16 @@ def query_audit(
         .offset(offset)
     )
     return list(session.scalars(query))
+
+
+def latest_audit_rowid(session: Session) -> int:
+    """SQLite rowids only grow, so they work as a cursor for new audit events."""
+    latest = session.scalar(select(func.max(literal_column("rowid"))).select_from(AuditLog))
+    return int(latest or 0)
+
+
+def audit_after(session: Session, rowid: int, limit: int = 500) -> list[tuple[int, AuditLog]]:
+    """Audit events inserted after `rowid`, oldest first, with their rowids."""
+    rid = literal_column("rowid", Integer)
+    rows = session.execute(select(rid, AuditLog).where(rid > rowid).order_by(rid).limit(limit))
+    return [(int(r[0]), r[1]) for r in rows]

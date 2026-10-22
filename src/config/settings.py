@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     app_env: Literal["local", "production"] = "local"
     debug: bool = False
     port: int = 8000
+    event_poll_seconds: float = 2.0  # Live feed: how often to check for new audit events.
     database_url: str = "sqlite:///./data/job_butler.db"
     artifacts_dir: Path = Path("artifacts")
     profile_path: Path = Path("profile/candidate_profile.yaml")
