@@ -1,5 +1,6 @@
 import { ExternalLink, FileText, Mail } from "lucide-react";
 
+import { PrepareButton } from "@/components/PrepareButton";
 import type { Job } from "@/lib/api";
 
 function scoreColour(score: number): string {
@@ -53,6 +54,7 @@ export function JobCard({ job }: { job: Job }) {
             <Mail size={14} aria-hidden /> Cover letter
           </a>
         )}
+        {job.resume_url && <PrepareButton jobId={job.id} />}
       </div>
     </article>
   );
