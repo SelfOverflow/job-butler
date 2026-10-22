@@ -3,7 +3,7 @@
 
 personal_info:
   full_name: "Mohit Ranjan"
-  email: "${CANDIDATE_EMAIL:-mohit.ranjan.910@gmail.com}"
+  email: "${CANDIDATE_EMAIL}"
   phone: "${CANDIDATE_PHONE}"
   location:
     city: "${CANDIDATE_CITY}"
@@ -33,6 +33,7 @@ preferences:
     tier1_india_domestic:
       description: "Resident, zero visa friction"
       boost: 5
+      standard_boost: 3
       hubs: ["Bengaluru", "Bangalore", "Remote India"]
       standard_hubs: ["Delhi NCR", "Gurugram", "Noida", "Hyderabad", "Pune", "Mumbai", "Chennai"]
     tier2_eu_nordics:

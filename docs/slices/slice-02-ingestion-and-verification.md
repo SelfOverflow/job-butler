@@ -2,7 +2,7 @@
 
 ## 1. Usable Product Delivered at Slice End
 At the completion of Slice 2, you will have a working job scouting CLI that fetches live postings using **Firecrawl** and direct ATS endpoints, runs deep SPA liveness checks, discards excluded employers, applies your geographic market boost, and saves active postings to SQLite:
-- Run `job-butler scout run --limit 20` $\rightarrow$ Scrapes jobs matching target roles, verifies active URLs via deep ATS checks, filters out excluded companies (OakNorth, Tejas, Stepswatch), applies regional score boosts, and persists active jobs into SQLite.
+- Run `job-butler scout run --limit 20` $\rightarrow$ Scrapes jobs matching target roles, verifies active URLs via deep ATS checks, filters out employers listed in `preferences.excluded_employers`, applies regional score boosts, and persists active jobs into SQLite.
 - Run `job-butler scout list` $\rightarrow$ Prints an interactive terminal table of active jobs, displaying fit score, company, location, tier badge, and liveness status.
 - Run `job-butler scout verify` $\rightarrow$ Re-verifies all stored jobs and purges/archives closed roles.
 
@@ -38,17 +38,14 @@ Before presenting or saving any job posting, the verifier performs deep inspecti
 * **Standard ATS (Greenhouse, Lever, SmartRecruiters, Workable)**: Verifies presence of active application form and absence of expired markers ("job no longer available", "position has been filled", "404").
 
 ### 2.2 Hard Employer Exclusions
-Postings from current or former employers are automatically purged:
-* **OakNorth** (`oaknorth.com`, `oaknorth.co.uk`, OakNorth India)
-* **Tejas Networks** (`tejasnetworks.com`, Tejas Networks Ltd)
-* **Stepswatch** (Stepswatch SASU)
+Postings from any employer in `preferences.excluded_employers` are automatically purged (case-insensitive match on company name; list every alias, e.g. `OakNorth`, `OakNorth Bank`, `OakNorth India`). Nothing is hardcoded.
 
 ### 2.3 Multi-Dimensional Fit Rubric & Sourcing Priority
 Scores are calculated across 4 weighted vectors:
 1. **Hard Requirements & Visa Gate (Pass/Fail)**: Rejects foreign roles that state "No visa sponsorship" or "Citizens/PR only".
-2. **Tech Stack Match (40%)**: React Native, React, TypeScript, Node.js, Python, Cloud.
-3. **Seniority & Scope (30%)**: Lead / Senior / Staff engineering scope.
-4. **Market Hierarchy Boost**:
+2. **Tech Stack Match (40%)**: Overlap between JD keywords and the candidate's `skills_inventory`.
+3. **Seniority & Scope (30%)**: Match against `preferences.target_roles`.
+4. **Market Hierarchy Boost** (loaded from `preferences.sourcing_hierarchy`; active workspace values shown):
    - **Tier 1 (India Domestic)**: +5 boost for Bengaluru / Remote India; +3 boost for Delhi NCR, Hyderabad, Pune, Mumbai.
    - **Tier 2 (EU & Nordics)**: +4 boost for Sweden, Denmark, Norway, Finland, Germany, Netherlands, etc. (EU Blue Card / Visa Sponsorship).
    - **Tier 3 (GCC / Middle East)**: +2 boost for UAE (Dubai, Abu Dhabi), Saudi Arabia, Qatar.
@@ -79,13 +76,13 @@ src/
 Tests in `tests/unit/test_slice2_scout.py` and `tests/integration/test_slice2_storage.py`:
 
 1. `test_employer_exclusion_filter()`:
-   - Feeds jobs from OakNorth, Tejas Networks, and Stepswatch; asserts they are strictly excluded.
+   - Uses a fixture profile with excluded employers (incl. aliases and case variants); asserts matching jobs are strictly excluded.
 2. `test_deep_ats_verifier_ashby_closed_posting()`:
    - Mocks Ashby HTML with `window.__appData = {"posting": null}`; asserts `is_active=False`.
 3. `test_deep_ats_verifier_workday_closed_posting()`:
    - Mocks Workday payload with `postingAvailable: false`; asserts `is_active=False`.
 4. `test_market_hierarchy_scoring_boost()`:
-   - Compares an identical job description in Bengaluru (+5) vs an unboosted region; asserts correct point differential.
+   - Uses a fixture `sourcing_hierarchy`; compares an identical job description in a boosted hub vs an unboosted region; asserts correct point differential.
 5. `test_firecrawl_scraper_response_parsing()`:
    - Feeds a recorded Firecrawl scrape response; asserts extraction of title, company, description, and link.
 6. `test_audit_event_logging()`:

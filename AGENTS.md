@@ -14,8 +14,8 @@ job_butler/
 ├── README.md                # Project overview and quickstart guide
 ├── Makefile                 # Standardized task runner: make test, make lint, make dev, make up
 ├── pyproject.toml           # Python dependencies, tools (ruff, mypy, pytest)
-├── Dockerfile               # Multi-stage image (Next.js standalone + Python 3.11 + Playwright + Typst)
-├── docker-compose.yml       # Local 24/7 dual-service runner (frontend:3000, backend:8000)
+├── Dockerfile               # Multi-stage image (Next.js static export + Python 3.11 + Playwright + Typst)
+├── docker-compose.yml       # Local 24/7 single-container runner (UI + API + worker on :8000)
 ├── .github/
 │   └── workflows/           # GitHub Actions CI/CD (ci.yml, deploy.yml)
 ├── docs/
@@ -74,7 +74,7 @@ When evaluating the active configuration in this repository, the agent operates 
 - **LinkedIn Directive**: Full verbatim LinkedIn URL rendered on all generated documents.
 - **Active Excluded Employers**: OakNorth, Tejas Networks, Stepswatch (loaded from `preferences.excluded_employers`).
 - **Active Target Roles**: Senior Full-Stack Engineer, Technical Lead, Lead Mobile Engineer, Senior React Native Engineer, Distributed Systems Engineer.
-- **Active Market Tiers**: Tier 1 (India Domestic +5/+3), Tier 2 (EU & Nordics +4), Tier 3 (GCC +2), Tier 4 (Worldwide).
+- **Active Market Tiers** (loaded from `preferences.sourcing_hierarchy`): Tier 1 (India Domestic +5/+3), Tier 2 (EU & Nordics +4), Tier 3 (GCC +2), Tier 4 (Worldwide).
 
 ---
 

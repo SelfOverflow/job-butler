@@ -37,6 +37,7 @@ preferences:
     tier1_primary_market:
       description: "Domestic / Primary resident market (Zero visa friction)"
       boost: 5
+      standard_boost: 3
       hubs: ["New York, NY", "San Francisco, CA", "Remote"]
       standard_hubs: ["Austin, TX", "Seattle, WA", "Boston, MA"]
     tier2_international_priority:

@@ -19,7 +19,7 @@ At the completion of Slice 1, you will have a working, interactive CLI tool to s
 job-butler profile init
 # Output: [✓] Scaffolding candidate_profile.yaml from template... Ready to edit!
 job-butler profile validate
-# Output: [✓] Profile valid: Mohit Ranjan (17 atomic bullets, 4 roles, 2 STAR stories, 6 screening answers registered)
+# Output: [✓] Profile valid: Mohit Ranjan (16 atomic bullets, 4 roles, 2 STAR stories, 6 screening answers registered)
 ```
 
 ## 2. Components & Architecture
@@ -48,7 +48,7 @@ src/
   * Creates timestamped backup in `profile/backups/candidate_profile_<timestamp>.yaml`.
   * Recalculates fact hashes for newly added or edited bullets.
   * Atomic write: writes to temporary file then renames to avoid corruption.
-- `Preferences`: Target roles, excluded employers, sourcing hierarchy (India Domestic +5, EU/Nordics +4, GCC +2, Worldwide), CV page budget rules (1-page domestic vs 2-page international).
+- `Preferences`: Target roles, excluded employers, sourcing hierarchy (tiered markets with per-tier `boost` / `standard_boost`), CV page budget rules (1-page domestic vs 2-page international).
 - `WorkExperience`: Company, title, normalized dates (`Mon YYYY - Mon YYYY` or `Mon YYYY - Present`), list of `AtomicBullet` items.
 - `STARStory`: Situation, Task, Action, Result model for behavioral screening questions.
 - `ScreeningQuestion`: Regex pattern and pre-configured typed answers.
@@ -59,7 +59,7 @@ Tests in `tests/unit/test_slice1_profile.py`:
 1. `test_settings_loading()`:
    - Validates reading `APP_ENV`, default SQLite path, artifact directory, and optional API keys.
 2. `test_candidate_profile_valid()`:
-   - Loads `candidate_profile.yaml`; asserts all fields, 4 mandatory roles, and nested bullets parse accurately.
+   - Loads `candidate_profile.yaml`; asserts all fields, every `work_experience` entry, and nested bullets parse accurately.
 3. `test_profile_loader_env_variable_interpolation()`:
    - Tests that `${CANDIDATE_PHONE}` and `${CANDIDATE_CITY}` are dynamically resolved from environment variables during YAML loading.
 4. `test_profile_updater_creates_backup_on_mutation()`:

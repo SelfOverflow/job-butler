@@ -4,8 +4,8 @@
 At the completion of Slice 3, you will have a working resume tailoring engine that executes a two-stage **Drafter-Reviewer** loop, enforces geographic page limits, formats an ATS-compliant Typst PDF, and verifies the extracted text layer:
 - Run `job-butler tailor --job-id <JOB_ID>` $\rightarrow$
   1. Analyzes the target JD and extracts 25–35 role-specific keywords.
-  2. **Drafter Stage**: Selects matching atomic bullets from your 4 verified roles.
-  3. **Reviewer Stage**: Checks for zero hallucination, confirms verbatim LinkedIn URL, and enforces page budget (1 page for India, 2 pages for International).
+  2. **Drafter Stage**: Selects matching atomic bullets from every role in `work_experience`.
+  3. **Reviewer Stage**: Checks for zero hallucination, confirms verbatim LinkedIn URL, and enforces page budget (1 page for domestic Tier 1, 2 pages for international).
   4. **Compilation**: Builds ATS-clean single-column PDF via Typst and plain `.txt` cover letter.
   5. **Text-Layer Verification**: Extracts PDF text via `pypdf`/`pdftotext` to confirm 100% parseability and keyword coverage.
 - Run `job-butler tailor --all-matches --min-score 75` $\rightarrow$ Batches tailoring for all eligible active jobs.
@@ -16,7 +16,7 @@ At the completion of Slice 3, you will have a working resume tailoring engine th
 job-butler tailor --job-id job_01
 # Output:
 # [✓] ATS Match Score: 94/100 (Tier 1 Domestic)
-# [✓] Drafter: Selected 12 atomic bullets across OakNorth, Tejas, and Stepswatch
+# [✓] Drafter: Selected 12 atomic bullets across all 4 roles
 # [✓] Reviewer: 100% verified against profile (0 hallucinations, 1-page budget met)
 # [✓] Typst compiled: ./artifacts/resumes/job_01_resume.pdf
 # [✓] Text-Layer Check: 31/35 keywords matched, contact details in document body flow
@@ -26,17 +26,13 @@ job-butler tailor --job-id job_01
 ## 2. Core Tailoring & Verification Guardrails
 
 ### 2.1 Geographic Page Budgeting Rule
-* **India Domestic Roles**: Exactly **1 page**.
+* **Domestic Roles (Tier 1)**: Exactly **1 page**.
 * **International Relocation Roles**: Exactly **2 pages**.
 * **Cover Letter**: Exactly **1 page** (generated in both PDF and clean line-broken `.txt` for web forms).
 
 ### 2.2 Mandatory Roles & Verbatim LinkedIn Rule
-* **Mandatory Roles**: Every tailored CV must explicitly include all 4 positions:
-  1. OakNorth India — Technical Lead (Individual Contributor) (Jul 2025 - Present)
-  2. Tejas Networks Ltd — Senior Engineer (Apr 2024 - Jul 2025)
-  3. Tejas Networks Ltd — Research & Development Engineer (Jul 2021 - Apr 2024)
-  4. Stepswatch SASU — Frontend Developer Intern (Mar 2020 - May 2020)
-* **Verbatim LinkedIn URL**: Always display `https://www.linkedin.com/in/mohit-ranjan-759188169` verbatim without trimming.
+* **Mandatory Roles**: Every tailored CV must include every entry in `work_experience` (no role is ever dropped; the Drafter only chooses which bullets to show per role).
+* **Verbatim LinkedIn URL**: Always display `personal_info.links.linkedin` verbatim without trimming.
 * **Standard ATS Headings**: Canonical headers only (`Professional Experience`, `Technical Skills`, `Education`, `Projects`, `Certifications`).
 
 ### 2.3 Two-Stage Drafter-Reviewer Pattern
@@ -71,9 +67,9 @@ src/
 Tests in `tests/unit/test_slice3_tailor.py`:
 
 1. `test_page_budget_selection_domestic_vs_international()`:
-   - For an India role, asserts template selects 1-page layout; for an EU/UK role, asserts 2-page layout.
+   - For a Tier 1 (domestic) role, asserts template selects 1-page layout; for a Tier 2–4 role, asserts 2-page layout.
 2. `test_mandatory_roles_included()`:
-   - Verifies OakNorth, Tejas (both roles), and Stepswatch are present in all generated resumes.
+   - Uses a fixture profile; verifies every `work_experience` entry is present in all generated resumes.
 3. `test_drafter_reviewer_zero_hallucination_gate()`:
    - Injects a fake bullet into drafter output; asserts reviewer catches and rejects it.
 4. `test_typst_single_column_pdf_compilation()`:

@@ -10,9 +10,9 @@ Job Butler is a self-contained monorepo that continuously discovers matching job
 
 - **24/7 Autopilot Scheduler**: Continuously monitors target job boards via the **Firecrawl API** and direct ATS endpoints (Greenhouse, Lever, etc.).
 - **Zero-Hallucination Resume Tailoring**: Dynamically selects, ranks, and emphasizes verified atomic bullet points from your master profile to maximize ATS scores without inventing claims.
-- **Geographic Page Budgeting**: Automatically compiles strictly 1-page resumes for India Domestic roles and 2-page resumes for International Relocation roles using **Typst**.
+- **Geographic Page Budgeting**: Automatically compiles strictly 1-page resumes for domestic (Tier 1) roles and 2-page resumes for international relocation roles using **Typst**.
 - **Deep Live Verification**: Deep DOM and payload probes (Ashby SPAs, Workday SPAs) guarantee zero dead links or expired postings.
-- **Real-Time Web Dashboard**: Built with **Next.js 14**, **React.js**, and **Tailwind CSS**, featuring live WebSocket telemetry, ATS match badges, 1-click PDF resume downloads, and an interactive Profile Editor.
+- **Real-Time Web Dashboard**: Built with **Next.js 14**, **React.js**, and **Tailwind CSS**, served by FastAPI as a static export on a single port, featuring live WebSocket telemetry, ATS match badges, 1-click PDF resume downloads, and an interactive Profile Editor.
 - **Human-in-the-Loop (HITL) Queue**: Automatically escalates portals requiring manual account creation, CAPTCHAs, or MFA directly to your web dashboard with copy-ready answers.
 - **Market Trends & Upskilling ROI**: Aggregates in-demand tech stacks and mathematically ranks missing skills by the number of active job openings they would unlock.
 - **Dual Runtime & Cost Optimization**: Runs locally for **$0** via `docker compose`, or deployable to a low-cost AWS EC2 instance (`t4g.small` / `t3.micro`, ~$3–$8/mo) via **Terraform** and **GitHub Actions**.
@@ -33,7 +33,7 @@ job_butler/
 ├── terraform/               # Cost-effective AWS EC2 infrastructure modules
 ├── Makefile                 # Developer and agent task runner
 ├── Dockerfile               # Multi-stage production container
-└── docker-compose.yml       # 1-click local dual-container orchestration
+└── docker-compose.yml       # 1-click local single-container runner (port 8000)
 ```
 
 ---
@@ -57,11 +57,11 @@ job-butler profile validate
 
 ### 2. Local 24/7 Execution (Docker Compose)
 ```bash
-# Start the full stack (Next.js frontend on 3000, FastAPI backend on 8000)
+# Start the full stack (FastAPI serves the UI, API & WebSockets on 8000)
 make up
 
 # Open the dashboard
-open http://localhost:3000
+open http://localhost:8000
 ```
 
 ### Local Development CLI

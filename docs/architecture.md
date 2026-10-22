@@ -9,7 +9,7 @@
 4. **External API-Based Intelligence & Ingestion**:
    - **Scraping**: Powered by the **Firecrawl API** (`FIRECRAWL_API_KEY`) to effortlessly bypass anti-bot defenses, handle JS-rendered portals, and scrape/crawl target job boards into clean markdown/structured data.
    - **LLM Operations**: All AI operations (resume tailoring, cover letter drafting, DOM reasoning) invoke external LLM APIs (Gemini, OpenAI, or Anthropic) via API keys passed through environment variables. No expensive self-hosted LLMs or GPU instances.
-5. **Agent-Driven Codebase Design**: The repository includes [AGENTS.md](file:///home/maxx/codes/job_butler/AGENTS.md) at its root so that coding AI agents have complete, grounded context to autonomously inspect, test, modify, and evolve the codebase with zero ambiguity—backed by strict typing, deterministic test fixtures, and comprehensive TDD suites.
+5. **Agent-Driven Codebase Design**: The repository includes [AGENTS.md](../AGENTS.md) at its root so that coding AI agents have complete, grounded context to autonomously inspect, test, modify, and evolve the codebase with zero ambiguity—backed by strict typing, deterministic test fixtures, and comprehensive TDD suites.
 
 ---
 
@@ -86,11 +86,11 @@ graph TD
 ### 4.1 Resume & Cover Letter Tailor Agent
 * **Role**: Analyzes the active job description and generates an ATS-optimized resume and tailored cover letter.
 * **Two-Stage Drafter-Reviewer Pattern**:
-  * **The Drafter**: Consumes verified `atomic_bullets` from `candidate_profile.yaml` across all 4 mandatory roles (OakNorth, Tejas Senior Eng, Tejas R&D, Stepswatch) and aligns them with 25–35 exact JD keywords.
+  * **The Drafter**: Consumes verified `atomic_bullets` from `candidate_profile.yaml` across every `work_experience` entry (all roles are always rendered; only bullets are selected) and aligns them with 25–35 exact JD keywords.
   * **The Reviewer**: Validates that zero unverified claims exist, ensures dates are normalized (`Mon YYYY - Mon YYYY`), and enforces the geographic page budget.
 * **Geographic Page Budget Rule**:
-  * **India Domestic**: Exactly 1 page.
-  * **International Relocation**: Exactly 2 pages.
+  * **Domestic (Tier 1, candidate's home market)**: Exactly 1 page.
+  * **International Relocation (Tiers 2–4)**: Exactly 2 pages.
   * **Cover Letter**: Exactly 1 page (PDF + clean line-broken `.txt` for online form autofill).
 * **Automated ATS Text-Layer Verification**:
   * Post-compilation step extracts the PDF text layer (`pypdf` / `pdftotext`) to confirm 100% extractable text, verbatim LinkedIn URL, and absence of CID replacement glitches.
@@ -111,8 +111,8 @@ graph TD
   * Workday SPAs: checks `postingAvailable: true`.
   * All ATS: SmartRecruiters, Greenhouse, Lever, Workable, etc.
 * **Employer Exclusions (Strict Auto-Purge)**:
-  * Never scrapes or applies to: **OakNorth**, **Tejas Networks**, **Stepswatch**.
-* **Market Sourcing Hierarchy Boost**:
+  * Never scrapes or applies to any employer listed in `preferences.excluded_employers` (case-insensitive name match).
+* **Market Sourcing Hierarchy Boost** (loaded from `preferences.sourcing_hierarchy`; active workspace values shown):
   * Tier 1: India Domestic (Bengaluru / Remote India +5, Delhi NCR / Hyderabad / Pune / Mumbai +3).
   * Tier 2: EU & Nordics (Visa Sponsorship / EU Blue Card, +4).
   * Tier 3: GCC / Middle East (Visa Sponsorship, +2).
@@ -135,7 +135,7 @@ The Candidate Profile is never static—it is designed to be updated at any poin
   * The 24/7 background worker reads the latest validated profile at the start of every sweep cycle.
   * **Concurrency Protection**: The scheduler creates a deep immutable copy (frozen snapshot) for the cycle. Any edits made via the Web UI while a sweep is executing are applied to disk safely, and the active sweep completes without `KeyError` or race conditions. The subsequent hourly sweep automatically picks up the updated snapshot.
 * **Integrity & Fact-Hash Refresh**:
-  * On profile save, the system recalculates deterministic hashes for modified bullets and validates all constraints (unique IDs, mandatory roles, normalized dates) before persisting.
+  * On profile save, the system recalculates deterministic hashes for modified bullets and validates all constraints (unique IDs, at least one `work_experience` entry, normalized dates) before persisting.
 
 ```yaml
 # candidate_profile.yaml specification
@@ -165,7 +165,7 @@ preferences:
   min_base_salary: 160000
   currency: "USD"
   notice_period_days: 14
-  excluded_companies: ["SpamCorp", "ShadyAgency"]
+  excluded_employers: ["SpamCorp", "ShadyAgency"]
   excluded_keywords: ["Cryptocurrency", "Web3"]
 
 skills_inventory:
@@ -334,7 +334,7 @@ Every state change, automated action, and human interaction is recorded in a ded
 * **`ci.yml`**:
   * Triggered on every commit/PR: executes `ruff` linting, `mypy` strict type checks, and `pytest` TDD suite.
 * **`deploy.yml`**:
-  * Triggered on merge to `master`: builds the Docker image, tags and pushes to Amazon ECR (or GitHub Container Registry `ghcr.io`), and triggers a seamless container update on the EC2 instance via SSH/AWS SSM Run Command.
+  * Triggered on merge to `main`: builds the Docker image, tags and pushes to Amazon ECR (or GitHub Container Registry `ghcr.io`), and triggers a seamless container update on the EC2 instance via SSH/AWS SSM Run Command.
 
 ---
 

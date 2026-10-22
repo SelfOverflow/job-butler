@@ -22,8 +22,8 @@ make up
 ## 2. Components & Architecture
 ```
 job_butler/
-├── Dockerfile               # Multi-stage image: Next.js standalone + Python 3.11 + Playwright + Typst
-├── docker-compose.yml       # Local 24/7 orchestrator (frontend, backend, worker, volumes)
+├── Dockerfile               # Multi-stage image: Next.js static export + Python 3.11 + Playwright + Typst
+├── docker-compose.yml       # Local 24/7 single-container runner (UI + API + worker on :8000, volumes)
 ├── Makefile                 # Developer CLI: make up, make down, make test, make lint
 ├── frontend/                # Next.js 14 App Router + Tailwind CSS
 ├── src/                     # Python core backend, agents, scheduler
@@ -43,21 +43,21 @@ job_butler/
 ```
 
 ## 3. Containerization Strategy
-* **Frontend**: Built via Next.js `output: 'standalone'` for a lightweight Node.js production image with optimized asset caching.
+* **Frontend**: Built in a Node build stage via Next.js `output: 'export'`; only the static `frontend/out/` is copied into the final image and served by FastAPI (no Node.js runtime).
 * **Backend**: Multi-stage `python:3.11-slim` with:
   * Headless Playwright Chromium (`playwright install --with-deps chromium`)
   * Pre-compiled Typst CLI binary in `/usr/local/bin/typst`
 * **Local Compose**:
-  * Orchestrates `frontend` (port 3000) and `backend` (port 8000).
+  * Runs a single `job-butler` service on port 8000 (UI + REST + WebSockets + autopilot worker).
   * Direct volume mounts for `./data` (SQLite database) and `./artifacts` (PDF resumes).
 
 ## 4. TDD & Infrastructure Validation Specification
 Tests in `tests/integration/test_slice7_infra.py`:
 
 1. `test_dockerfile_build_and_entrypoints()`:
-   - Validates that Docker build succeeds for both Next.js frontend and Python backend services.
+   - Validates that the multi-stage Docker build succeeds and the image contains `frontend/out/`, Playwright Chromium, and Typst.
 2. `test_docker_compose_environment_variables()`:
-   - Verifies volume mappings for `./data` and `./artifacts` and port bindings to `3000` and `8000`.
+   - Verifies volume mappings for `./data` and `./artifacts` and a single port binding to `8000`.
 3. `test_terraform_syntax_and_plan()`:
    - Runs `terraform validate` and `terraform plan` against a mock AWS provider; asserts valid resource graph and outputs.
 4. `test_github_actions_workflow_syntax()`:
@@ -65,6 +65,6 @@ Tests in `tests/integration/test_slice7_infra.py`:
 
 ## 5. Acceptance Criteria
 - [ ] `docker compose up --build -d` runs locally without errors.
-- [ ] Next.js dashboard reachable at `http://localhost:3000` connected to FastAPI backend at port `8000`.
+- [ ] Dashboard, API, and WebSockets reachable at `http://localhost:8000`.
 - [ ] `terraform validate` and `terraform plan` execute cleanly.
-- [ ] GitHub Actions CI workflow passes 100% on master.
+- [ ] GitHub Actions CI workflow passes 100% on main.
