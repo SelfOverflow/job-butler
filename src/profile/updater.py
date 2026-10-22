@@ -85,14 +85,19 @@ class ProfileUpdater:
 
     def set_value(self, dotted_path: str, raw_value: str) -> CandidateProfile:
         """Set e.g. `preferences.target_roles` to `raw_value` parsed as a YAML value."""
-        keys = dotted_path.split(".")
-        if not all(keys):
-            raise ProfileError(f"Invalid path: {dotted_path!r}")
+        return self.set_values([(dotted_path, raw_value)])
+
+    def set_values(self, assignments: Sequence[tuple[str, str]]) -> CandidateProfile:
+        """Apply several assignments, validated together and saved once (all or nothing)."""
         document = self._read_document()
-        node = document
-        for key in keys[:-1]:
-            node = self._child(node, key, dotted_path)
-        self._assign(node, keys[-1], self._yaml.load(raw_value), dotted_path)
+        for dotted_path, raw_value in assignments:
+            keys = dotted_path.split(".")
+            if not all(keys):
+                raise ProfileError(f"Invalid path: {dotted_path!r}")
+            node = document
+            for key in keys[:-1]:
+                node = self._child(node, key, dotted_path)
+            self._assign(node, keys[-1], self._yaml.load(raw_value), dotted_path)
         return self._save(document)
 
     @staticmethod

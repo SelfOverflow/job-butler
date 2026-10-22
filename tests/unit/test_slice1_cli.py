@@ -96,3 +96,67 @@ def test_query_without_match_exits_nonzero(run: Run) -> None:
     assert "No matching screening answer" in run(
         "profile", "query", "Favourite colour?", exit_code=1
     )
+
+
+def test_update_sets_values_and_backs_up(run: Run) -> None:
+    run.init()
+    out = run("profile", "update", "--set", "work_experience.0.title=Staff Engineer")
+    assert "[✓] Updated work_experience.0.title" in out
+    assert "Staff Engineer" in run.profile.read_text(encoding="utf-8")
+    assert "profile_" in run("profile", "backups")
+
+
+def test_update_applies_all_sets_atomically(run: Run) -> None:
+    run.init()
+    before = run.profile.read_text(encoding="utf-8")
+    out = run(
+        "profile", "update",
+        "--set", "preferences.min_base_salary=200000",
+        "--set", "personal_info.email=not-an-email",
+        exit_code=1,
+    )  # fmt: skip
+    assert "personal_info.email" in out
+    assert run.profile.read_text(encoding="utf-8") == before
+    assert "No backups yet" in run("profile", "backups")
+
+
+def test_update_order_independent_within_one_call(run: Run) -> None:
+    run.init()
+    run(
+        "profile", "update",
+        "--set", "preferences.min_base_salary=3500000",
+        "--set", "preferences.currency=INR",
+    )  # fmt: skip
+    assert "INR" in run.profile.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("assignment", ["no-equals-sign", "=value"])
+def test_update_rejects_malformed_set(run: Run, assignment: str) -> None:
+    run.init()
+    assert "Expected PATH=VALUE" in run("profile", "update", "--set", assignment, exit_code=1)
+
+
+def test_add_bullet(run: Run) -> None:
+    run.init()
+    out = run(
+        "profile", "add-bullet",
+        "--role-id", "exp_company_beta",
+        "--text", "Cut CI time by 40% with remote caching.",
+        "--skills", "Bazel, GitHub Actions",
+    )  # fmt: skip
+    assert out.startswith("[✓] Added bullet b_")
+    assert "4 atomic bullets" in run("profile", "validate")
+    assert "Unknown role" in run(
+        "profile", "add-bullet", "--role-id", "nope", "--text", "x", exit_code=1
+    )
+
+
+def test_backups_and_restore(run: Run) -> None:
+    run.init()
+    original = run.profile.read_text(encoding="utf-8")
+    run("profile", "update", "--set", "work_experience.0.title=Changed")
+    backup_name = run("profile", "backups").split()[-1]
+
+    assert "[✓] Restored" in run("profile", "restore", backup_name)
+    assert run.profile.read_text(encoding="utf-8") == original
+    assert "No such backup" in run("profile", "restore", "missing.yaml", exit_code=1)

@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/job_butler.db"
     artifacts_dir: Path = Path("artifacts")
     profile_path: Path = Path("profile/candidate_profile.yaml")
-    backups_dir: Path = Path("profile/backups")
 
     firecrawl_api_key: str | None = None
     gemini_api_key: str | None = None
