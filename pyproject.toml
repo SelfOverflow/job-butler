@@ -52,3 +52,4 @@ select = ["E", "F", "I", "UP", "B"]
 [tool.mypy]
 strict = true
 plugins = ["pydantic.mypy"]
+explicit_package_bases = true

@@ -76,17 +76,26 @@ def seniority_match(title: str, profile: CandidateProfile) -> float:
     return max((len(t & title_words) / len(t) for t in targets if t), default=0.0)
 
 
-def score_job(job: RawJobPosting, profile: CandidateProfile) -> JobScore:
+def is_domestic(location: str, profile: CandidateProfile) -> bool:
+    """First tier, a tier marked `domestic`, or a location naming a citizen country."""
     hierarchy = profile.preferences.sourcing_hierarchy
-    tier, boost = classify_tier(job.location, hierarchy)
-    auth = profile.personal_info.work_authorization
-    domestic = (
+    tier, _ = classify_tier(location, hierarchy)
+    countries = profile.personal_info.work_authorization.citizen_countries
+    return (
         tier == next(iter(hierarchy))
         or (tier is not None and hierarchy[tier].domestic)
-        or any(contains_phrase(words(job.location), words(c)) for c in auth.citizen_countries)
+        or any(contains_phrase(words(location), words(c)) for c in countries)
     )
-    needs_visa = auth.requires_visa_for_international
-    if needs_visa and not domestic and _NO_SPONSORSHIP.search(job.description):
+
+
+def score_job(job: RawJobPosting, profile: CandidateProfile) -> JobScore:
+    tier, boost = classify_tier(job.location, profile.preferences.sourcing_hierarchy)
+    needs_visa = profile.personal_info.work_authorization.requires_visa_for_international
+    if (
+        needs_visa
+        and not is_domestic(job.location, profile)
+        and _NO_SPONSORSHIP.search(job.description)
+    ):
         return JobScore(score=0, tier=tier, boost=boost, rejected_reason="no visa sponsorship")
 
     fit = (
