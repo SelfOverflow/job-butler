@@ -361,6 +361,9 @@ Every slice is implemented through the **Red $\rightarrow$ Green $\rightarrow$ R
 * **[Slice 6: 24/7 Autopilot Scheduler & Upskilling Insights](slices/slice-06-autopilot-and-upskilling.md)**
   * **Runnable Output**: `job-butler autopilot start` & `job-butler analytics report`.
   * 24/7 background worker running hourly cycles; real-time dashboard analytics displaying market demand heatmaps and mathematical upskilling recommendations.
+* **[Slice 8: Web Command Center](slices/slice-08-web-command-center.md)** *(delivered after Slice 6, before Slice 7)*
+  * **Runnable Output**: Every CLI command operable from the dashboard (`/run`, `/runs`, `/settings`, contextual job/profile/HITL actions) with live progress, cancellation, and single-user authentication for online hosting.
+  * Shared `src/services/` layer used by both CLI and API; background command runner; session auth + CSRF.
 * **[Slice 7: Dockerization, Low-Cost EC2 Terraform & CI/CD](slices/slice-07-docker-ec2-terraform-cicd.md)**
   * **Runnable Output**: `make up` (local Docker Compose) & `terraform apply` (AWS EC2 deployment).
   * Multi-stage `Dockerfile`, 1-click local Docker Compose, Terraform modules for low-cost EC2/EBS/SSM, and GitHub Actions automated CI/CD workflows.

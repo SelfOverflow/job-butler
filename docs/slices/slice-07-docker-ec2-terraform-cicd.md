@@ -43,7 +43,7 @@ job_butler/
 ```
 
 ## 3. Security Prerequisite for Cloud Deployment
-The dashboard API exposes the candidate's contact details and can edit the profile (`PUT /api/profile`). Locally, `job-butler serve` binds to `127.0.0.1` only. **Before any EC2 deployment, add authentication** (e.g. a single bearer token from SSM, or an SSO-protected reverse proxy) and never expose port 8000 to `0.0.0.0/0` without it.
+The dashboard API exposes the candidate's contact details and can edit the profile (`PUT /api/profile`). Locally, `job-butler serve` binds to `127.0.0.1` only. **Before any EC2 deployment, complete Slice 8's authentication** (e.g. a single bearer token from SSM, or an SSO-protected reverse proxy) and never expose port 8000 to `0.0.0.0/0` without it.
 
 ## 3. Containerization Strategy
 * **Frontend**: Built in a Node build stage via Next.js `output: 'export'`; only the static `frontend/out/` is copied into the final image and served by FastAPI (no Node.js runtime).

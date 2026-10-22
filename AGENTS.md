@@ -27,7 +27,8 @@ job_butler/
 │       ├── slice-04-realtime-web-dashboard.md
 │       ├── slice-05-auto-apply-and-hitl.md
 │       ├── slice-06-autopilot-and-upskilling.md
-│       └── slice-07-docker-ec2-terraform-cicd.md
+│       ├── slice-07-docker-ec2-terraform-cicd.md
+│       └── slice-08-web-command-center.md  # Delivered before slice 7
 ├── profile/
 │   ├── candidate_profile.yaml # Single source of truth for candidate career data & preferences
 │   └── backups/             # Automated timestamped snapshots created before every mutation
@@ -110,6 +111,10 @@ make down         # Stop local Docker Compose containers
 - **Never guess answers.** Required questions the profile cannot answer are escalated to the user (status `needs_input`); no LLM-drafted answers on real applications.
 - **Never apply to roles failing a hard gate** (excluded employer, experience, visa).
 - On approval, re-fill from the stored plan; if the live form no longer matches the plan, return the application to review instead of submitting.
+
+## 5.1 CLI ↔ Web Parity
+- Every CLI command must have a dashboard equivalent (see `docs/slices/slice-08-web-command-center.md`).
+- CLI commands and API routes call the same `src/services/` functions; the server never shells out to `job-butler`.
 
 ## 6. Candidate Profile Mutability Protocol
 - The candidate profile at `profile/candidate_profile.yaml` can be edited at any time directly, via CLI (`job-butler profile update`), or through the Web UI (`PUT /api/profile`).
