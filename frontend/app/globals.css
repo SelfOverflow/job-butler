@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* Follow the OS light/dark preference via Tailwind's `dark:` variants. */
+:root {
+  color-scheme: light dark;
+}
