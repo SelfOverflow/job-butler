@@ -61,6 +61,7 @@ class MarketTier(_Model):
     description: str = ""
     boost: int
     standard_boost: int = 0
+    domestic: bool = False  # Home-market tier (the first tier is always domestic).
     hubs: tuple[str, ...] = ()
     standard_hubs: tuple[str, ...] = ()
     countries: tuple[str, ...] = ()

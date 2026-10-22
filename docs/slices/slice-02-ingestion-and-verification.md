@@ -49,7 +49,8 @@ Score = `round(100 × (4·tech + 3·seniority) / 7)` + tier boost (the 40% / 30%
    - **Tier 1 (India Domestic)**: +5 boost for Bengaluru / Remote India; +3 boost for Hyderabad, Pune, Mumbai, Chennai.
    - **Tier 2 (International Priority)**: +4 boost for EU & Nordics (Sweden, Denmark, Norway, Finland, Germany, Netherlands, etc.), UK, Canada, UAE / Dubai, United States, Australia, New Zealand, Singapore, Japan (Visa Sponsorship).
    - **Tier 3 (GCC / Middle East)**: +2 boost for Saudi Arabia, Qatar, Kuwait, Bahrain, Oman.
-   - **Tier 4 (Worldwide / Global Remote)**: Standard score (low priority) for Global Remote and Delhi NCR (Delhi, Noida, Gurugram).
+   - **Tier 4 (Worldwide / Global Remote)**: Standard score for Global Remote.
+   - **Tier 5 (Low-priority Indian cities)**: Standard score for Delhi NCR, Delhi, Noida, Gurugram; marked `domestic: true` so they count as home-market roles.
 
 ## 3. Components & Architecture
 ```

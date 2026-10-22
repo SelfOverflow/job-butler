@@ -45,9 +45,14 @@ preferences:
       boost: 2
       countries: ["Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"]
     tier4_worldwide_and_global_remote:
-      description: "Low priority: global remote and Delhi NCR"
+      description: "All other worldwide hubs offering visa sponsorship & global remote open to India"
       boost: 0
-      locations: ["Global Remote", "Delhi NCR", "Delhi", "New Delhi", "Noida", "Gurugram", "Gurgaon"]
+      locations: ["Global Remote"]
+    tier5_india_low_priority:
+      description: "Low-priority Indian cities"
+      boost: 0
+      domestic: true
+      hubs: ["Delhi NCR", "Delhi", "New Delhi", "Noida", "Gurugram", "Gurgaon"]
 
   excluded_employers:
     - "OakNorth"

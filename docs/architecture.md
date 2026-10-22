@@ -116,7 +116,8 @@ graph TD
   * Tier 1: India Domestic (Bengaluru / Remote India +5, Hyderabad / Pune / Mumbai / Chennai +3).
   * Tier 2: EU & Nordics, UK, Canada, UAE / Dubai, US, Australia, New Zealand, Singapore, Japan (Visa Sponsorship, +4).
   * Tier 3: Rest of GCC / Middle East (Visa Sponsorship, +2).
-  * Tier 4 (low priority): Global Remote and Delhi NCR.
+  * Tier 4: Global Remote.
+  * Tier 5 (low priority, domestic): Delhi NCR, Noida, Gurugram.
 
 ---
 

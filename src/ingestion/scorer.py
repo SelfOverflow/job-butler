@@ -1,8 +1,9 @@
 """Fit score: tech stack + seniority (4:3, scaled to 100) plus the market tier boost.
 
-A role is domestic if it falls in the first `sourcing_hierarchy` tier or names
-one of the candidate's citizen countries. Other roles are rejected when they rule
-out visa sponsorship and the candidate needs a visa abroad.
+A role is domestic if it falls in the first `sourcing_hierarchy` tier or a tier
+marked `domestic: true`, or names one of the candidate's citizen countries. Other
+roles are rejected when they rule out visa sponsorship and the candidate needs a
+visa abroad.
 """
 
 import re
@@ -79,8 +80,10 @@ def score_job(job: RawJobPosting, profile: CandidateProfile) -> JobScore:
     hierarchy = profile.preferences.sourcing_hierarchy
     tier, boost = classify_tier(job.location, hierarchy)
     auth = profile.personal_info.work_authorization
-    domestic = tier == next(iter(hierarchy)) or any(
-        contains_phrase(words(job.location), words(country)) for country in auth.citizen_countries
+    domestic = (
+        tier == next(iter(hierarchy))
+        or (tier is not None and hierarchy[tier].domestic)
+        or any(contains_phrase(words(job.location), words(c)) for c in auth.citizen_countries)
     )
     needs_visa = auth.requires_visa_for_international
     if needs_visa and not domestic and _NO_SPONSORSHIP.search(job.description):

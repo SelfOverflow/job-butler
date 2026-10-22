@@ -133,3 +133,16 @@ def test_score_combines_weights_and_boost() -> None:
     assert result.score == 100 + 5
     zero = replace(_job("Lagos, Nigeria", "Nothing relevant."), title="Barista")
     assert score_job(zero, profile).score == 0
+
+
+def test_tiers_marked_domestic_skip_visa_gate() -> None:
+    raw: dict[str, Any] = interpolate(yaml.safe_load(TEMPLATE.read_text()), ENV)
+    raw["personal_info"]["work_authorization"]["requires_visa_for_international"] = True
+    raw["preferences"]["sourcing_hierarchy"]["tier5_low_priority_home"] = {
+        "boost": 0,
+        "domestic": True,
+        "hubs": ["Fresno"],
+    }
+    profile = CandidateProfile.model_validate(raw)
+    result = score_job(_job("Fresno, CA", f"{JD} Citizens only."), profile)
+    assert (result.tier, result.rejected_reason) == ("tier5_low_priority_home", None)
