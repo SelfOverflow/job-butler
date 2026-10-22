@@ -2,7 +2,7 @@
 
 from collections.abc import Iterable, Sequence
 
-from src.ingestion.base import RawJobPosting, words
+from src.ingestion.base import RawJobPosting, contains_phrase, words
 
 
 def is_excluded_employer(company: str, excluded: Iterable[str]) -> bool:
@@ -12,12 +12,7 @@ def is_excluded_employer(company: str, excluded: Iterable[str]) -> bool:
     but "Apple" does not match "Pineapple Labs".
     """
     haystack = words(company)
-    for name in excluded:
-        needle = words(name)
-        n = len(needle)
-        if n and any(haystack[i : i + n] == needle for i in range(len(haystack) - n + 1)):
-            return True
-    return False
+    return any(contains_phrase(haystack, words(name)) for name in excluded)
 
 
 def drop_excluded(jobs: Sequence[RawJobPosting], excluded: Sequence[str]) -> list[RawJobPosting]:

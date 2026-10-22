@@ -41,11 +41,11 @@ Before presenting or saving any job posting, the verifier performs deep inspecti
 Postings from any employer in `preferences.excluded_employers` are automatically purged (case-insensitive match on company name; list every alias, e.g. `OakNorth`, `OakNorth Bank`, `OakNorth India`). Nothing is hardcoded.
 
 ### 2.3 Multi-Dimensional Fit Rubric & Sourcing Priority
-Scores are calculated across 4 weighted vectors:
-1. **Hard Requirements & Visa Gate (Pass/Fail)**: Rejects foreign roles that state "No visa sponsorship" or "Citizens/PR only".
-2. **Tech Stack Match (40%)**: Overlap between JD keywords and the candidate's `skills_inventory`.
-3. **Seniority & Scope (30%)**: Match against `preferences.target_roles`.
-4. **Market Hierarchy Boost** (loaded from `preferences.sourcing_hierarchy`; active workspace values shown):
+Score = `round(100 × (4·tech + 3·seniority) / 7)` + tier boost (the 40% / 30% weights rescaled to 100):
+1. **Hard Requirements & Visa Gate (Pass/Fail)**: Rejects foreign roles that state "No visa sponsorship" or "Citizens/PR only". A role is domestic if it is in the first tier or names one of `work_authorization.citizen_countries`; the gate only applies when `requires_visa_for_international` is true.
+2. **Tech Stack Match (≈57%)**: Share of `skills_inventory` names found in the JD, saturating at 8 matched skills.
+3. **Seniority & Scope (≈43%)**: Best word overlap between the job title and a `preferences.target_roles` entry.
+4. **Market Hierarchy Boost** (added on top; longest matching place name wins; loaded from `preferences.sourcing_hierarchy`; active workspace values shown):
    - **Tier 1 (India Domestic)**: +5 boost for Bengaluru / Remote India; +3 boost for Delhi NCR, Hyderabad, Pune, Mumbai.
    - **Tier 2 (EU & Nordics)**: +4 boost for Sweden, Denmark, Norway, Finland, Germany, Netherlands, etc. (EU Blue Card / Visa Sponsorship).
    - **Tier 3 (GCC / Middle East)**: +2 boost for UAE (Dubai, Abu Dhabi), Saudi Arabia, Qatar.
