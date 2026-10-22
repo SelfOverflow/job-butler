@@ -27,7 +27,7 @@ job-butler tailor --job-id job_01
 
 ### 2.1 Geographic Page Budgeting Rule
 * **Domestic Roles (Tier 1)**: Exactly **1 page**.
-* **International Relocation Roles**: Exactly **2 pages**.
+* **International Relocation Roles**: At most **2 pages** (lowest-ranked bullets are dropped until the PDF fits; never a role's last bullet).
 * **Cover Letter**: Exactly **1 page** (generated in both PDF and clean line-broken `.txt` for web forms).
 
 ### 2.2 Mandatory Roles & Verbatim LinkedIn Rule
@@ -36,8 +36,10 @@ job-butler tailor --job-id job_01
 * **Standard ATS Headings**: Canonical headers only (`Professional Experience`, `Technical Skills`, `Education`, `Projects`, `Certifications`).
 
 ### 2.3 Two-Stage Drafter-Reviewer Pattern
-* **Drafter**: Selects and ranks registered bullet IDs from `candidate_profile.yaml` matching JD keywords.
-* **Reviewer**: Re-evaluates drafted markup against canonical profile facts; strips any unverified claims; verifies date formatting is strictly `Mon YYYY - Mon YYYY`.
+* **Drafter (Gemini, `GEMINI_MODEL`, default `gemini-3.8-flash`)**: Returns only JD keywords and ranked bullet IDs. It never writes resume text; the JD is fenced as untrusted input.
+* **Reviewer (deterministic)**: Unknown bullet IDs are hallucinations and rejected (one retry with feedback); every role gets at least one bullet; keywords absent from the JD are dropped. Resume text is therefore verbatim from the profile.
+* **Technical Skills**: Leads with a "Relevant to this role" row of JD keywords matched by `skills_inventory` or by skill tags on the kept bullets.
+* **Cover letter (LLM prose)**: Built from verified facts only; numbers absent from facts/JD, `[placeholders]`, >400 words, or >1 page are rejected (one retry).
 
 ### 2.4 Automated ATS Text-Layer Verification
 Post-compilation validator extracts PDF text:
@@ -57,8 +59,7 @@ src/
 │       ├── pdf_verifier.py  # ATS text-layer validator (pypdf / pdftotext)
 │       └── cover_letter.py  # Generates 1-page cover letter (PDF + clean .txt)
 ├── templates/
-│   ├── resume_domestic.typ     # 1-page single-column Typst template
-│   ├── resume_international.typ# 2-page single-column Typst template
+│   ├── resume.typ              # Single-column ATS template; page budget enforced by fitting
 │   └── cover_letter.typ        # 1-page Typst cover letter template
 └── cli_tailor.py            # Subcommands: `job-butler tailor`
 ```

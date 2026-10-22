@@ -32,8 +32,7 @@ job_butler/
 │   ├── candidate_profile.yaml # Single source of truth for candidate career data & preferences
 │   └── backups/             # Automated timestamped snapshots created before every mutation
 ├── templates/
-│   ├── resume_domestic.typ  # 1-page single-column Typst ATS template for India domestic roles
-│   ├── resume_international.typ # 2-page single-column Typst ATS template for international roles
+│   ├── resume.typ           # Single-column Typst ATS resume (1-page domestic / 2-page international via fitting)
 │   └── cover_letter.typ     # 1-page Typst cover letter template
 ├── terraform/               # Cost-effective AWS EC2 (t4g.small/t3.micro), EBS, SSM modules
 ├── frontend/                # Next.js 14 App Router + React.js + Tailwind CSS UI Dashboard
