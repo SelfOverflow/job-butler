@@ -1,4 +1,5 @@
 import io
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -7,7 +8,13 @@ import pytest
 import yaml
 
 from src.agents.tailor.drafter import DraftPlan, review
-from src.agents.tailor.typst_engine import FitError, fit_to_budget, page_count, render_pdf
+from src.agents.tailor.typst_engine import (
+    FitError,
+    fit_to_budget,
+    page_count,
+    render_pdf,
+    resume_data,
+)
 from src.ingestion.base import RawJobPosting
 from src.profile.loader import interpolate
 from src.profile.models import CandidateProfile
@@ -109,3 +116,54 @@ def test_fit_to_budget_fails_when_one_bullet_per_role_cannot_fit() -> None:
     resume = review(DraftPlan(keywords=[], bullet_ids=[]), JOB, profile)
     with pytest.raises(FitError, match="1 page"):
         fit_to_budget(resume, profile)
+
+
+def test_skills_section_leads_with_matched_skills() -> None:
+    profile = CandidateProfile.model_validate(_raw())
+    plan = DraftPlan(
+        keywords=["Kafka", "Postgresql", "AWS Lambda", "Rust"], bullet_ids=["b_alpha_1"]
+    )
+    resume = review(plan, replace(JOB, description="Kafka postgresql AWS Lambda Rust"), profile)
+
+    skills = resume_data(resume, profile, set(resume.ranked_ids))["skills"]
+
+    # Kafka only exists as a tag on the kept bullet b_alpha_1; Rust is not a verified skill.
+    assert skills[0] == {"label": "Relevant to this role", "names": ["Kafka", "PostgreSQL", "AWS"]}
+    groups = [g["label"] for g in skills[1:]]
+    assert groups == ["Cloud and infrastructure", "Languages and frameworks"]  # 2 matches vs 0
+    assert skills[1]["names"][:2] == ["AWS", "PostgreSQL"]  # matched skills first, stable order
+
+
+def test_skills_section_without_matches_keeps_profile_order() -> None:
+    profile = CandidateProfile.model_validate(_raw())
+    resume = review(DraftPlan(keywords=[], bullet_ids=["b_alpha_1"]), JOB, profile)
+    skills = resume_data(resume, profile, set(resume.ranked_ids))["skills"]
+    assert [g["label"] for g in skills] == ["Languages and frameworks", "Cloud and infrastructure"]
+
+
+def test_js_shorthand_matches_only_the_exact_keyword() -> None:
+    raw = _raw()
+    raw["skills_inventory"] = {
+        "web": [{"name": "React.js", "proficiency": "expert", "years_of_experience": 5}]
+    }
+    profile = CandidateProfile.model_validate(raw)
+    for keywords, expected in ((["React Native"], []), (["React"], ["React.js"])):
+        plan = DraftPlan(keywords=keywords, bullet_ids=["b_beta_1"])
+        job = replace(JOB, description="React Native and React")
+        resume = review(plan, job, profile)
+        skills = resume_data(resume, profile, set(resume.ranked_ids))["skills"]
+        relevant = skills[0]["names"] if skills[0]["label"] == "Relevant to this role" else []
+        assert [n for n in relevant if n == "React.js"] == expected
+
+
+def test_one_relevant_skill_per_keyword() -> None:
+    raw = _raw()
+    raw["skills_inventory"] = {
+        "ci": [{"name": "GitHub Actions CI/CD", "proficiency": "expert", "years_of_experience": 4}]
+    }
+    raw["work_experience"][1]["atomic_bullets"][0]["skills"] = ["GitHub Actions"]
+    profile = CandidateProfile.model_validate(raw)
+    plan = DraftPlan(keywords=["GitHub Actions"], bullet_ids=["b_beta_1"])
+    resume = review(plan, replace(JOB, description="GitHub Actions"), profile)
+    skills = resume_data(resume, profile, set(resume.ranked_ids))["skills"]
+    assert skills[0]["names"] == ["GitHub Actions CI/CD"]

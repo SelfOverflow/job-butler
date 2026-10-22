@@ -55,7 +55,7 @@ def classify_tier(location: str, hierarchy: Mapping[str, MarketTier]) -> tuple[s
     return best[1], best[2]
 
 
-def _skill_variants(name: str) -> list[tuple[str, ...]]:
+def skill_variants(name: str) -> list[tuple[str, ...]]:
     base = words(name.split("(")[0])  # "Docker (Multi-stage)" -> ("docker",)
     if len(base) > 1 and base[-1] == "js":  # "React.js" also matches "React"
         return [base, base[:-1]]
@@ -65,7 +65,7 @@ def _skill_variants(name: str) -> list[tuple[str, ...]]:
 def tech_match(description: str, profile: CandidateProfile) -> float:
     text = words(description)
     skills = [s for group in profile.skills_inventory.values() for s in group]
-    hits = sum(any(contains_phrase(text, v) for v in _skill_variants(s.name)) for s in skills)
+    hits = sum(any(contains_phrase(text, v) for v in skill_variants(s.name)) for s in skills)
     return min(hits, TECH_SATURATION) / TECH_SATURATION
 
 
