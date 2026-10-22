@@ -42,3 +42,4 @@ describe("Sidebar", () => {
     expect(commandsLink).not.toHaveAttribute("aria-current");
   });
 });
+
