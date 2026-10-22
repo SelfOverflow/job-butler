@@ -93,6 +93,7 @@ Any code modification in this repo must follow standard **Test-Driven Developmen
 2. **Green**: Write the minimal viable code to pass the test.
 3. **Refactor**: Clean up implementation, enforce strict typing (`mypy --strict`), and run linter (`ruff`).
 4. **Hermetic Testing**: Never make real external network or LLM API calls in automated test suites. Use `respx` for HTTP mocking and mock LLM providers.
+5. **Small, Reviewable Increments**: Every code change (one commit / PR) must stay under **~300 changed lines of code** (tests included) so it remains human-reviewable. Split larger work (e.g. a slice) into sequential, independently passing increments. Pure data changes (profile YAML, recorded test fixtures) are exempt.
 
 ### Standard Commands (`Makefile`)
 ```bash
