@@ -326,7 +326,7 @@ work_experience:
 education:
   - institution: "Delhi Technological University (DTU)"
     degree: "B.Tech"
-    field_of_study: "Computer Engineering / Computer Science"
+    field_of_study: "Computer Engineering"
     start_date: "2017"
     end_date: "2021"
     gpa: "8.36 / 10.0"
