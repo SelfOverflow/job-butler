@@ -35,19 +35,19 @@ preferences:
       boost: 5
       standard_boost: 3
       hubs: ["Bengaluru", "Bangalore", "Remote India"]
-      standard_hubs: ["Delhi NCR", "Gurugram", "Noida", "Hyderabad", "Pune", "Mumbai", "Chennai"]
+      standard_hubs: ["Hyderabad", "Pune", "Mumbai", "Chennai"]
     tier2_international_priority:
-      description: "Top-Tier International Priority with Visa Sponsorship (EU & Nordics, UAE, US, APAC)"
+      description: "Top-Tier International Priority with Visa Sponsorship (EU & Nordics, UK, Canada, UAE, US, APAC)"
       boost: 4
-      countries: ["Sweden", "Denmark", "Norway", "Finland", "Germany", "Netherlands", "Ireland", "France", "Spain", "Switzerland", "Poland", "Estonia", "Austria", "Belgium", "UAE", "United Arab Emirates", "Dubai", "United States", "Australia", "New Zealand", "Singapore", "Japan"]
+      countries: ["Sweden", "Denmark", "Norway", "Finland", "Germany", "Netherlands", "Ireland", "France", "Spain", "Switzerland", "Poland", "Estonia", "Austria", "Belgium", "UAE", "United Arab Emirates", "Dubai", "United States", "Australia", "New Zealand", "Singapore", "Japan", "United Kingdom", "Canada"]
     tier3_gcc_middle_east:
       description: "High Priority International with Visa Sponsorship / Relocation"
       boost: 2
       countries: ["Saudi Arabia", "Qatar", "Kuwait", "Bahrain", "Oman"]
     tier4_worldwide_and_global_remote:
-      description: "All other worldwide hubs offering visa sponsorship & global remote open to India"
+      description: "Low priority: global remote and Delhi NCR"
       boost: 0
-      locations: ["United Kingdom", "Canada", "Global Remote"]
+      locations: ["Global Remote", "Delhi NCR", "Delhi", "New Delhi", "Noida", "Gurugram", "Gurgaon"]
 
   excluded_employers:
     - "OakNorth"

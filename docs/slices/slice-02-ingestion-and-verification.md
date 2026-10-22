@@ -46,10 +46,10 @@ Score = `round(100 × (4·tech + 3·seniority) / 7)` + tier boost (the 40% / 30%
 2. **Tech Stack Match (≈57%)**: Share of `skills_inventory` names found in the JD, saturating at 8 matched skills.
 3. **Seniority & Scope (≈43%)**: Best word overlap between the job title and a `preferences.target_roles` entry.
 4. **Market Hierarchy Boost** (added on top; longest matching place name wins; loaded from `preferences.sourcing_hierarchy`; active workspace values shown):
-   - **Tier 1 (India Domestic)**: +5 boost for Bengaluru / Remote India; +3 boost for Delhi NCR, Hyderabad, Pune, Mumbai.
-   - **Tier 2 (International Priority)**: +4 boost for EU & Nordics (Sweden, Denmark, Norway, Finland, Germany, Netherlands, etc.), UAE / Dubai, United States, Australia, New Zealand, Singapore, Japan (Visa Sponsorship).
+   - **Tier 1 (India Domestic)**: +5 boost for Bengaluru / Remote India; +3 boost for Hyderabad, Pune, Mumbai, Chennai.
+   - **Tier 2 (International Priority)**: +4 boost for EU & Nordics (Sweden, Denmark, Norway, Finland, Germany, Netherlands, etc.), UK, Canada, UAE / Dubai, United States, Australia, New Zealand, Singapore, Japan (Visa Sponsorship).
    - **Tier 3 (GCC / Middle East)**: +2 boost for Saudi Arabia, Qatar, Kuwait, Bahrain, Oman.
-   - **Tier 4 (Worldwide / Global Remote)**: Standard score for UK, Canada, Global Remote.
+   - **Tier 4 (Worldwide / Global Remote)**: Standard score (low priority) for Global Remote and Delhi NCR (Delhi, Noida, Gurugram).
 
 ## 3. Components & Architecture
 ```
