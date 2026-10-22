@@ -61,6 +61,7 @@ def run_sweep(
     market = analyze(fresh, profile)  # Whole eligible market, not just the saved top N.
     if market.total:
         repo.save_market_snapshot(session, market)
+        session.commit()
     report.market_postings = market.total
 
     scored = [(job, score_job(job, profile)) for job in fresh]
@@ -95,6 +96,7 @@ def run_sweep(
                 target_id=row.id,
                 details={"score": score.score, "tier": score.tier, "source": job.source},
             )
+        session.commit()
 
     repo.record_audit(
         session,
@@ -158,5 +160,6 @@ def verify_stored(
             target_id=row.id,
             details={"liveness": liveness.status, "reason": liveness.reason, "url": row.url},
         )
+        session.commit()
     session.commit()
     return counts

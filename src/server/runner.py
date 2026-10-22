@@ -135,18 +135,24 @@ class CommandRunner:
             now = time.monotonic()
             if now - last_update >= 0.25 or done == total or done == 0:
                 last_update = now
-                with self.sessions() as s:
-                    updated = repo.update_command_progress(
-                        s,
-                        run_id,
-                        {"stage": stage, "done": done, "total": total, "detail": detail},
-                    )
-                    s.commit()
-                    if updated and self.bus:
-                        asyncio.run_coroutine_threadsafe(
-                            self.bus.broadcast({"type": "command", "run": serialize_run(updated)}),
-                            loop,
+                try:
+                    with self.sessions() as s:
+                        updated = repo.update_command_progress(
+                            s,
+                            run_id,
+                            {"stage": stage, "done": done, "total": total, "detail": detail},
                         )
+                        s.commit()
+                        if updated and self.bus:
+                            asyncio.run_coroutine_threadsafe(
+                                self.bus.broadcast(
+                                    {"type": "command", "run": serialize_run(updated)}
+                                ),
+                                loop,
+                            )
+                except Exception:
+                    # Non-critical telemetry updates must never fail running commands
+                    pass
 
         try:
             result = await asyncio.to_thread(

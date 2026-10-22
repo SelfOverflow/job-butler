@@ -252,3 +252,35 @@ def test_sweep_stores_a_market_snapshot_of_all_eligible_postings(
     run_sweep(_profile(), session, http, firecrawl=None)
     newest = repo.latest_market_snapshot(session)
     assert newest is not None and newest.id > snapshot.id
+
+
+def test_sweep_progress_callback_can_write_concurrently_to_db(
+    tmp_path: Path, http: httpx.Client
+) -> None:
+    db_path = tmp_path / "test_progress_lock.db"
+    engine = make_engine(f"sqlite:///{db_path}")
+    init_db(engine)
+    sessions = session_factory(engine)
+
+    progress_updates: list[str] = []
+
+    def progress_writer(stage: str, done: int, total: int, detail: str) -> None:
+        with sessions() as s:
+            repo.record_audit(
+                s,
+                actor="test",
+                action="PROGRESS_TEST",
+                status="SUCCESS",
+                details={"stage": stage, "done": done, "total": total},
+            )
+            s.commit()
+        progress_updates.append(f"{stage}:{done}/{total}")
+
+    with sessions() as session:
+        report = run_sweep(
+            _profile(), session, http, firecrawl=None, limit=2, progress=progress_writer
+        )
+
+    assert len(progress_updates) > 0
+    assert report.saved > 0
+
