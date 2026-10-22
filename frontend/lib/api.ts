@@ -33,6 +33,21 @@ export type AuditEvent = {
 export type AuditPage = { items: AuditEvent[]; next_offset: number | null };
 export type AuditFilters = { actor?: string; action?: string; status?: string };
 
+export type FieldError = { loc: string; msg: string };
+export type Preferences = {
+  target_roles: string[];
+  min_base_salary: number | null;
+  currency: string | null;
+  years_of_experience: number | null;
+  excluded_employers: string[];
+};
+export type ProfileResponse = {
+  yaml: string;
+  profile: { personal_info: { full_name: string }; preferences: Preferences } | null;
+  errors: FieldError[];
+};
+export type ProfileUpdate = { yaml: string } | { set: Record<string, string> };
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -49,6 +64,21 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+/** Field errors from a 422 response (`detail: [{loc, msg}]`), else a single generic error. */
+export function fieldErrors(error: unknown): FieldError[] {
+  if (error instanceof ApiError && error.status === 422) {
+    const detail = (error.body as { detail?: unknown } | null)?.detail;
+    if (Array.isArray(detail)) return detail as FieldError[];
+  }
+  return [{ loc: "", msg: error instanceof Error ? error.message : String(error) }];
+}
+
+const json = (body: unknown): RequestInit => ({
+  method: "PUT",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body),
+});
+
 export const AUDIT_PAGE_SIZE = 50;
 
 export const api = {
@@ -61,4 +91,6 @@ export const api = {
     params.set("offset", String(offset));
     return request<AuditPage>(`/api/audit?${params}`);
   },
+  profile: () => request<ProfileResponse>("/api/profile"),
+  updateProfile: (update: ProfileUpdate) => request<unknown>("/api/profile", json(update)),
 };

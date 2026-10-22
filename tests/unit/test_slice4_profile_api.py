@@ -113,3 +113,22 @@ def test_backups_and_restore(client: TestClient, profile_path: Path) -> None:
     assert response.status_code == 200 and profile_path.read_text() == original
     missing = client.post("/api/profile/restore", json={"name": "../../etc/passwd"})
     assert missing.status_code == 404
+
+
+def test_put_profile_accepts_json_encoded_form_values(client: TestClient) -> None:
+    # Exactly what the dashboard's ProfileForm sends (JSON is valid YAML).
+    body = {
+        "set": {
+            "preferences.target_roles": '["Tech Lead","Staff Engineer"]',
+            "preferences.currency": '"EUR"',
+            "preferences.years_of_experience": "5",
+            "preferences.min_base_salary": "null",
+        }
+    }
+    prefs = client.put("/api/profile", json=body).json()["profile"]["preferences"]
+    assert prefs["target_roles"] == ["Tech Lead", "Staff Engineer"]
+    assert (prefs["currency"], prefs["years_of_experience"], prefs["min_base_salary"]) == (
+        "EUR",
+        5,
+        None,
+    )
