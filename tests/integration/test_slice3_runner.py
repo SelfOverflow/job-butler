@@ -118,3 +118,15 @@ def test_failed_text_layer_check_is_not_saved(
     with pytest.raises(TailorError, match="text-layer check failed: LinkedIn URL not found"):
         tailor_job(row, profile, llm_for(GOOD_PLAN), tmp_path / "artifacts", session)
     assert not (tmp_path / "artifacts").exists()
+
+
+def test_tailor_refuses_roles_requiring_more_experience(
+    profile: CandidateProfile, session: Session, tmp_path: Path
+) -> None:
+    senior = RawJobPosting("Principal Engineer", "Hooli", "San Francisco, CA", "https://x/2",
+                           "Python. 25+ years of experience required.", "greenhouse")  # fmt: skip
+    row = repo.upsert_job(session, senior, JobScore(90, "tier1_primary_market", 5))
+    session.commit()
+    with pytest.raises(TailorError, match="not eligible: experience: requires 25"):
+        tailor_job(row, profile, llm_for(GOOD_PLAN), tmp_path / "artifacts", session)
+    assert not (tmp_path / "artifacts").exists()

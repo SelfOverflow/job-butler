@@ -8,7 +8,7 @@ import typer
 from src.cli_common import db_session, friendly_errors, profile_loader, progress_bars, tier_labels
 from src.config.settings import Settings
 from src.ingestion.firecrawl_client import FirecrawlClient
-from src.ingestion.pipeline import run_sweep, verify_stored
+from src.ingestion.pipeline import prune_ineligible, run_sweep, verify_stored
 from src.storage import repository as repo
 
 scout_app = typer.Typer(no_args_is_help=True, help="Discover, list, and verify job postings.")
@@ -56,11 +56,18 @@ def run(
             report = run_sweep(profile, session, http, firecrawl, limit=limit, progress=progress)
     typer.echo(
         f"[✓] Discovered {report.discovered}: excluded {report.excluded}, "
-        f"duplicates {report.duplicates}, visa-rejected {report.rejected}, "
-        f"closed {report.closed}, saved {report.saved} ({report.new} new)"
+        f"duplicates {report.duplicates}, rejected {report.rejected}{_gates(report.rejected_by)}, "
+        f"closed {report.closed}, saved {report.saved} ({report.new} new); "
+        f"pruned {report.pruned} stored"
     )
     for error in report.errors:
         typer.echo(f"[!] {error}")
+
+
+def _gates(rejected_by: dict[str, int]) -> str:
+    return (
+        f" ({', '.join(f'{g} {n}' for g, n in sorted(rejected_by.items()))})" if rejected_by else ""
+    )
 
 
 def _cell(value: str, width: int) -> str:
@@ -102,7 +109,11 @@ def list_jobs(
 @scout_app.command()
 def verify() -> None:
     """Re-check every active job's link; closed postings are deactivated."""
+    with friendly_errors():
+        profile = profile_loader().load()
     with _http() as http, db_session() as session, progress_bars() as progress:
+        pruned = prune_ineligible(session, profile)
         counts = verify_stored(session, http, progress)
+    typer.echo(f"[✓] Pruned {pruned} stored job(s) that no longer fit the profile")
     summary = ", ".join(f"{status} {n}" for status, n in counts.items())
     typer.echo(f"[✓] Verified: {summary}")

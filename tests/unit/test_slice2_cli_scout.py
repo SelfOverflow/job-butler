@@ -115,6 +115,7 @@ def test_cli_scout_run_saves_and_lists_jobs(db_url: str, http: None) -> None:
 
     assert "FIRECRAWL_API_KEY not set" in out
     assert "Discovered 1" in out and "saved 1 (1 new)" in out
+    assert "rejected 0" in out and "pruned 0" in out
     assert "Senior Software Engineer" in _invoke("list")
 
 
@@ -133,6 +134,12 @@ def test_cli_scout_verify_command(db_url: str, http: None) -> None:
     _seed(
         db_url, (_job("Tech Lead", "New York, NY"), JobScore(94, "tier1_primary_market", 5), True)
     )
+    senior = RawJobPosting(
+        "Principal", "Hooli", "Remote", JOB_URL + "9", "30+ years of experience", "lever"
+    )
+    _seed(db_url, (senior, JobScore(99, None, 0), True))
     respx.get(JOB_URL).respond(404)
-    assert "live 0, closed 1, unknown 0" in _invoke("verify")
+    out = _invoke("verify")
+    assert "Pruned 1 stored job(s) that no longer fit the profile" in out
+    assert "live 0, closed 1, unknown 0" in out
     assert "No active jobs yet" in _invoke("list")

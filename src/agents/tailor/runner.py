@@ -11,6 +11,7 @@ from src.agents.tailor.cover_letter import CoverLetterError, write_cover_letter
 from src.agents.tailor.drafter import ReviewError, draft_resume
 from src.agents.tailor.pdf_verifier import PdfReport, verify_pdf
 from src.agents.tailor.typst_engine import FitError, fit_to_budget
+from src.ingestion.scorer import score_job
 from src.profile.models import CandidateProfile
 from src.storage import repository as repo
 from src.storage.models import JobPosting
@@ -57,6 +58,8 @@ def tailor_job(
 ) -> TailorResult:
     started = time.monotonic()
     try:
+        if reason := score_job(repo.to_posting(row), profile).rejected_reason:
+            raise TailorError(f"not eligible: {reason}")
         resume = draft_resume(row, profile, llm)
         pdf, kept = fit_to_budget(resume, profile)
         report = verify_pdf(pdf, profile, resume.keywords, resume.pages)

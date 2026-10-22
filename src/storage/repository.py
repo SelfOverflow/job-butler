@@ -32,6 +32,13 @@ def upsert_job(session: Session, job: RawJobPosting, score: JobScore) -> JobPost
     return row
 
 
+def to_posting(row: JobPosting) -> RawJobPosting:
+    """Rebuild the source-agnostic posting from a stored row (for re-scoring)."""
+    return RawJobPosting(
+        row.title, row.company, row.location, row.url, row.description, row.source, row.posted_at
+    )
+
+
 def get_job(session: Session, job_id: str) -> JobPosting | None:
     return session.get(JobPosting, job_id)
 

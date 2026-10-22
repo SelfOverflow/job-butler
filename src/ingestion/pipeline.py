@@ -25,7 +25,9 @@ class SweepReport:
     discovered: int = 0
     excluded: int = 0
     duplicates: int = 0
-    rejected: int = 0  # Failed the visa gate.
+    rejected: int = 0  # Failed a hard gate (experience, visa); see rejected_by.
+    rejected_by: dict[str, int] = field(default_factory=dict)
+    pruned: int = 0  # Stored jobs deactivated because they no longer fit the profile.
     closed: int = 0  # Dead links found during verification.
     saved: int = 0
     new: int = 0
@@ -42,7 +44,7 @@ def run_sweep(
 ) -> SweepReport:
     """One full scout cycle. Only the top `limit` jobs by score are verified and saved."""
     started = time.monotonic()
-    report = SweepReport()
+    report = SweepReport(pruned=prune_ineligible(session, profile))
     jobs, report.errors = discover(profile, firecrawl, http, progress)
     report.discovered = len(jobs)
 
@@ -54,6 +56,10 @@ def run_sweep(
     scored = [(job, score_job(job, profile)) for job in unique]
     eligible = [(job, s) for job, s in scored if s.rejected_reason is None]
     report.rejected = len(scored) - len(eligible)
+    for _, s in scored:
+        if s.rejected_reason:
+            gate = s.rejected_reason.split(":")[0]
+            report.rejected_by[gate] = report.rejected_by.get(gate, 0) + 1
     eligible.sort(key=lambda pair: pair[1].score, reverse=True)
 
     to_verify = eligible[:limit]
@@ -90,6 +96,26 @@ def run_sweep(
     )
     session.commit()
     return report
+
+
+def prune_ineligible(session: Session, profile: CandidateProfile) -> int:
+    """Deactivate stored jobs that now fail a hard gate (e.g. after a profile edit)."""
+    pruned = 0
+    for row in repo.list_active(session):
+        reason = score_job(repo.to_posting(row), profile).rejected_reason
+        if reason:
+            repo.mark_inactive(session, row.id)
+            repo.record_audit(
+                session,
+                actor=ACTOR,
+                action="JOB_EXCLUDED",
+                status="WARNING",
+                target_id=row.id,
+                details={"reason": reason, "title": row.title, "company": row.company},
+            )
+            pruned += 1
+    session.commit()
+    return pruned
 
 
 def verify_stored(

@@ -8,7 +8,7 @@ import respx
 import yaml
 from sqlalchemy.orm import Session
 
-from src.ingestion.pipeline import run_sweep, verify_stored
+from src.ingestion.pipeline import prune_ineligible, run_sweep, verify_stored
 from src.profile.loader import interpolate
 from src.profile.models import CandidateProfile
 from src.storage import repository as repo
@@ -84,6 +84,7 @@ def test_run_sweep_filters_scores_verifies_and_saves(session: Session, http: htt
 
     assert (report.discovered, report.excluded, report.duplicates) == (6, 1, 1)
     assert (report.rejected, report.closed, report.saved, report.new) == (1, 1, 2, 2)
+    assert report.rejected_by == {"visa": 1} and report.pruned == 0
     saved = repo.list_active(session)
     assert [j.title for j in saved] == ["Senior Software Engineer", "Software Engineer"]
     assert all(j.last_verified_at is not None for j in saved)
@@ -151,3 +152,46 @@ def test_progress_events_cover_each_stage(session: Session, http: httpx.Client) 
         ("verify", 1, 2),
         ("verify", 2, 2),
     ]
+
+
+TOO_SENIOR = _gh_job(
+    6, "Principal Engineer", "San Francisco, CA", content=f"{JD} 25+ years of experience."
+)
+
+
+def test_sweep_rejects_roles_requiring_more_experience(
+    session: Session, http: httpx.Client
+) -> None:
+    respx.get(BOARD.format("hooli")).respond(200, json={"jobs": [GOOD, TOO_SENIOR]})
+    report = run_sweep(_profile(), session, http, firecrawl=None)
+    assert report.rejected_by == {"experience": 1}
+    assert [j.title for j in repo.list_active(session)] == ["Senior Software Engineer"]
+
+
+def test_stored_ineligible_jobs_are_pruned(session: Session, http: httpx.Client) -> None:
+    from src.ingestion.base import RawJobPosting
+    from src.ingestion.scorer import JobScore
+
+    stale = RawJobPosting(
+        "Principal Engineer",
+        "Initech",
+        "Remote",
+        "https://x/9",
+        "25+ years of experience.",
+        "lever",
+    )
+    row = repo.upsert_job(session, stale, JobScore(90, None, 0))  # saved before the gate existed
+    session.commit()
+
+    assert prune_ineligible(session, _profile()) == 1
+    session.commit()
+    assert repo.get_job(session, row.id).is_active is False  # type: ignore[union-attr]
+    [event] = repo.query_audit(session, action="JOB_EXCLUDED")
+    assert event.target_id == row.id and event.details["reason"].startswith(
+        "experience: requires 25+"
+    )
+
+    repo.upsert_job(session, stale, JobScore(90, None, 0))  # re-activated by a stale writer
+    session.commit()
+    report = run_sweep(_profile(), session, http, firecrawl=None)
+    assert report.pruned == 1 and repo.get_job(session, row.id).is_active is False  # type: ignore[union-attr]
