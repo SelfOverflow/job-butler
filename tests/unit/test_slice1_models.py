@@ -7,33 +7,24 @@ import yaml
 from pydantic import ValidationError
 
 from src.config.settings import Settings
+from src.profile.loader import interpolate
 from src.profile.models import CandidateProfile, PersonalInfo, Preferences, Skill, STARStory
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROFILE_FILES = ["candidate_profile.yaml", "candidate_profile.template.yaml"]
 
-# Stand-ins for the ${VAR} placeholders the loader will resolve in a later increment.
-ENV_VALUES = {
-    "${CANDIDATE_EMAIL}": "jane@example.com",
-    "${CANDIDATE_EMAIL:-jane.doe@example.com}": "jane.doe@example.com",
-    "${CANDIDATE_PHONE}": "+1 555 0100",
-    "${CANDIDATE_CITY}": "Springfield",
-    "${CANDIDATE_STATE}": "State",
-    "${CANDIDATE_POSTAL_CODE}": "00000",
+ENV = {
+    "CANDIDATE_EMAIL": "jane@example.com",
+    "CANDIDATE_PHONE": "+1 555 0100",
+    "CANDIDATE_CITY": "Springfield",
+    "CANDIDATE_STATE": "State",
+    "CANDIDATE_POSTAL_CODE": "00000",
 }
-
-
-def _resolve(node: Any) -> Any:
-    if isinstance(node, dict):
-        return {k: _resolve(v) for k, v in node.items()}
-    if isinstance(node, list):
-        return [_resolve(v) for v in node]
-    return ENV_VALUES.get(node, node) if isinstance(node, str) else node
 
 
 def _raw(name: str = "candidate_profile.template.yaml") -> dict[str, Any]:
     data = yaml.safe_load((REPO_ROOT / "profile" / name).read_text(encoding="utf-8"))
-    resolved: dict[str, Any] = _resolve(data)
+    resolved: dict[str, Any] = interpolate(data, ENV)
     return resolved
 
 
