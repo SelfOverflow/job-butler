@@ -1,12 +1,13 @@
 "use client";
 
-import { Activity, BarChart3, Briefcase, Hand, LayoutDashboard, UserRound } from "lucide-react";
+import { Activity, BarChart3, Briefcase, Hand, LayoutDashboard, Terminal, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/jobs/", label: "Jobs", icon: Briefcase },
+  { href: "/run/", label: "Commands", icon: Terminal },
   { href: "/analytics/", label: "Analytics", icon: BarChart3 },
   { href: "/profile/", label: "Profile", icon: UserRound },
   { href: "/audit/", label: "Audit log", icon: Activity },

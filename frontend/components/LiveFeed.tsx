@@ -16,7 +16,7 @@ export function useLiveEvents(): { events: AuditEvent[]; connected: boolean } {
     () =>
       connectEvents((message) => {
         if (message.type === "snapshot") setEvents(message.events.slice(0, MAX_EVENTS));
-        else setEvents((current) => [message.event, ...current].slice(0, MAX_EVENTS));
+        else if (message.type === "audit") setEvents((current) => [message.event, ...current].slice(0, MAX_EVENTS));
       }, setConnected),
     [],
   );
