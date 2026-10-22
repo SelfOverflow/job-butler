@@ -4,3 +4,24 @@
 :root {
   color-scheme: light dark;
 }
+
+/* Chart roles (validated palette: categorical slots 1-2, light and dark stepped separately). */
+.viz-root {
+  --viz-surface: #fcfcfb;
+  --viz-ink: #0b0b0b;
+  --viz-ink-2: #52514e;
+  --viz-muted: #898781;
+  --viz-axis: #c3c2b7;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+}
+@media (prefers-color-scheme: dark) {
+  .viz-root {
+    --viz-surface: #1a1a19;
+    --viz-ink: #f0efec;
+    --viz-ink-2: #c3c2b7;
+    --viz-axis: #383835;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+  }
+}

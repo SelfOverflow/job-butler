@@ -67,6 +67,10 @@ export type Application = {
   updated_at: string;
   submitted_at: string | null;
 };
+export type SkillDemand = { skill: string; postings: number; share: number; have: boolean };
+export type SkillRoi = { skill: string; unlocks: number; demand: number; uplift_pct: number };
+export type Trends = { created_at: string | null; total: number; matched: number; threshold: number; demand: SkillDemand[] };
+export type UpskillReport = { created_at: string | null; matched: number; threshold: number; upskill: SkillRoi[] };
 export type HitlAction = "prepare" | "approve" | "skip" | "resolve";
 export type ProfileUpdate = { yaml: string } | { set: Record<string, string> };
 
@@ -118,6 +122,8 @@ export const api = {
   backups: () => request<Backup[]>("/api/profile/backups"),
   restoreBackup: (name: string) =>
     request<unknown>("/api/profile/restore", { ...json({ name }), method: "POST" }),
+  trends: () => request<Trends>("/api/analytics/trends"),
+  upskill: () => request<UpskillReport>("/api/analytics/upskill"),
   pending: () => request<Application[]>("/api/hitl/pending"),
   /** prepare/answers never submit; only "approve" submits an application. */
   hitl: (jobId: string, action: HitlAction) =>
