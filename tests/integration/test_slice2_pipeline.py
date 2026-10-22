@@ -195,3 +195,21 @@ def test_stored_ineligible_jobs_are_pruned(session: Session, http: httpx.Client)
     session.commit()
     report = run_sweep(_profile(), session, http, firecrawl=None)
     assert report.pruned == 1 and repo.get_job(session, row.id).is_active is False  # type: ignore[union-attr]
+
+
+def test_prune_also_refreshes_scores_of_kept_jobs(session: Session) -> None:
+    from src.ingestion.base import RawJobPosting
+    from src.ingestion.scorer import JobScore, score_job
+
+    job = RawJobPosting(
+        "Senior Software Engineer", "Hooli", "San Francisco, CA", "https://x/7", JD, "lever"
+    )
+    row = repo.upsert_job(
+        session, job, JobScore(1, None, 0)
+    )  # stale score/tier from an old profile
+    session.commit()
+
+    assert prune_ineligible(session, _profile()) == 0
+    fresh = score_job(job, _profile())
+    assert (row.score, row.tier, row.boost) == (fresh.score, fresh.tier, fresh.boost)
+    assert row.tier == "tier1_primary_market"

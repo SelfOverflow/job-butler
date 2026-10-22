@@ -36,24 +36,28 @@ class JobScore:
 
 
 def classify_tier(location: str, hierarchy: Mapping[str, MarketTier]) -> tuple[str | None, int]:
-    """Tier whose most specific (longest) place name appears in `location`, with its boost.
+    """Tier whose most specific place name appears in `location`, with its boost.
 
-    Longest match wins so "Global Remote" beats a bare "Remote" hub; ties go to the
-    earlier (higher-priority) tier.
+    Longer names win ("Global Remote" beats "Remote"); at equal length a city
+    (hubs/standard_hubs) beats a country (countries/locations), so "Gurugram, India"
+    follows Gurugram's tier. Remaining ties go to the earlier tier. Country-level
+    matches use `standard_boost` when the tier sets one.
     """
     haystack = words(location)
-    best: tuple[int, str | None, int] = (0, None, 0)
+    best: tuple[int, int] = (0, 0)  # (words matched, 1 for city / 0 for country)
+    result: tuple[str | None, int] = (None, 0)
     for name, tier in hierarchy.items():
-        for places, boost in (
-            (tier.hubs, tier.boost),
-            (tier.standard_hubs, tier.standard_boost),
-            (tier.countries + tier.locations, tier.boost),
+        standard = tier.boost if tier.standard_boost is None else tier.standard_boost
+        for places, level, boost in (
+            (tier.hubs, 1, tier.boost),
+            (tier.standard_hubs, 1, standard),
+            (tier.countries + tier.locations, 0, standard),
         ):
             for place in places:
                 needle = words(place)
-                if len(needle) > best[0] and contains_phrase(haystack, needle):
-                    best = (len(needle), name, boost)
-    return best[1], best[2]
+                if (len(needle), level) > best and contains_phrase(haystack, needle):
+                    best, result = (len(needle), level), (name, boost)
+    return result
 
 
 def skill_variants(name: str) -> list[tuple[str, ...]]:

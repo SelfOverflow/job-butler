@@ -36,6 +36,7 @@ preferences:
       standard_boost: 3
       hubs: ["Bengaluru", "Bangalore", "Remote India"]
       standard_hubs: ["Hyderabad", "Pune", "Mumbai", "Chennai"]
+      countries: ["India", "IND"] # Any other Indian city: standard_boost (+3)
     tier2_international_priority:
       description: "Top-Tier International Priority with Visa Sponsorship (EU & Nordics, UK, Canada, UAE, US, APAC)"
       boost: 4

@@ -146,3 +146,37 @@ def test_tiers_marked_domestic_skip_visa_gate() -> None:
     profile = CandidateProfile.model_validate(raw)
     result = score_job(_job("Fresno, CA", f"{JD} Citizens only."), profile)
     assert (result.tier, result.rejected_reason) == ("tier5_low_priority_home", None)
+
+
+def _india_hierarchy() -> dict[str, Any]:
+    return {
+        "tier1_home": {
+            "boost": 5,
+            "standard_boost": 3,
+            "hubs": ["Bengaluru", "Remote India"],
+            "standard_hubs": ["Pune"],
+            "countries": ["India", "IND"],
+        },
+        "tier2_abroad": {"boost": 4, "countries": ["Germany"]},
+        "tier5_low": {"boost": 0, "domestic": True, "hubs": ["Gurugram", "Delhi NCR"]},
+    }
+
+
+@pytest.mark.parametrize(
+    ("location", "tier", "boost"),
+    [
+        ("Bengaluru, Karnataka, India", "tier1_home", 5),  # city hub beats the country
+        ("Remote, India", "tier1_home", 5),
+        ("Pune, India", "tier1_home", 3),
+        ("Mohali, IND", "tier1_home", 3),  # country-level match uses standard_boost
+        ("India", "tier1_home", 3),
+        ("Gurugram, Haryana, India", "tier5_low", 0),  # city in a lower tier still wins
+        ("Delhi NCR, India", "tier5_low", 0),
+        ("Berlin, Germany", "tier2_abroad", 4),  # no standard_boost: countries use boost
+    ],
+)
+def test_city_matches_beat_country_matches(location: str, tier: str, boost: int) -> None:
+    raw: dict[str, Any] = interpolate(yaml.safe_load(TEMPLATE.read_text()), ENV)
+    raw["preferences"]["sourcing_hierarchy"] = _india_hierarchy()
+    hierarchy = CandidateProfile.model_validate(raw).preferences.sourcing_hierarchy
+    assert classify_tier(location, hierarchy) == (tier, boost)

@@ -60,7 +60,8 @@ class PersonalInfo(_Model):
 class MarketTier(_Model):
     description: str = ""
     boost: int
-    standard_boost: int = 0
+    # Boost for standard_hubs and country-level matches; falls back to `boost` when unset.
+    standard_boost: int | None = None
     domestic: bool = False  # Home-market tier (the first tier is always domestic).
     hubs: tuple[str, ...] = ()
     standard_hubs: tuple[str, ...] = ()

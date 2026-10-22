@@ -99,11 +99,18 @@ def run_sweep(
 
 
 def prune_ineligible(session: Session, profile: CandidateProfile) -> int:
-    """Deactivate stored jobs that now fail a hard gate (e.g. after a profile edit)."""
+    """Re-score stored jobs against the current profile; deactivate those failing a gate.
+
+    Kept jobs get fresh score/tier/boost, so profile edits (tiers, skills, experience)
+    take effect without waiting for the job to be rediscovered.
+    """
     pruned = 0
     for row in repo.list_active(session):
-        reason = score_job(repo.to_posting(row), profile).rejected_reason
-        if reason:
+        result = score_job(repo.to_posting(row), profile)
+        reason = result.rejected_reason
+        if not reason:
+            row.score, row.tier, row.boost = result.score, result.tier, result.boost
+        else:
             repo.mark_inactive(session, row.id)
             repo.record_audit(
                 session,
