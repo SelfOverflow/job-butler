@@ -52,7 +52,9 @@ describe("BackupList", () => {
 
     const items = screen.getAllByRole("listitem");
     expect(items[0]).toHaveTextContent("candidate_profile_20261023_101500.yaml");
-    await userEvent.click(screen.getAllByRole("button", { name: /restore/i })[1]);
+    await userEvent.click(screen.getAllByRole("button", { name: /^restore$/i })[1]);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /confirm restore/i }));
     expect(onRestore).toHaveBeenCalledWith("candidate_profile_20261022_093015.yaml");
     expect(await screen.findByText(/restored candidate_profile_20261022_093015/i)).toBeInTheDocument();
   });

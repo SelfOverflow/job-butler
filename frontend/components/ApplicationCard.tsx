@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { api, type Application, type HitlAction, type Question } from "@/lib/api";
 
 const STATUS: Record<string, string> = {
@@ -106,16 +107,19 @@ export function ApplicationCard({ initial }: { initial: Application }) {
       )}
 
       <div className="flex flex-wrap gap-2">
-        {app.status === "awaiting_review" && !confirming && (
+        {app.status === "awaiting_review" && (
           <button type="button" disabled={busy} className={primary} onClick={() => setConfirming(true)}>Approve &amp; submit</button>
         )}
-        {confirming && (
-          <span className="flex items-center gap-2 text-sm">
-            Submit to {app.company}?
-            <button type="button" disabled={busy} className={primary} onClick={() => act("approve")}>{busy ? "Submitting…" : "Confirm"}</button>
-            <button type="button" disabled={busy} className={button} onClick={() => setConfirming(false)}>Cancel</button>
-          </span>
-        )}
+        <ConfirmDialog
+          open={confirming}
+          title={`Submit to ${app.company}?`}
+          description={`This will submit your tailored application directly to ${app.company}. Please ensure you have reviewed all fields.`}
+          confirmLabel={busy ? "Submitting…" : "Confirm"}
+          cancelLabel="Cancel"
+          busy={busy}
+          onConfirm={() => act("approve")}
+          onCancel={() => setConfirming(false)}
+        />
         {app.status === "blocked" && <button type="button" disabled={busy} className={button} onClick={() => act("resolve")}>I applied myself</button>}
         {["needs_input", "blocked", "awaiting_review"].includes(app.status) && (
           <button type="button" disabled={busy} className={button} onClick={() => act("skip")}>Skip</button>
