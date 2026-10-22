@@ -19,6 +19,20 @@ export type Job = {
   cover_letter_txt_url: string | null;
 };
 
+export type AuditEvent = {
+  id: string;
+  timestamp: string; // naive UTC
+  actor: string;
+  action: string;
+  target_id: string | null;
+  status: "SUCCESS" | "WARNING" | "FAILURE" | string;
+  duration_ms: number | null;
+  details: Record<string, unknown>;
+};
+
+export type AuditPage = { items: AuditEvent[]; next_offset: number | null };
+export type AuditFilters = { actor?: string; action?: string; status?: string };
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -35,6 +49,16 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+export const AUDIT_PAGE_SIZE = 50;
+
 export const api = {
   jobs: () => request<Job[]>("/api/jobs"),
+  audit: (filters: AuditFilters, offset = 0) => {
+    const params = new URLSearchParams(
+      Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1])),
+    );
+    params.set("limit", String(AUDIT_PAGE_SIZE));
+    params.set("offset", String(offset));
+    return request<AuditPage>(`/api/audit?${params}`);
+  },
 };

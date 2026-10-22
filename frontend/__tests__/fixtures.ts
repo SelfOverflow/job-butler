@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-import type { Job } from "@/lib/api";
+import type { AuditEvent, Job } from "@/lib/api";
 
 export function makeJob(overrides: Partial<Job> = {}): Job {
   return {
@@ -28,4 +28,18 @@ export function mockFetch(handler: (url: string, init?: RequestInit) => unknown,
     const body = handler(String(input), init);
     return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
   });
+}
+
+export function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
+  return {
+    id: "e1",
+    timestamp: "2026-10-22T07:50:28",
+    actor: "agent:scout",
+    action: "SCOUT_SWEEP",
+    target_id: null,
+    status: "SUCCESS",
+    duration_ms: 1500,
+    details: { saved: 20, errors: [] },
+    ...overrides,
+  };
 }
