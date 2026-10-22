@@ -26,6 +26,10 @@ describe("JobCard", () => {
       "href",
       "/api/artifacts/job_1234abcd/cover_pdf",
     );
+    expect(screen.getByRole("link", { name: /view details/i })).toHaveAttribute(
+      "href",
+      "/jobs/detail?id=job_1234abcd",
+    );
   });
 
   it("opens external postings in a new tab safely", () => {

@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-import type { Application, AuditEvent, Job } from "@/lib/api";
+import type { Application, AuditEvent, Job, JobDetail } from "@/lib/api";
 
 /** Naive-UTC timestamp `hours` before now, matching the API's format. */
 export function hoursAgo(hours: number): string {
@@ -25,6 +25,14 @@ export function makeJob(overrides: Partial<Job> = {}): Job {
     resume_url: "/api/artifacts/job_1234abcd/resume",
     cover_letter_url: "/api/artifacts/job_1234abcd/cover_pdf",
     cover_letter_txt_url: "/api/artifacts/job_1234abcd/cover_txt",
+    ...overrides,
+  };
+}
+
+export function makeJobDetail(overrides: Partial<JobDetail> = {}): JobDetail {
+  return {
+    ...makeJob(),
+    description: "We are looking for a Senior Software Engineer to build distributed systems.",
     ...overrides,
   };
 }

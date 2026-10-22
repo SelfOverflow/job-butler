@@ -118,6 +118,7 @@ def test_job_detail_and_artifact_download(
     response = client.get(url)
     assert response.status_code == 200 and response.content == b"%PDF-1.7 fake"
     assert response.headers["content-type"] == "application/pdf"
+    assert "inline" in response.headers.get("content-disposition", "")
 
 
 @pytest.mark.parametrize(

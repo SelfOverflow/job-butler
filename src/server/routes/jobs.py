@@ -97,4 +97,6 @@ def download_artifact(job_id: JobId, kind: ArtifactKind, settings: SettingsDep) 
     if not path.is_file():
         raise HTTPException(404, f"No {kind} for {job_id} yet; run `job-butler tailor`")
     media = "text/plain; charset=utf-8" if kind == "cover_txt" else "application/pdf"
-    return FileResponse(path, media_type=media, filename=path.name)
+    return FileResponse(
+        path, media_type=media, filename=path.name, content_disposition_type="inline"
+    )

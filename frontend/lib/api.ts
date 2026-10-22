@@ -20,6 +20,10 @@ export type Job = {
   cover_letter_txt_url: string | null;
 };
 
+export type JobDetail = Job & {
+  description: string;
+};
+
 export type AuditEvent = {
   id: string;
   timestamp: string; // naive UTC
@@ -109,6 +113,7 @@ export const AUDIT_PAGE_SIZE = 50;
 
 export const api = {
   jobs: () => request<Job[]>("/api/jobs"),
+  job: (id: string) => request<JobDetail>(`/api/jobs/${id}`),
   audit: (filters: AuditFilters, offset = 0) => {
     const params = new URLSearchParams(
       Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1])),
