@@ -1,6 +1,5 @@
 """`job-butler` command-line entrypoint."""
 
-import shutil
 from pathlib import Path
 from typing import Annotated
 
@@ -13,9 +12,8 @@ from src.cli_common import friendly_errors, profile_loader
 from src.cli_scout import scout_app
 from src.cli_tailor import tailor_app
 from src.config.settings import Settings
-from src.profile.exporter import to_markdown
-from src.profile.screening import resolve
 from src.profile.updater import ProfileUpdater
+from src.services import profile as profile_service
 
 app = typer.Typer(no_args_is_help=True, help="Job Butler: autonomous job search assistant.")
 profile_app = typer.Typer(no_args_is_help=True, help="Manage the candidate profile.")
@@ -57,12 +55,8 @@ def init(
     force: Annotated[bool, typer.Option(help="Overwrite an existing profile.")] = False,
 ) -> None:
     """Scaffold a new profile from the template."""
-    target = Settings().profile_path
-    if target.exists() and not force:
-        typer.echo(f"[✗] {target} already exists (use --force to overwrite).")
-        raise typer.Exit(1)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(template, target)
+    with friendly_errors():
+        target = profile_service.init_profile(template, Settings().profile_path, force=force)
     typer.echo(f"[✓] Scaffolded {target} from {template}. Ready to edit!")
 
 
@@ -70,12 +64,12 @@ def init(
 def validate() -> None:
     """Validate the profile and print a summary."""
     with friendly_errors():
-        profile = profile_loader().load()
+        summary = profile_service.validate_profile(profile_loader())
     typer.echo(
-        f"[✓] Profile valid: {profile.personal_info.full_name} "
-        f"({len(profile.bullets)} atomic bullets, {len(profile.work_experience)} roles, "
-        f"{len(profile.star_stories)} STAR stories, "
-        f"{len(profile.screening_question_bank)} screening answers registered)"
+        f"[✓] Profile valid: {summary.full_name} "
+        f"({summary.bullet_count} atomic bullets, {summary.role_count} roles, "
+        f"{summary.star_story_count} STAR stories, "
+        f"{summary.screening_count} screening answers registered)"
     )
 
 
@@ -84,11 +78,7 @@ def query(question: str) -> None:
     """Answer a screening question from the profile's question bank."""
     with friendly_errors():
         profile = profile_loader().load()
-    match = resolve(question, profile.screening_question_bank)
-    if match is None:
-        typer.echo("[?] No matching screening answer.")
-        raise typer.Exit(1)
-    value = match.answer_value
+        value = profile_service.query_screening(profile, question)
     typer.echo(("Yes" if value else "No") if isinstance(value, bool) else str(value))
 
 
@@ -100,15 +90,8 @@ def update(
     ],
 ) -> None:
     """Set profile values; all assignments are validated and saved together."""
-    pairs = []
-    for assignment in assignments:
-        path, sep, value = assignment.partition("=")
-        if not sep or not path:
-            typer.echo(f"[✗] Expected PATH=VALUE, got {assignment!r}")
-            raise typer.Exit(1)
-        pairs.append((path, value))
     with friendly_errors():
-        _updater().set_values(pairs)
+        pairs = profile_service.update_profile(_updater(), assignments)
     typer.echo(f"[✓] Updated {', '.join(p for p, _ in pairs)} (previous version backed up)")
 
 
@@ -121,14 +104,14 @@ def add_bullet(
     """Append a verified atomic bullet to a role."""
     skill_list = [s.strip() for s in skills.split(",") if s.strip()]
     with friendly_errors():
-        bullet = _updater().add_bullet(role_id, text, skill_list)
-    typer.echo(f"[✓] Added bullet {bullet.id} to {role_id}")
+        bullet_id = profile_service.add_bullet(_updater(), role_id, text, skill_list)
+    typer.echo(f"[✓] Added bullet {bullet_id} to {role_id}")
 
 
 @profile_app.command()
 def backups() -> None:
     """List profile backups, oldest first."""
-    found = _updater().list_backups()
+    found = profile_service.list_backups(_updater())
     if not found:
         typer.echo("No backups yet.")
     for path in found:
@@ -138,14 +121,9 @@ def backups() -> None:
 @profile_app.command()
 def restore(name: Annotated[str, typer.Argument(help="Backup file name from `backups`.")]) -> None:
     """Restore the profile from a backup (the current version is backed up first)."""
-    updater = _updater()
-    match = next((p for p in updater.list_backups() if p.name == name), None)
-    if match is None:
-        typer.echo(f"[✗] No such backup: {name}")
-        raise typer.Exit(1)
     with friendly_errors():
-        updater.restore(match)
-    typer.echo(f"[✓] Restored {updater.loader.path} from {name}")
+        target = profile_service.restore_backup(_updater(), name)
+    typer.echo(f"[✓] Restored {target} from {name}")
 
 
 @profile_app.command("export-master")
@@ -157,7 +135,6 @@ def export_master(
     """Write the full profile as a Markdown master resume."""
     with friendly_errors():
         profile = profile_loader().load()
-    target = output or Settings().artifacts_dir / "master_resume.md"
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(to_markdown(profile), encoding="utf-8")
+        target = output or Settings().artifacts_dir / "master_resume.md"
+        profile_service.export_master(profile, target)
     typer.echo(f"[✓] Master resume written to {target}")

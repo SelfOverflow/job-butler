@@ -8,8 +8,7 @@ import typer
 from src.cli_common import db_session, friendly_errors, profile_loader, progress_bars, tier_labels
 from src.config.settings import Settings
 from src.ingestion.firecrawl_client import FirecrawlClient
-from src.ingestion.pipeline import prune_ineligible, run_sweep, verify_stored
-from src.storage import repository as repo
+from src.services import scout as scout_service
 
 scout_app = typer.Typer(no_args_is_help=True, help="Discover, list, and verify job postings.")
 USER_AGENT = "job-butler/0.1 (+https://github.com/SelfOverflow/job-butler)"
@@ -53,7 +52,9 @@ def run(
                 "[!] FIRECRAWL_API_KEY not set: only preferences.watched_companies are scanned."
             )
         with progress_bars() as progress:
-            report = run_sweep(profile, session, http, firecrawl, limit=limit, progress=progress)
+            report = scout_service.sweep(
+                profile, session, http, firecrawl, limit=limit, progress=progress
+            )
     typer.echo(
         f"[✓] Discovered {report.discovered}: excluded {report.excluded}, "
         f"duplicates {report.duplicates}, stale {report.stale}, "
@@ -81,7 +82,7 @@ def list_jobs(
 ) -> None:
     """Show active jobs, best fit first."""
     with db_session() as session:
-        jobs = repo.list_active(session, min_score=min_score)
+        jobs = scout_service.list_jobs(session, min_score=min_score)
     if not jobs:
         typer.echo("No active jobs yet. Run `job-butler scout run`.")
         return
@@ -113,8 +114,7 @@ def verify() -> None:
     with friendly_errors():
         profile = profile_loader().load()
     with _http() as http, db_session() as session, progress_bars() as progress:
-        pruned = prune_ineligible(session, profile)
-        counts = verify_stored(session, http, progress)
+        pruned, counts = scout_service.verify(session, http, profile, progress=progress)
     typer.echo(f"[✓] Pruned {pruned} stored job(s) that no longer fit the profile")
     summary = ", ".join(f"{status} {n}" for status, n in counts.items())
     typer.echo(f"[✓] Verified: {summary}")
