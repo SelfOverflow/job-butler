@@ -61,6 +61,16 @@ preferences:
     - "Current Employer Inc"
     - "Past Company LLC"
 
+  # Company job boards polled directly via their public ATS APIs (free, no API key).
+  # The board slug is the last path segment, e.g. boards.greenhouse.io/<board> or jobs.lever.co/<board>.
+  watched_companies: []
+  #  - name: "Stripe"
+  #    ats: "greenhouse"
+  #    board: "stripe"
+  #  - name: "Palantir"
+  #    ats: "lever"
+  #    board: "palantir"
+
   cv_page_budget_rules:
     domestic: 1       # Exactly 1 page for domestic applications
     international: 2  # Exactly 2 pages for international relocation applications

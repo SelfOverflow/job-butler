@@ -1,8 +1,9 @@
 """Source-agnostic job posting DTO shared by every ingestion adapter."""
 
+import html
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 @dataclass(frozen=True)
@@ -25,3 +26,14 @@ def contains_phrase(haystack: tuple[str, ...], needle: tuple[str, ...]) -> bool:
     """True if `needle` occurs as a contiguous run of whole words in `haystack`."""
     n = len(needle)
     return n > 0 and any(haystack[i : i + n] == needle for i in range(len(haystack) - n + 1))
+
+
+def html_to_text(markup: str) -> str:
+    """Plain text from (possibly entity-escaped) HTML, whitespace collapsed."""
+    stripped = re.sub(r"<[^>]+>", " ", html.unescape(markup))
+    return " ".join(html.unescape(stripped).split())
+
+
+def to_naive_utc(moment: datetime) -> datetime:
+    """Storage uses naive UTC; aware datetimes are converted, naive ones assumed UTC."""
+    return moment.astimezone(UTC).replace(tzinfo=None) if moment.tzinfo else moment

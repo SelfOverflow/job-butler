@@ -74,12 +74,23 @@ class PageBudget(_Model):
     cover_letter: int = Field(ge=1)
 
 
+class WatchedCompany(_Model):
+    """A company job board polled directly via its ATS's public API."""
+
+    name: NonEmptyStr
+    ats: Literal["greenhouse", "lever"]
+    board: Annotated[
+        str, StringConstraints(pattern=r"^[A-Za-z0-9_-]+$")
+    ]  # e.g. boards.greenhouse.io/<board>
+
+
 class Preferences(_Model):
     target_roles: tuple[NonEmptyStr, ...] = Field(min_length=1)
     # Ordered highest priority first; keys are free-form tier names.
     sourcing_hierarchy: dict[str, MarketTier] = Field(min_length=1)
     excluded_employers: tuple[NonEmptyStr, ...] = ()
     cv_page_budget_rules: PageBudget
+    watched_companies: tuple[WatchedCompany, ...] = ()
     min_base_salary: int | None = Field(default=None, ge=0)  # Annual floor, in `currency`.
     currency: Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")] | None = None  # ISO 4217
 
