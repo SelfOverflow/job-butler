@@ -114,9 +114,9 @@ graph TD
   * Never scrapes or applies to any employer listed in `preferences.excluded_employers` (case-insensitive name match).
 * **Market Sourcing Hierarchy Boost** (loaded from `preferences.sourcing_hierarchy`; active workspace values shown):
   * Tier 1: India Domestic (Bengaluru / Remote India +5, Delhi NCR / Hyderabad / Pune / Mumbai +3).
-  * Tier 2: EU & Nordics (Visa Sponsorship / EU Blue Card, +4).
-  * Tier 3: GCC / Middle East (Visa Sponsorship, +2).
-  * Tier 4: Worldwide Relocation & Global Remote.
+  * Tier 2: EU & Nordics, UAE / Dubai, US, Australia, New Zealand, Singapore, Japan (Visa Sponsorship, +4).
+  * Tier 3: Rest of GCC / Middle East (Visa Sponsorship, +2).
+  * Tier 4: UK, Canada, Worldwide Relocation & Global Remote.
 
 ---
 

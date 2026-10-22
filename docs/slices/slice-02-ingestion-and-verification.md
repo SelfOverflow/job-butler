@@ -14,7 +14,7 @@ job-butler scout list
 # -----------------------------------------------------------------------------------------
 # job_01   94     Tier 1   Stripe      Sr Full-Stack Engineer    Bengaluru   [LIVE]  Greenhouse
 # job_02   92     Tier 2   Klarna      Lead Mobile Engineer      Stockholm   [LIVE]  Firecrawl
-# job_03   88     Tier 3   Careem      Senior React Native Eng   Dubai, UAE  [LIVE]  Lever
+# job_03   88     Tier 2   Careem      Senior React Native Eng   Dubai, UAE  [LIVE]  Lever
 ```
 
 ## 2. Ingestion, Persistence & Verification Guardrails
@@ -47,9 +47,9 @@ Score = `round(100 × (4·tech + 3·seniority) / 7)` + tier boost (the 40% / 30%
 3. **Seniority & Scope (≈43%)**: Best word overlap between the job title and a `preferences.target_roles` entry.
 4. **Market Hierarchy Boost** (added on top; longest matching place name wins; loaded from `preferences.sourcing_hierarchy`; active workspace values shown):
    - **Tier 1 (India Domestic)**: +5 boost for Bengaluru / Remote India; +3 boost for Delhi NCR, Hyderabad, Pune, Mumbai.
-   - **Tier 2 (EU & Nordics)**: +4 boost for Sweden, Denmark, Norway, Finland, Germany, Netherlands, etc. (EU Blue Card / Visa Sponsorship).
-   - **Tier 3 (GCC / Middle East)**: +2 boost for UAE (Dubai, Abu Dhabi), Saudi Arabia, Qatar.
-   - **Tier 4 (Worldwide / Global Remote)**: Standard score for UK, US, Australia, Singapore, Global Remote.
+   - **Tier 2 (International Priority)**: +4 boost for EU & Nordics (Sweden, Denmark, Norway, Finland, Germany, Netherlands, etc.), UAE / Dubai, United States, Australia, New Zealand, Singapore, Japan (Visa Sponsorship).
+   - **Tier 3 (GCC / Middle East)**: +2 boost for Saudi Arabia, Qatar, Kuwait, Bahrain, Oman.
+   - **Tier 4 (Worldwide / Global Remote)**: Standard score for UK, Canada, Global Remote.
 
 ## 3. Components & Architecture
 ```

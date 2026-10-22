@@ -74,7 +74,7 @@ When evaluating the active configuration in this repository, the agent operates 
 - **LinkedIn Directive**: Full verbatim LinkedIn URL rendered on all generated documents.
 - **Active Excluded Employers**: OakNorth, Tejas Networks, Stepswatch (loaded from `preferences.excluded_employers`).
 - **Active Target Roles**: Senior Full-Stack Engineer, Technical Lead, Lead Mobile Engineer, Senior React Native Engineer, Distributed Systems Engineer.
-- **Active Market Tiers** (loaded from `preferences.sourcing_hierarchy`): Tier 1 (India Domestic +5/+3), Tier 2 (EU & Nordics +4), Tier 3 (GCC +2), Tier 4 (Worldwide).
+- **Active Market Tiers** (loaded from `preferences.sourcing_hierarchy`): Tier 1 (India Domestic +5/+3), Tier 2 (EU & Nordics, UAE, US, Australia, NZ, Singapore, Japan +4), Tier 3 (rest of GCC +2), Tier 4 (UK, Canada, Global Remote).
 
 ---
 
