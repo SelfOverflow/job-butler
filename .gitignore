@@ -56,3 +56,6 @@ Thumbs.db
 .vscode/
 *.swp
 
+
+# Automated profile backups
+profile/backups/

@@ -89,6 +89,10 @@ class ProfileLoader:
         resolved: dict[str, Any] = interpolate(data, self._environment())
         return resolved
 
+    def validate(self, document: Mapping[str, Any]) -> CandidateProfile:
+        """Interpolate and validate an in-memory (placeholder-bearing) profile document."""
+        return CandidateProfile.model_validate(interpolate(document, self._environment()))
+
     def load(self) -> CandidateProfile:
         """Re-read the file; on success it becomes the source for `snapshot()`."""
         self._latest = CandidateProfile.model_validate(self.read_raw())
