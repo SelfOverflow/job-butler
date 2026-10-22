@@ -52,7 +52,9 @@ export function BackupList(props: { backups: Backup[]; onRestore: (name: string)
         confirmLabel="Confirm Restore"
         destructive={true}
         busy={busy}
-        onConfirm={() => pendingRestore && restore(pendingRestore)}
+        onConfirm={() => {
+          if (pendingRestore) return restore(pendingRestore);
+        }}
         onCancel={() => setPendingRestore(null)}
       />
     </div>

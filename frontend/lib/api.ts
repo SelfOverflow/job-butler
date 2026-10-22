@@ -118,6 +118,27 @@ export const api = {
     return request<AuditPage>(`/api/audit?${params}`);
   },
   profile: () => request<ProfileResponse>("/api/profile"),
+  validateProfile: () =>
+    request<{
+      valid: boolean;
+      full_name: string;
+      bullet_count: number;
+      role_count: number;
+      star_story_count: number;
+      screening_count: number;
+    }>("/api/profile/validate"),
+  queryScreening: (question: string) =>
+    request<{ question: string; answer: unknown }>("/api/profile/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    }),
+  addBullet: (role_id: string, text: string, skills: string[] = []) =>
+    request<{ bullet_id: string }>("/api/profile/bullets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role_id, text, skills }),
+    }),
   updateProfile: (update: ProfileUpdate) => request<unknown>("/api/profile", json(update)),
   backups: () => request<Backup[]>("/api/profile/backups"),
   restoreBackup: (name: string) =>
