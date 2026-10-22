@@ -139,14 +139,19 @@ class ProfileUpdater:
         pattern = f"{self.loader.path.stem}_*.yaml"
         return sorted(self.backups_dir.glob(pattern), key=lambda p: p.stat().st_mtime_ns)
 
-    def restore(self, backup: Path) -> CandidateProfile:
-        """Replace the profile with `backup` (validated; current state is backed up first)."""
-        text = backup.read_text(encoding="utf-8")
+    def replace_text(self, text: str) -> CandidateProfile:
+        """Replace the whole profile with `text`: validated, backed up, written verbatim."""
         try:
             document = self._yaml.load(text)
         except YAMLError as exc:
-            raise ProfileError(f"Invalid YAML in backup {backup}: {exc}") from exc
+            raise ProfileError(f"Invalid YAML: {exc}") from exc
+        if not isinstance(document, dict):
+            raise ProfileError("Profile root must be a mapping")
         self.loader.validate(document)
         self._backup()
         self._atomic_write(text)
         return self.loader.load()
+
+    def restore(self, backup: Path) -> CandidateProfile:
+        """Replace the profile with `backup` (the current version is backed up first)."""
+        return self.replace_text(backup.read_text(encoding="utf-8"))
