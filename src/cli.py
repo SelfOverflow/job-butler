@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 
+from src.cli_apply import apply_app
 from src.cli_common import friendly_errors, profile_loader
 from src.cli_scout import scout_app
 from src.cli_tailor import tailor_app
@@ -19,6 +20,7 @@ profile_app = typer.Typer(no_args_is_help=True, help="Manage the candidate profi
 app.add_typer(profile_app, name="profile")
 app.add_typer(scout_app, name="scout")
 app.add_typer(tailor_app, name="tailor")
+app.add_typer(apply_app, name="apply")
 
 
 @app.command()

@@ -169,7 +169,7 @@ def approve(
     """Submit the reviewed application. The only code path that ever clicks Submit."""
     record = repo.get_application(session, job_id)
     if record is None:
-        raise ApplyError(f"No prepared application for {job_id}; prepare it first")
+        raise ApplyError(f"Cannot approve: no prepared application for {job_id}; prepare it first")
     if record.status in (ApplicationStatus.SUBMITTED, ApplicationStatus.APPLIED_MANUALLY):
         raise ApplyError(f"Application already {record.status.replace('_', ' ')}")
     if record.status != ApplicationStatus.AWAITING_REVIEW:

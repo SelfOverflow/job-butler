@@ -101,7 +101,7 @@ def test_approve_refuses_unless_awaiting_review(
     )  # needs_input
     with pytest.raises(ApplyError, match="needs input"):
         approve(job_id, session=session, profile=profile, artifacts_dir=tmp_path)
-    with pytest.raises(ApplyError, match="No prepared application"):
+    with pytest.raises(ApplyError, match="no prepared application"):
         approve("job_00000000", session=session, profile=profile, artifacts_dir=tmp_path)
     assert ats.submissions == []
 
