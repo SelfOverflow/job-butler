@@ -80,3 +80,28 @@ def test_terraform_structure() -> None:
     assert "aws_cloudwatch_log_group" in cw_content
     assert "aws_cloudwatch_metric_alarm" in cw_content
 
+
+def test_github_actions_workflow_syntax() -> None:
+    workflows_dir = REPO_ROOT / ".github" / "workflows"
+    assert workflows_dir.is_dir(), ".github/workflows/ directory must exist"
+
+    ci_file = workflows_dir / "ci.yml"
+    assert ci_file.is_file(), "ci.yml workflow must exist"
+    ci_data = yaml.safe_load(ci_file.read_text(encoding="utf-8"))
+
+    # Validate triggers
+    # In PyYAML on: true is parsed as boolean True or string "on"
+    triggers = ci_data.get(True) or ci_data.get("on") or {}
+    assert "push" in triggers or "pull_request" in triggers
+
+    # Validate jobs in CI
+    jobs = ci_data.get("jobs", {})
+    assert "backend" in jobs or "test-backend" in jobs or any("backend" in j for j in jobs)
+    assert "frontend" in jobs or "test-frontend" in jobs or any("frontend" in j for j in jobs)
+
+    deploy_file = workflows_dir / "deploy.yml"
+    assert deploy_file.is_file(), "deploy.yml workflow must exist"
+    deploy_data = yaml.safe_load(deploy_file.read_text(encoding="utf-8"))
+    assert "jobs" in deploy_data
+
+
