@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import JobsPage from "@/app/jobs/page";
-import { makeJob, mockFetch } from "./fixtures";
+import { hoursAgo, makeJob, mockFetch } from "./fixtures";
 
 const JOBS = [
   makeJob({ id: "job_00000001", title: "Lead Mobile Engineer", company: "Klarna", location: "Stockholm", score: 92 }),
@@ -44,5 +44,28 @@ describe("Jobs page", () => {
     mockFetch(() => ({ detail: "boom" }), 500);
     render(<JobsPage />);
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/500/));
+  });
+
+  it("filters by how recently jobs were posted", async () => {
+    mockFetch(() => [
+      makeJob({ id: "job_00000011", title: "Fresh Role", posted_at: hoursAgo(3) }),
+      makeJob({ id: "job_00000012", title: "Two Day Role", posted_at: hoursAgo(40) }),
+      makeJob({ id: "job_00000013", title: "Old Role", posted_at: hoursAgo(24 * 20) }),
+      makeJob({ id: "job_00000014", title: "Undated Role", posted_at: null, discovered_at: hoursAgo(2) }),
+    ]);
+    render(<JobsPage />);
+    await screen.findByText("Old Role");
+
+    const recency = screen.getByRole("combobox", { name: /posted within/i });
+    await userEvent.selectOptions(recency, "24h");
+    expect(screen.getByText("Fresh Role")).toBeInTheDocument();
+    expect(screen.getByText("Undated Role")).toBeInTheDocument(); // falls back to when it was found
+    expect(screen.queryByText("Two Day Role")).not.toBeInTheDocument();
+    expect(screen.queryByText("Old Role")).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(recency, "48h");
+    expect(screen.getByText("Two Day Role")).toBeInTheDocument();
+    await userEvent.selectOptions(recency, "any");
+    expect(screen.getByText("Old Role")).toBeInTheDocument();
   });
 });

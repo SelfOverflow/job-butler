@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { JobCard } from "@/components/JobCard";
-import { api, type Job } from "@/lib/api";
+import { api, type Job, type Recency } from "@/lib/api";
+import { RECENCY_OPTIONS, withinRecency } from "@/lib/recency";
 
 const SCORE_FLOORS = [0, 60, 70, 80, 90];
 
@@ -12,6 +13,7 @@ export default function JobsPage() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [minScore, setMinScore] = useState(0);
+  const [recency, setRecency] = useState<Recency>("any");
 
   useEffect(() => {
     api.jobs().then(setJobs, (e: Error) => setError(e.message));
@@ -22,9 +24,10 @@ export default function JobsPage() {
     return (jobs ?? []).filter(
       (job) =>
         job.score >= minScore &&
+        withinRecency(job, recency) &&
         (!needle || `${job.title} ${job.company} ${job.location}`.toLowerCase().includes(needle)),
     );
-  }, [jobs, query, minScore]);
+  }, [jobs, query, minScore, recency]);
 
   return (
     <section className="flex flex-col gap-4">
@@ -42,6 +45,18 @@ export default function JobsPage() {
             onChange={(e) => setQuery(e.target.value)}
             className="w-64 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
           />
+          <select
+            aria-label="Posted within"
+            value={recency}
+            onChange={(e) => setRecency(e.target.value as Recency)}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          >
+            {RECENCY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.hours === null ? "Posted any time" : `Posted within ${o.label}`}
+              </option>
+            ))}
+          </select>
           <select
             aria-label="Minimum score"
             value={minScore}

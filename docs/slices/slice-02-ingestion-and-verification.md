@@ -31,6 +31,9 @@ To protect your API credit allowance from unexpected exhaustion:
 * Enforces a configurable daily credit ceiling via `MAX_DAILY_SCRAPE_CREDITS` in settings (defaults to 100 queries/day).
 * Caches raw search results for 12 hours to prevent redundant re-fetching of unchanged job feeds.
 
+### 2.2.1 Job Recency
+`preferences.job_recency` (`24h` | `48h` | `72h` | `1w` default | `2w` | `1m` | `any`) sets the Firecrawl search window and skips postings published earlier (`stale` in the sweep report; undated postings are kept). The dashboard's Jobs page adds a "Posted within" filter over published date (falling back to discovery date), and the Profile form edits the setting.
+
 ### 2.3 Deep ATS Live Verification (Zero Dead Links Rule)
 Before presenting or saving any job posting, the verifier performs deep inspection:
 * **Ashby SPAs**: Inspects `window.__appData` payload for `"posting": null` or `"jobBoard": null` (excludes if null).

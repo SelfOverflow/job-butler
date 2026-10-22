@@ -3,10 +3,11 @@
 import { type FormEvent, useState } from "react";
 
 import { type FieldError, fieldErrors, type Preferences } from "@/lib/api";
+import { RECENCY_OPTIONS } from "@/lib/recency";
 
 export type ProfileFields = Preferences;
 type Key = keyof ProfileFields;
-type Kind = "lines" | "number" | "text";
+type Kind = "lines" | "number" | "text" | "choice";
 
 const FIELDS: { key: Key; label: string; kind: Kind; hint?: string }[] = [
   { key: "target_roles", label: "Target roles", kind: "lines", hint: "One per line" },
@@ -14,6 +15,7 @@ const FIELDS: { key: Key; label: string; kind: Kind; hint?: string }[] = [
   { key: "currency", label: "Currency", kind: "text", hint: "ISO code, e.g. INR, EUR, USD" },
   { key: "years_of_experience", label: "Years of experience", kind: "number", hint: "Blank = computed from roles" },
   { key: "excluded_employers", label: "Excluded employers", kind: "lines", hint: "One per line, include aliases" },
+  { key: "job_recency", label: "Job recency", kind: "choice", hint: "Only discover and save jobs posted within this window" },
 ];
 
 function toInput(value: ProfileFields[Key]): string {
@@ -76,7 +78,15 @@ export function ProfileForm(props: {
         return (
           <div key={key} className="flex flex-col gap-1">
             <label htmlFor={key} className="text-sm font-medium">{label}</label>
-            {kind === "lines" ? <textarea rows={4} {...common} /> : <input inputMode={kind === "number" ? "decimal" : undefined} {...common} />}
+            {kind === "lines" ? (
+              <textarea rows={4} {...common} />
+            ) : kind === "choice" ? (
+              <select {...common}>
+                {RECENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            ) : (
+              <input inputMode={kind === "number" ? "decimal" : undefined} {...common} />
+            )}
             <p id={`${key}-hint`} className={`text-xs ${error ? "text-red-600" : "text-zinc-500"}`}>{error ?? hint}</p>
           </div>
         );

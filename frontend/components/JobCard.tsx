@@ -2,6 +2,7 @@ import { ExternalLink, FileText, Mail } from "lucide-react";
 
 import { PrepareButton } from "@/components/PrepareButton";
 import type { Job } from "@/lib/api";
+import { ageLabel } from "@/lib/recency";
 
 function scoreColour(score: number): string {
   if (score >= 80) return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300";
@@ -33,6 +34,7 @@ export function JobCard({ job }: { job: Job }) {
         <span className={`${pill} ${job.last_verified_at ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"}`}>
           {job.last_verified_at ? "Live" : "Unverified"}
         </span>
+        <span className="text-zinc-500">{ageLabel(job)}</span>
         <span className="text-zinc-500">{job.source}</span>
       </div>
 

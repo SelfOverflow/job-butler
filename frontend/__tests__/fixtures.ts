@@ -2,6 +2,11 @@ import { vi } from "vitest";
 
 import type { Application, AuditEvent, Job } from "@/lib/api";
 
+/** Naive-UTC timestamp `hours` before now, matching the API's format. */
+export function hoursAgo(hours: number): string {
+  return new Date(Date.now() - hours * 3_600_000).toISOString().replace("Z", "").split(".")[0];
+}
+
 export function makeJob(overrides: Partial<Job> = {}): Job {
   return {
     id: "job_1234abcd",
@@ -14,7 +19,8 @@ export function makeJob(overrides: Partial<Job> = {}): Job {
     tier: "tier1_india_domestic",
     tier_label: "Tier 1",
     is_active: true,
-    discovered_at: "2026-10-22T07:00:00",
+    posted_at: hoursAgo(5),
+    discovered_at: hoursAgo(1),
     last_verified_at: "2026-10-22T07:05:00",
     resume_url: "/api/artifacts/job_1234abcd/resume",
     cover_letter_url: "/api/artifacts/job_1234abcd/cover_pdf",

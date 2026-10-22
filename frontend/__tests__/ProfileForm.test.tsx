@@ -11,6 +11,7 @@ const INITIAL: ProfileFields = {
   currency: "INR",
   years_of_experience: null,
   excluded_employers: ["OakNorth", "Tejas Networks"],
+  job_recency: "1w",
 };
 
 describe("ProfileForm", () => {
@@ -65,5 +66,13 @@ describe("ProfileForm", () => {
     expect(await screen.findByText("String should match pattern")).toBeInTheDocument();
     expect(currency).toHaveValue("rupees");
     expect(currency).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("saves the job recency choice", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ProfileForm initial={INITIAL} onSave={onSave} />);
+    await userEvent.selectOptions(screen.getByLabelText(/job recency/i), "24h");
+    await userEvent.click(screen.getByRole("button", { name: /save/i }));
+    expect(onSave).toHaveBeenCalledWith({ "preferences.job_recency": '"24h"' });
   });
 });

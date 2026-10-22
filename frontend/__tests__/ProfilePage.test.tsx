@@ -15,6 +15,7 @@ const PROFILE = {
       currency: null,
       years_of_experience: null,
       excluded_employers: [],
+      job_recency: "1w",
     },
   },
   errors: [],

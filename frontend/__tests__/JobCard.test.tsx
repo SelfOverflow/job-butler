@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { JobCard } from "@/components/JobCard";
-import { makeJob } from "./fixtures";
+import { hoursAgo, makeJob } from "./fixtures";
 
 describe("JobCard", () => {
   it("renders title, company, ATS score badge, tier and download links", () => {
@@ -51,5 +51,14 @@ describe("JobCard", () => {
   ])("colours score %i with %s", (score, colour) => {
     render(<JobCard job={makeJob({ score })} />);
     expect(screen.getByLabelText(`Fit score ${score}`).className).toContain(colour);
+  });
+
+  it.each([
+    [{ posted_at: hoursAgo(5) }, "Posted 5h ago"],
+    [{ posted_at: hoursAgo(50) }, "Posted 2d ago"],
+    [{ posted_at: null, discovered_at: hoursAgo(30) }, "Found 1d ago"],
+  ])("shows posting age %#", (overrides, label) => {
+    render(<JobCard job={makeJob(overrides)} />);
+    expect(screen.getByText(label)).toBeInTheDocument();
   });
 });
