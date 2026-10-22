@@ -1,10 +1,10 @@
 """Job listing, detail, and tailored artifact downloads."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path as FilePath
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ValidationError
 
@@ -13,7 +13,7 @@ from src.config.settings import Settings
 from src.profile.loader import ProfileError, ProfileLoader
 from src.server.deps import SessionDep, SettingsDep
 from src.storage import repository as repo
-from src.storage.models import JobPosting
+from src.storage.models import JobPosting, utcnow
 
 router = APIRouter(prefix="/api")
 ArtifactKind = Literal["resume", "cover_pdf", "cover_txt"]
@@ -31,6 +31,7 @@ class JobOut(BaseModel):
     tier: str | None
     tier_label: str | None
     is_active: bool
+    posted_at: datetime | None
     discovered_at: datetime
     last_verified_at: datetime | None
     resume_url: str | None
@@ -71,8 +72,12 @@ def list_jobs(
     settings: SettingsDep,
     min_score: int | None = None,
     include_inactive: bool = False,
+    posted_within_hours: Annotated[int | None, Query(ge=1)] = None,
 ) -> list[dict[str, object]]:
     rows = repo.list_active(session, min_score=min_score, active_only=not include_inactive)
+    if posted_within_hours is not None:  # Undated postings fall back to when we found them.
+        cutoff = utcnow() - timedelta(hours=posted_within_hours)
+        rows = [r for r in rows if (r.posted_at or r.discovered_at) >= cutoff]
     labels = _tier_labels(settings)
     return [_out(row, settings, labels) for row in rows]
 

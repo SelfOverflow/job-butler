@@ -163,3 +163,36 @@ def test_serve_command_starts_uvicorn(settings: Settings, monkeypatch: pytest.Mo
     result = CliRunner().invoke(app, ["serve", "--port", "8123"])
     assert result.exit_code == 0, result.output
     assert calls == [("127.0.0.1", 8123)] and "http://127.0.0.1:8123" in result.output
+
+
+def test_jobs_api_exposes_posted_at_and_filters_by_recency(settings: Settings) -> None:
+    from datetime import timedelta
+
+    from src.storage.models import utcnow
+
+    engine = make_engine(settings.database_url)
+    init_db(engine)
+    with session_factory(engine)() as session:
+        now = utcnow()
+        for n, age in ((1, timedelta(hours=5)), (2, timedelta(days=4)), (3, None)):
+            job = _job(f"Role {n}", 10 + n)
+            if age is not None:
+                job = RawJobPosting(
+                    job.title,
+                    job.company,
+                    job.location,
+                    job.url,
+                    job.description,
+                    job.source,
+                    now - age,
+                )
+            repo.upsert_job(session, job, JobScore(50 + n, None, 0))
+        session.commit()
+    engine.dispose()
+
+    with TestClient(create_app(settings, frontend_dir=None)) as client:
+        jobs = {j["title"]: j for j in client.get("/api/jobs").json()}
+        assert jobs["Role 1"]["posted_at"] is not None and jobs["Role 3"]["posted_at"] is None
+        within_day = [j["title"] for j in client.get("/api/jobs?posted_within_hours=24").json()]
+        assert within_day == ["Role 3", "Role 1"]  # undated falls back to discovered_at (just now)
+        assert len(client.get("/api/jobs?posted_within_hours=168").json()) == 3

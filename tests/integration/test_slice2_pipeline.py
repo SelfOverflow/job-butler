@@ -213,3 +213,22 @@ def test_prune_also_refreshes_scores_of_kept_jobs(session: Session) -> None:
     fresh = score_job(job, _profile())
     assert (row.score, row.tier, row.boost) == (fresh.score, fresh.tier, fresh.boost)
     assert row.tier == "tier1_primary_market"
+
+
+def test_sweep_skips_postings_older_than_the_recency_window(session: Session) -> None:
+    fresh = {**GOOD, "first_published": "2099-01-01T00:00:00Z"}
+    stale = {**_gh_job(8, "Tech Lead", "New York, NY"), "first_published": "2001-01-01T00:00:00Z"}
+    undated = _gh_job(9, "Backend Systems Architect", "Austin, TX")
+    profile = _profile()
+    with respx.mock, httpx.Client() as client:
+        respx.get(BOARD.format("hooli")).respond(200, json={"jobs": [fresh, stale, undated]})
+        respx.get(BOARD.format("hooli-eu")).respond(200, json={"jobs": []})
+        respx.get(url__regex=r"https://boards\.greenhouse\.io/hooli/jobs/\d+").respond(
+            200, html="<h1>Apply</h1>"
+        )
+        report = run_sweep(profile, session, client, firecrawl=None)
+    assert report.stale == 1
+    assert sorted(j.title for j in repo.list_active(session)) == [
+        "Backend Systems Architect",
+        "Senior Software Engineer",
+    ]

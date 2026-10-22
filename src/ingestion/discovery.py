@@ -20,12 +20,12 @@ from src.ingestion.firecrawl_client import (
     FirecrawlError,
     SearchResult,
 )
+from src.ingestion.recency import search_tbs
 from src.ingestion.sources import fetch_watched
 from src.profile.models import CandidateProfile, WatchedCompany
 
 SITES = ("boards.greenhouse.io", "job-boards.greenhouse.io", "jobs.lever.co")
 RESULTS_PER_QUERY = 10
-RECENCY = "qdr:w"  # Postings indexed in the past week.
 _SLUG = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
@@ -69,10 +69,11 @@ def discover(
     results: list[SearchResult] = []
     if firecrawl is not None:
         queries = build_queries(profile)
+        tbs = search_tbs(profile.preferences.job_recency)
         progress("search", 0, len(queries), "")
         for done, query in enumerate(queries, start=1):
             try:
-                results += firecrawl.search(query, limit=RESULTS_PER_QUERY, tbs=RECENCY)
+                results += firecrawl.search(query, limit=RESULTS_PER_QUERY, tbs=tbs)
             except BudgetExceededError as exc:
                 errors.append(str(exc))
                 progress("search", len(queries), len(queries), "budget exhausted")

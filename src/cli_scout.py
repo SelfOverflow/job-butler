@@ -56,7 +56,8 @@ def run(
             report = run_sweep(profile, session, http, firecrawl, limit=limit, progress=progress)
     typer.echo(
         f"[✓] Discovered {report.discovered}: excluded {report.excluded}, "
-        f"duplicates {report.duplicates}, rejected {report.rejected}{_gates(report.rejected_by)}, "
+        f"duplicates {report.duplicates}, stale {report.stale}, "
+        f"rejected {report.rejected}{_gates(report.rejected_by)}, "
         f"closed {report.closed}, saved {report.saved} ({report.new} new); "
         f"pruned {report.pruned} stored"
     )

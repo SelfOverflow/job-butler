@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, 
 NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 YearMonth = Annotated[str, StringConstraints(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")]
 HttpUrlStr = Annotated[str, StringConstraints(pattern=r"^https?://\S+$")]
+Recency = Literal["24h", "48h", "72h", "1w", "2w", "1m", "any"]
 
 
 class _Model(BaseModel):
@@ -94,6 +95,7 @@ class Preferences(_Model):
     watched_companies: tuple[WatchedCompany, ...] = ()
     # Overrides the total computed from work_experience dates (e.g. to exclude internships).
     years_of_experience: float | None = Field(default=None, ge=0)
+    job_recency: Recency = "1w"  # Only discover and save postings published this recently.
     min_base_salary: int | None = Field(default=None, ge=0)  # Annual floor, in `currency`.
     currency: Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")] | None = None  # ISO 4217
 
