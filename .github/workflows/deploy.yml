@@ -1,12 +1,19 @@
-name: Deploy
+name: Deploy (Manual Only)
 
+# Automatic AWS deployment is disabled per project configuration.
+# This workflow will never run automatically on git push or merge.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      confirm_deployment:
+        description: "Type 'DEPLOY' to explicitly confirm deployment to AWS"
+        required: true
+        default: ""
 
 jobs:
   deploy:
     name: Deploy to AWS EC2
+    if: ${{ github.event.inputs.confirm_deployment == 'DEPLOY' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

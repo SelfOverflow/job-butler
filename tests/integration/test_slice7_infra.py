@@ -104,4 +104,11 @@ def test_github_actions_workflow_syntax() -> None:
     deploy_data = yaml.safe_load(deploy_file.read_text(encoding="utf-8"))
     assert "jobs" in deploy_data
 
+    # Ensure automated AWS deployment on push is completely disabled
+    deploy_triggers = deploy_data.get(True) or deploy_data.get("on") or {}
+    assert "push" not in deploy_triggers, "Automated AWS deployment on push must be disabled"
+    assert "workflow_dispatch" in deploy_triggers, (
+        "Deploy workflow must only be manual via workflow_dispatch"
+    )
+
 
