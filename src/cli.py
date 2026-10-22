@@ -10,6 +10,7 @@ import typer
 from pydantic import ValidationError
 
 from src.config.settings import Settings
+from src.profile.exporter import to_markdown
 from src.profile.loader import ProfileError, ProfileLoader
 from src.profile.screening import resolve
 from src.profile.updater import ProfileUpdater
@@ -141,3 +142,18 @@ def restore(name: Annotated[str, typer.Argument(help="Backup file name from `bac
     with _friendly_errors():
         updater.restore(match)
     typer.echo(f"[✓] Restored {updater.loader.path} from {name}")
+
+
+@profile_app.command("export-master")
+def export_master(
+    output: Annotated[
+        Path | None, typer.Option(help="Defaults to <artifacts>/master_resume.md")
+    ] = None,
+) -> None:
+    """Write the full profile as a Markdown master resume."""
+    with _friendly_errors():
+        profile = _loader().load()
+    target = output or Settings().artifacts_dir / "master_resume.md"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(to_markdown(profile), encoding="utf-8")
+    typer.echo(f"[✓] Master resume written to {target}")

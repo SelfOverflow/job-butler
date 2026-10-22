@@ -160,3 +160,11 @@ def test_backups_and_restore(run: Run) -> None:
     assert "[✓] Restored" in run("profile", "restore", backup_name)
     assert run.profile.read_text(encoding="utf-8") == original
     assert "No such backup" in run("profile", "restore", "missing.yaml", exit_code=1)
+
+
+def test_export_master_writes_markdown(run: Run) -> None:
+    run.init()
+    output = run.profile.parent / "out" / "master.md"
+    out = run("profile", "export-master", "--output", str(output))
+    assert f"[✓] Master resume written to {output}" in out
+    assert output.read_text(encoding="utf-8").startswith("# Jane Doe\n")
