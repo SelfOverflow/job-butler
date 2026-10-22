@@ -232,3 +232,23 @@ def test_sweep_skips_postings_older_than_the_recency_window(session: Session) ->
         "Backend Systems Architect",
         "Senior Software Engineer",
     ]
+
+
+def test_sweep_stores_a_market_snapshot_of_all_eligible_postings(
+    session: Session, http: httpx.Client
+) -> None:
+    report = run_sweep(_profile(), session, http, firecrawl=None, limit=1)
+
+    snapshot = repo.latest_market_snapshot(session)
+    assert snapshot is not None and report.market_postings == snapshot.total
+    # Every gate-passing posting is analysed, not only the `limit` saved ones.
+    assert (
+        snapshot.total == 3
+    )  # GOOD, OKAY, CLOSED (NO_VISA rejected, EXCLUDED dropped, dup removed)
+    demand = {d["skill"]: d["postings"] for d in snapshot.demand}
+    assert demand["Python"] == 3 and demand["Kubernetes"] == 2
+    assert snapshot.threshold == 60 and isinstance(snapshot.upskill, list)
+
+    run_sweep(_profile(), session, http, firecrawl=None)
+    newest = repo.latest_market_snapshot(session)
+    assert newest is not None and newest.id > snapshot.id

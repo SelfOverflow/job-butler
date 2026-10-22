@@ -10,7 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from src.config.settings import Settings
 from src.server import events
-from src.server.routes import audit, hitl, jobs, profile
+from src.server.routes import analytics, audit, hitl, jobs, profile
 from src.storage.database import init_db, make_engine, session_factory
 
 FRONTEND_OUT = Path(__file__).resolve().parents[2] / "frontend" / "out"
@@ -46,6 +46,7 @@ def create_app(
     app.include_router(audit.router)
     app.include_router(profile.router)
     app.include_router(hitl.router)
+    app.include_router(analytics.router)
     app.include_router(events.router)
     if frontend_dir is not None and frontend_dir.is_dir():
         # Mounted last so API routes win; html=True serves <page>/index.html.

@@ -90,3 +90,17 @@ class ApplicationRecord(Base):
     submitted_at: Mapped[datetime | None]
 
     job: Mapped[JobPosting] = relationship(lazy="joined")
+
+
+class MarketSnapshotRecord(Base):
+    """Technology demand and upskilling ROI across one sweep's eligible postings."""
+
+    __tablename__ = "market_snapshots"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, index=True)
+    total: Mapped[int]  # Gate-passing postings analysed.
+    matched: Mapped[int]  # Of those, scoring at or above `threshold`.
+    threshold: Mapped[int]
+    demand: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+    upskill: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)

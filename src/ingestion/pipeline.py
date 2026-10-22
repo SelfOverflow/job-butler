@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass, field
 import httpx
 from sqlalchemy.orm import Session
 
+from src.analytics.market import analyze
 from src.ingestion.base import ProgressFn, no_progress
 from src.ingestion.deduplicator import dedupe
 from src.ingestion.discovery import discover
@@ -30,6 +31,7 @@ class SweepReport:
     rejected: int = 0  # Failed a hard gate (experience, visa); see rejected_by.
     rejected_by: dict[str, int] = field(default_factory=dict)
     pruned: int = 0  # Stored jobs deactivated because they no longer fit the profile.
+    market_postings: int = 0  # Gate-passing postings in this sweep's market snapshot.
     closed: int = 0  # Dead links found during verification.
     saved: int = 0
     new: int = 0
@@ -56,6 +58,10 @@ def run_sweep(
     report.duplicates = len(kept) - len(unique)
     fresh = [j for j in unique if is_recent(j.posted_at, profile.preferences.job_recency)]
     report.stale = len(unique) - len(fresh)
+    market = analyze(fresh, profile)  # Whole eligible market, not just the saved top N.
+    if market.total:
+        repo.save_market_snapshot(session, market)
+    report.market_postings = market.total
 
     scored = [(job, score_job(job, profile)) for job in fresh]
     eligible = [(job, s) for job, s in scored if s.rejected_reason is None]

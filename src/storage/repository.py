@@ -1,7 +1,8 @@
 """Queries over job postings and the audit log. Callers own the session/commit."""
 
 from collections.abc import Sequence
-from typing import Any
+from dataclasses import asdict
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Integer, func, literal_column, select
 from sqlalchemy.orm import Session
@@ -9,7 +10,17 @@ from sqlalchemy.orm import Session
 from src.ingestion.base import RawJobPosting
 from src.ingestion.deduplicator import content_key
 from src.ingestion.scorer import JobScore
-from src.storage.models import ApplicationRecord, ApplicationStatus, AuditLog, JobPosting, utcnow
+
+if TYPE_CHECKING:  # Imported lazily: analytics depends on the scorer, not on storage.
+    from src.analytics.market import MarketSnapshot
+from src.storage.models import (
+    ApplicationRecord,
+    ApplicationStatus,
+    AuditLog,
+    JobPosting,
+    MarketSnapshotRecord,
+    utcnow,
+)
 
 
 def job_id(job: RawJobPosting) -> str:
@@ -155,3 +166,24 @@ def list_applications(
         query = query.where(ApplicationRecord.status.in_(statuses))
     rid = literal_column("applications.rowid", Integer)
     return list(session.scalars(query.order_by(ApplicationRecord.updated_at.desc(), rid.desc())))
+
+
+MAX_SNAPSHOT_ROWS = 50
+
+
+def save_market_snapshot(session: Session, snapshot: "MarketSnapshot") -> MarketSnapshotRecord:
+    record = MarketSnapshotRecord(
+        total=snapshot.total,
+        matched=snapshot.matched,
+        threshold=snapshot.threshold,
+        demand=[asdict(d) for d in snapshot.demand[:MAX_SNAPSHOT_ROWS]],
+        upskill=[asdict(u) for u in snapshot.upskill[:MAX_SNAPSHOT_ROWS]],
+    )
+    session.add(record)
+    session.flush()
+    return record
+
+
+def latest_market_snapshot(session: Session) -> MarketSnapshotRecord | None:
+    query = select(MarketSnapshotRecord).order_by(MarketSnapshotRecord.id.desc()).limit(1)
+    return session.scalar(query)

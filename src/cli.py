@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 
+from src.cli_analytics import analytics_app
 from src.cli_apply import apply_app
 from src.cli_common import friendly_errors, profile_loader
 from src.cli_scout import scout_app
@@ -21,6 +22,7 @@ app.add_typer(profile_app, name="profile")
 app.add_typer(scout_app, name="scout")
 app.add_typer(tailor_app, name="tailor")
 app.add_typer(apply_app, name="apply")
+app.add_typer(analytics_app, name="analytics")
 
 
 @app.command()
