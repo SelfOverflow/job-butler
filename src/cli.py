@@ -8,6 +8,7 @@ import typer
 
 from src.cli_common import friendly_errors, profile_loader
 from src.cli_scout import scout_app
+from src.cli_tailor import tailor_app
 from src.config.settings import Settings
 from src.profile.exporter import to_markdown
 from src.profile.screening import resolve
@@ -17,6 +18,7 @@ app = typer.Typer(no_args_is_help=True, help="Job Butler: autonomous job search 
 profile_app = typer.Typer(no_args_is_help=True, help="Manage the candidate profile.")
 app.add_typer(profile_app, name="profile")
 app.add_typer(scout_app, name="scout")
+app.add_typer(tailor_app, name="tailor")
 
 
 def _updater() -> ProfileUpdater:

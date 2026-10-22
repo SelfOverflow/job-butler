@@ -58,6 +58,7 @@ STAGES = {
     "search": "Searching Firecrawl",
     "boards": "Fetching company boards",
     "verify": "Verifying links",
+    "tailor": "Tailoring resumes",
 }
 
 
