@@ -2,14 +2,27 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { BackupList } from "@/components/BackupList";
 import { ProfileForm } from "@/components/ProfileForm";
-import { api, type ProfileResponse } from "@/lib/api";
+import { YamlEditor } from "@/components/YamlEditor";
+import { api, type Backup, type ProfileResponse } from "@/lib/api";
 
 export default function ProfilePage() {
   const [data, setData] = useState<ProfileResponse | null>(null);
+  const [backups, setBackups] = useState<Backup[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const load = useCallback(() => api.profile().then(setData, (e: Error) => setLoadError(e.message)), []);
+  const load = useCallback(
+    () =>
+      Promise.all([api.profile(), api.backups()]).then(
+        ([profile, list]) => {
+          setData(profile);
+          setBackups(list);
+        },
+        (e: Error) => setLoadError(e.message),
+      ),
+    [],
+  );
   useEffect(() => {
     load();
   }, [load]);
@@ -18,6 +31,15 @@ export default function ProfilePage() {
     await api.updateProfile({ set });
     await load();
   };
+  const saveYaml = async (yaml: string) => {
+    await api.updateProfile({ yaml });
+    await load();
+  };
+  const restore = async (name: string) => {
+    await api.restoreBackup(name);
+    await load();
+  };
+  const heading = "text-lg font-semibold";
 
   return (
     <section className="flex flex-col gap-4">
@@ -33,7 +55,16 @@ export default function ProfilePage() {
       {data?.profile && (
         <>
           <p className="text-sm text-zinc-500">Editing preferences for {data.profile.personal_info.full_name}.</p>
+          <h2 className={heading}>Preferences</h2>
           <ProfileForm key={data.yaml} initial={data.profile.preferences} onSave={save} />
+        </>
+      )}
+      {data && (
+        <>
+          <h2 className={heading}>Raw YAML</h2>
+          <YamlEditor key={data.yaml} initial={data.yaml} onSave={saveYaml} />
+          <h2 className={heading}>Backups</h2>
+          <BackupList backups={backups} onRestore={restore} />
         </>
       )}
     </section>

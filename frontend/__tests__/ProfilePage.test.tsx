@@ -22,12 +22,12 @@ const PROFILE = {
 
 describe("Profile page", () => {
   it("loads the profile and PUTs form changes", async () => {
-    const fetchSpy = mockFetch(() => PROFILE);
+    const fetchSpy = mockFetch((url) => (url.endsWith("/backups") ? [] : PROFILE));
     render(<ProfilePage />);
 
     const salary = await screen.findByLabelText(/minimum base salary/i);
     await userEvent.type(salary, "180000");
-    await userEvent.click(screen.getByRole("button", { name: /save/i }));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() =>
       expect(fetchSpy).toHaveBeenCalledWith("/api/profile", {
@@ -39,8 +39,11 @@ describe("Profile page", () => {
   });
 
   it("shows file-level errors when the profile is invalid", async () => {
-    mockFetch(() => ({ ...PROFILE, profile: null, errors: [{ loc: "personal_info.email", msg: "bad email" }] }));
+    const invalid = { ...PROFILE, profile: null, errors: [{ loc: "personal_info.email", msg: "bad email" }] };
+    mockFetch((url) => (url.endsWith("/backups") ? [] : invalid));
     render(<ProfilePage />);
     expect(await screen.findByRole("alert")).toHaveTextContent("personal_info.email: bad email");
+    expect(screen.queryByLabelText(/minimum base salary/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/profile yaml/i)).toHaveValue(PROFILE.yaml); // still fixable here
   });
 });

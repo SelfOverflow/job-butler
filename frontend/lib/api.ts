@@ -46,6 +46,7 @@ export type ProfileResponse = {
   profile: { personal_info: { full_name: string }; preferences: Preferences } | null;
   errors: FieldError[];
 };
+export type Backup = { name: string; modified: string };
 export type ProfileUpdate = { yaml: string } | { set: Record<string, string> };
 
 export class ApiError extends Error {
@@ -93,4 +94,7 @@ export const api = {
   },
   profile: () => request<ProfileResponse>("/api/profile"),
   updateProfile: (update: ProfileUpdate) => request<unknown>("/api/profile", json(update)),
+  backups: () => request<Backup[]>("/api/profile/backups"),
+  restoreBackup: (name: string) =>
+    request<unknown>("/api/profile/restore", { ...json({ name }), method: "POST" }),
 };
