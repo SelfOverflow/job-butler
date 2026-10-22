@@ -67,11 +67,22 @@ def skill_variants(name: str) -> list[tuple[str, ...]]:
     return [base]
 
 
-def tech_match(description: str, profile: CandidateProfile) -> float:
+def tech_hits(description: str, profile: CandidateProfile) -> int:
+    """How many of the candidate's inventory skills the description mentions."""
     text = words(description)
     skills = [s for group in profile.skills_inventory.values() for s in group]
-    hits = sum(any(contains_phrase(text, v) for v in skill_variants(s.name)) for s in skills)
-    return min(hits, TECH_SATURATION) / TECH_SATURATION
+    return sum(any(contains_phrase(text, v) for v in skill_variants(s.name)) for s in skills)
+
+
+def tech_match(description: str, profile: CandidateProfile) -> float:
+    return min(tech_hits(description, profile), TECH_SATURATION) / TECH_SATURATION
+
+
+def combine(hits: int, seniority: float, boost: int) -> int:
+    """The fit score formula, shared with the upskilling ROI analysis."""
+    tech = min(hits, TECH_SATURATION) / TECH_SATURATION
+    fit = (TECH_WEIGHT * tech + SENIORITY_WEIGHT * seniority) / (TECH_WEIGHT + SENIORITY_WEIGHT)
+    return round(100 * fit) + boost
 
 
 def seniority_match(title: str, profile: CandidateProfile) -> float:
@@ -109,8 +120,5 @@ def score_job(job: RawJobPosting, profile: CandidateProfile) -> JobScore:
             score=0, tier=tier, boost=boost, rejected_reason="visa: no sponsorship offered"
         )
 
-    fit = (
-        TECH_WEIGHT * tech_match(job.description, profile)
-        + SENIORITY_WEIGHT * seniority_match(job.title, profile)
-    ) / (TECH_WEIGHT + SENIORITY_WEIGHT)
-    return JobScore(score=round(100 * fit) + boost, tier=tier, boost=boost)
+    hits, seniority = tech_hits(job.description, profile), seniority_match(job.title, profile)
+    return JobScore(score=combine(hits, seniority, boost), tier=tier, boost=boost)
