@@ -22,6 +22,22 @@ from src.storage import repository as repo
 from src.storage.models import CommandRun, CommandStatus
 
 
+def serialize_run(run: CommandRun) -> dict[str, Any]:
+    return {
+        "id": run.id,
+        "command": run.command,
+        "params": run.params,
+        "status": run.status,
+        "progress": run.progress,
+        "result": run.result,
+        "error": run.error,
+        "requested_by": run.requested_by,
+        "created_at": run.created_at.isoformat() if run.created_at else None,
+        "started_at": run.started_at.isoformat() if run.started_at else None,
+        "finished_at": run.finished_at.isoformat() if run.finished_at else None,
+    }
+
+
 class CommandRunner:
     def __init__(
         self,
@@ -95,7 +111,7 @@ class CommandRunner:
             run = repo.get_command_run(session, run_id)
             if run is None or run.status == CommandStatus.CANCELLED:
                 return
-            repo.start_command_run(session, run_id)
+            started = repo.start_command_run(session, run_id)
             repo.record_audit(
                 session,
                 actor=run.requested_by,
@@ -107,6 +123,8 @@ class CommandRunner:
             session.commit()
             command, params = run.command, dict(run.params)
             actor = run.requested_by
+            if started and self.bus:
+                await self.bus.broadcast({"type": "command", "run": serialize_run(started)})
 
         token = self._cancel_tokens.get(run_id) or CancelToken()
         last_update = 0.0
@@ -118,33 +136,24 @@ class CommandRunner:
             if now - last_update >= 0.25 or done == total or done == 0:
                 last_update = now
                 with self.sessions() as s:
-                    repo.update_command_progress(
+                    updated = repo.update_command_progress(
                         s,
                         run_id,
                         {"stage": stage, "done": done, "total": total, "detail": detail},
                     )
                     s.commit()
-                if self.bus:
-                    asyncio.run_coroutine_threadsafe(
-                        self.bus.broadcast(
-                            {
-                                "type": "command_progress",
-                                "run_id": run_id,
-                                "stage": stage,
-                                "done": done,
-                                "total": total,
-                                "detail": detail,
-                            }
-                        ),
-                        loop,
-                    )
+                    if updated and self.bus:
+                        asyncio.run_coroutine_threadsafe(
+                            self.bus.broadcast({"type": "command", "run": serialize_run(updated)}),
+                            loop,
+                        )
 
         try:
             result = await asyncio.to_thread(
                 self._run_sync, command, params, progress, token
             )
             with self.sessions() as session:
-                repo.finish_command_run(
+                finished = repo.finish_command_run(
                     session, run_id, status=CommandStatus.SUCCEEDED, result=result
                 )
                 repo.record_audit(
@@ -156,9 +165,11 @@ class CommandRunner:
                     details={"command": command, "result": result},
                 )
                 session.commit()
+                if finished and self.bus:
+                    await self.bus.broadcast({"type": "command", "run": serialize_run(finished)})
         except CancelledError:
             with self.sessions() as session:
-                repo.finish_command_run(session, run_id, status=CommandStatus.CANCELLED)
+                finished = repo.finish_command_run(session, run_id, status=CommandStatus.CANCELLED)
                 repo.record_audit(
                     session,
                     actor=actor,
@@ -168,9 +179,11 @@ class CommandRunner:
                     details={"command": command, "status": "cancelled"},
                 )
                 session.commit()
+                if finished and self.bus:
+                    await self.bus.broadcast({"type": "command", "run": serialize_run(finished)})
         except Exception as exc:
             with self.sessions() as session:
-                repo.finish_command_run(
+                finished = repo.finish_command_run(
                     session, run_id, status=CommandStatus.FAILED, error=str(exc)
                 )
                 repo.record_audit(
@@ -182,6 +195,8 @@ class CommandRunner:
                     details={"command": command, "error": str(exc)},
                 )
                 session.commit()
+                if finished and self.bus:
+                    await self.bus.broadcast({"type": "command", "run": serialize_run(finished)})
 
     def _run_sync(
         self,

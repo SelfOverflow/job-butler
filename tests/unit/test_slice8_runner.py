@@ -45,3 +45,4 @@ async def test_runner_submit_single_flight_and_cancel(
     # Cancel while still queued
     assert runner.cancel(run.id)
     await runner.stop()
+
