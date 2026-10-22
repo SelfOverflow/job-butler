@@ -215,6 +215,30 @@ def test_prune_also_refreshes_scores_of_kept_jobs(session: Session) -> None:
     assert row.tier == "tier1_primary_market"
 
 
+def test_prune_ineligible_deactivates_intern_jobs(session: Session) -> None:
+    from src.ingestion.base import RawJobPosting
+    from src.ingestion.scorer import JobScore
+
+    intern = RawJobPosting(
+        "Software Engineer Intern",
+        "Coinbase",
+        "San Francisco, CA",
+        "https://x/intern",
+        JD,
+        "greenhouse",
+    )
+    row = repo.upsert_job(session, intern, JobScore(80, "tier1_primary_market", 5))
+    session.commit()
+
+    pruned = prune_ineligible(session, _profile())
+    assert pruned == 1
+    assert repo.get_job(session, row.id).is_active is False  # type: ignore[union-attr]
+    [event] = repo.query_audit(session, action="JOB_EXCLUDED")
+    assert event.target_id == row.id
+    assert event.details["reason"] == "role: intern role does not match profile"
+
+
+
 def test_sweep_skips_postings_older_than_the_recency_window(session: Session) -> None:
     fresh = {**GOOD, "first_published": "2099-01-01T00:00:00Z"}
     stale = {**_gh_job(8, "Tech Lead", "New York, NY"), "first_published": "2001-01-01T00:00:00Z"}

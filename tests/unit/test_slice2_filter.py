@@ -91,3 +91,40 @@ def test_contains_phrase(
     from src.ingestion.base import contains_phrase
 
     assert contains_phrase(haystack, needle) is expected
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Software Engineer Intern",
+        "Frontend Intern",
+        "Intern - Full Stack Developer",
+        "Summer Intern 2025",
+        "SWE Intern / Co-op",
+        "Engineering Internship",
+        "Data Science Internships",
+        "Graduate Intern",
+    ],
+)
+def test_is_intern_role_detects_intern_titles(title: str) -> None:
+    from src.ingestion.filter import is_intern_role
+
+    assert is_intern_role(title) is True
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Senior Software Engineer",
+        "Internal Tools Engineer",
+        "International Product Manager",
+        "Internet Systems Architect",
+        "Lead Full-Stack Developer",
+        "Staff Infrastructure Engineer",
+    ],
+)
+def test_is_intern_role_ignores_non_intern_titles(title: str) -> None:
+    from src.ingestion.filter import is_intern_role
+
+    assert is_intern_role(title) is False
+

@@ -1,5 +1,8 @@
 .PHONY: help test lint format dev up down build clean
 
+VENV ?= .venv
+export PATH := $(if $(wildcard $(VENV)/bin),$(abspath $(VENV)/bin):$(PATH),$(PATH))
+
 help:
 	@echo "Job Butler - Developer & Agent Command Center"
 	@echo "---------------------------------------------"

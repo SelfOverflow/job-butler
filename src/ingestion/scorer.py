@@ -12,6 +12,7 @@ from dataclasses import dataclass
 
 from src.ingestion.base import RawJobPosting, contains_phrase, words
 from src.ingestion.experience import required_years, total_experience_years
+from src.ingestion.filter import is_intern_role
 from src.profile.models import CandidateProfile, MarketTier
 
 TECH_SATURATION = 8  # Matched skills needed for full tech marks.
@@ -87,6 +88,10 @@ def combine(hits: int, seniority: float, boost: int) -> int:
 
 def seniority_match(title: str, profile: CandidateProfile) -> float:
     """Best share of a target role's words present in the job title."""
+    if is_intern_role(title) and not any(
+        is_intern_role(role) for role in profile.preferences.target_roles
+    ):
+        return 0.0
     title_words = set(words(title))
     targets = [set(words(role)) for role in profile.preferences.target_roles]
     return max((len(t & title_words) / len(t) for t in targets if t), default=0.0)
@@ -106,6 +111,15 @@ def is_domestic(location: str, profile: CandidateProfile) -> bool:
 
 def score_job(job: RawJobPosting, profile: CandidateProfile) -> JobScore:
     tier, boost = classify_tier(job.location, profile.preferences.sourcing_hierarchy)
+    if is_intern_role(job.title) and not any(
+        is_intern_role(role) for role in profile.preferences.target_roles
+    ):
+        return JobScore(
+            score=0,
+            tier=tier,
+            boost=boost,
+            rejected_reason="role: intern role does not match profile",
+        )
     needed, have = required_years(job.description), total_experience_years(profile)
     if needed is not None and needed > have:
         reason = f"experience: requires {needed}+ years, profile has {have:.1f}"

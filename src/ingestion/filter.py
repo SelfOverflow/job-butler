@@ -1,8 +1,20 @@
-"""Hard employer exclusions driven by `preferences.excluded_employers`."""
+"""Hard employer exclusions and role filters."""
 
+import re
 from collections.abc import Iterable, Sequence
 
 from src.ingestion.base import RawJobPosting, contains_phrase, words
+
+_INTERN_PATTERN = re.compile(r"\b(interns?|internships?)\b", re.IGNORECASE)
+
+
+def is_intern_role(title: str) -> bool:
+    """True if `title` mentions an intern or internship role.
+
+    Matches whole words like 'intern', 'interns', 'internship', 'internships'
+    case-insensitively, avoiding substrings like 'internal' or 'international'.
+    """
+    return bool(_INTERN_PATTERN.search(title))
 
 
 def is_excluded_employer(company: str, excluded: Iterable[str]) -> bool:

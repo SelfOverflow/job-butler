@@ -135,6 +135,26 @@ def test_score_combines_weights_and_boost() -> None:
     assert score_job(zero, profile).score == 0
 
 
+def test_intern_role_rejected_by_gate_when_candidate_not_targeting_internships() -> None:
+    profile = _profile()
+    intern_job = replace(_job(), title="Software Engineer Intern")
+    result = score_job(intern_job, profile)
+    assert result.rejected_reason == "role: intern role does not match profile"
+    assert result.score == 0
+    assert seniority_match("Software Engineer Intern", profile) == 0.0
+
+
+def test_intern_role_allowed_if_profile_explicitly_targets_internship() -> None:
+    raw: dict[str, Any] = interpolate(yaml.safe_load(TEMPLATE.read_text()), ENV)
+    raw["preferences"]["target_roles"] = ["Software Engineer Intern"]
+    profile = CandidateProfile.model_validate(raw)
+    intern_job = replace(_job(), title="Software Engineer Intern")
+    result = score_job(intern_job, profile)
+    assert result.rejected_reason is None
+    assert result.score > 0
+    assert seniority_match("Software Engineer Intern", profile) == 1.0
+
+
 def test_tiers_marked_domestic_skip_visa_gate() -> None:
     raw: dict[str, Any] = interpolate(yaml.safe_load(TEMPLATE.read_text()), ENV)
     raw["personal_info"]["work_authorization"]["requires_visa_for_international"] = True
