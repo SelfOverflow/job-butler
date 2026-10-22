@@ -125,3 +125,41 @@ def test_job_detail_and_artifact_download(
 )
 def test_artifact_route_rejects_bad_input(client: TestClient, path: str) -> None:
     assert client.get(path).status_code in (404, 422)
+
+
+def test_get_audit_logs_api(client: TestClient) -> None:
+    page = client.get("/api/audit?limit=2").json()
+    assert [e["action"] for e in page["items"]] == ["PROFILE_UPDATED", "JOB_DISCOVERED"]
+    assert page["next_offset"] == 2
+    rest = client.get("/api/audit?limit=2&offset=2").json()
+    assert len(rest["items"]) == 2 and rest["next_offset"] is None
+
+    scout = client.get("/api/audit?actor=agent:scout").json()["items"]
+    assert len(scout) == 3 and all(e["actor"] == "agent:scout" for e in scout)
+    [warning] = client.get("/api/audit?status=WARNING").json()["items"]
+    assert warning["details"] == {"k": 1} and "timestamp" in warning
+
+
+def test_serves_static_frontend_when_built(
+    settings: Settings, ids: dict[str, str], tmp_path: Path
+) -> None:
+    out = tmp_path / "out"
+    (out / "jobs").mkdir(parents=True)
+    (out / "index.html").write_text("<h1>Dashboard</h1>")
+    (out / "jobs" / "index.html").write_text("<h1>Jobs</h1>")  # next.config: trailingSlash
+    with TestClient(create_app(settings, frontend_dir=out)) as c:
+        assert "Dashboard" in c.get("/").text
+        assert "Jobs" in c.get("/jobs/").text and "Jobs" in c.get("/jobs").text
+        assert c.get("/health").json() == {"status": "ok"}  # API still wins
+
+
+def test_serve_command_starts_uvicorn(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:
+    from typer.testing import CliRunner
+
+    from src.cli import app
+
+    calls: list[tuple[str, int]] = []
+    monkeypatch.setattr("uvicorn.run", lambda _app, host, port: calls.append((host, port)))
+    result = CliRunner().invoke(app, ["serve", "--port", "8123"])
+    assert result.exit_code == 0, result.output
+    assert calls == [("127.0.0.1", 8123)] and "http://127.0.0.1:8123" in result.output

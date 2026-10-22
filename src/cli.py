@@ -21,6 +21,23 @@ app.add_typer(scout_app, name="scout")
 app.add_typer(tailor_app, name="tailor")
 
 
+@app.command()
+def serve(
+    host: Annotated[str, typer.Option(help="Interface to bind.")] = "127.0.0.1",
+    port: Annotated[int | None, typer.Option(help="Defaults to PORT (8000).")] = None,
+) -> None:
+    """Run the dashboard and REST API on one port."""
+    import uvicorn
+
+    from src.server.app import FRONTEND_OUT, create_app
+
+    bind = port or Settings().port
+    typer.echo(f"[✓] Job Butler dashboard & API: http://{host}:{bind}")
+    if not FRONTEND_OUT.is_dir():
+        typer.echo("[!] frontend/out not built yet: API only (cd frontend && npm run build)")
+    uvicorn.run(create_app(), host=host, port=bind)
+
+
 def _updater() -> ProfileUpdater:
     loader = profile_loader()
     return ProfileUpdater(loader, loader.path.parent / "backups")
