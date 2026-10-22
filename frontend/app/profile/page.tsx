@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Download, HelpCircle, PlusCircle, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Download, ShieldCheck } from "lucide-react";
 
 import { BackupList } from "@/components/BackupList";
 import { ProfileForm } from "@/components/ProfileForm";
