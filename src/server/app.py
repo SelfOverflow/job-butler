@@ -10,7 +10,9 @@ from fastapi.staticfiles import StaticFiles
 
 from src.config.settings import Settings
 from src.server import events
-from src.server.routes import analytics, audit, hitl, jobs, profile
+from src.server.routes import analytics, audit, commands, hitl, jobs, profile
+from src.server.runner import CommandRunner
+from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
 
 FRONTEND_OUT = Path(__file__).resolve().parents[2] / "frontend" / "out"
@@ -26,10 +28,16 @@ def create_app(
         engine = make_engine(settings.database_url)
         init_db(engine)
         app.state.sessions = session_factory(engine)
+        with app.state.sessions() as session:
+            repo.fail_interrupted_runs(session)
+            session.commit()
         app.state.bus = events.EventBus(app.state.sessions, settings.event_poll_seconds)
         await app.state.bus.start()
         poller = asyncio.create_task(app.state.bus.run())
+        app.state.runner = CommandRunner(app.state.sessions, settings, app.state.bus)
+        await app.state.runner.start()
         yield
+        await app.state.runner.stop()
         poller.cancel()
         with suppress(asyncio.CancelledError):
             await poller
@@ -47,6 +55,7 @@ def create_app(
     app.include_router(profile.router)
     app.include_router(hitl.router)
     app.include_router(analytics.router)
+    app.include_router(commands.router)
     app.include_router(events.router)
     if frontend_dir is not None and frontend_dir.is_dir():
         # Mounted last so API routes win; html=True serves <page>/index.html.
