@@ -104,3 +104,29 @@ class MarketSnapshotRecord(Base):
     threshold: Mapped[int]
     demand: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
     upskill: Mapped[list[dict[str, Any]]] = mapped_column(JSON, default=list)
+
+
+class CommandStatus(StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class CommandRun(Base):
+    """Background operation launched from the command center (see slice 8)."""
+
+    __tablename__ = "command_runs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    command: Mapped[str] = mapped_column(String(50), index=True)
+    params: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(20), default=CommandStatus.QUEUED, index=True)
+    progress: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSON, default=None)
+    error: Mapped[str | None] = mapped_column(Text)
+    requested_by: Mapped[str] = mapped_column(String(50), default="human:user")
+    created_at: Mapped[datetime] = mapped_column(default=utcnow, index=True)
+    started_at: Mapped[datetime | None]
+    finished_at: Mapped[datetime | None]

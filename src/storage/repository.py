@@ -17,6 +17,8 @@ from src.storage.models import (
     ApplicationRecord,
     ApplicationStatus,
     AuditLog,
+    CommandRun,
+    CommandStatus,
     JobPosting,
     MarketSnapshotRecord,
     utcnow,
@@ -187,3 +189,90 @@ def save_market_snapshot(session: Session, snapshot: "MarketSnapshot") -> Market
 def latest_market_snapshot(session: Session) -> MarketSnapshotRecord | None:
     query = select(MarketSnapshotRecord).order_by(MarketSnapshotRecord.id.desc()).limit(1)
     return session.scalar(query)
+
+
+def save_command_run(
+    session: Session,
+    command: str,
+    params: dict[str, Any],
+    requested_by: str = "human:user",
+) -> CommandRun:
+    run = CommandRun(
+        command=command,
+        params=params,
+        status=CommandStatus.QUEUED,
+        requested_by=requested_by,
+    )
+    session.add(run)
+    session.flush()
+    return run
+
+
+def get_command_run(session: Session, run_id: str) -> CommandRun | None:
+    return session.get(CommandRun, run_id)
+
+
+def list_command_runs(session: Session, limit: int = 50) -> list[CommandRun]:
+    query = select(CommandRun).order_by(CommandRun.created_at.desc()).limit(limit)
+    return list(session.scalars(query))
+
+
+def find_active_command_run(session: Session, command: str) -> CommandRun | None:
+    query = (
+        select(CommandRun)
+        .where(
+            CommandRun.command == command,
+            CommandRun.status.in_([CommandStatus.QUEUED, CommandStatus.RUNNING]),
+        )
+        .order_by(CommandRun.created_at.desc())
+        .limit(1)
+    )
+    return session.scalar(query)
+
+
+def start_command_run(session: Session, run_id: str) -> CommandRun | None:
+    run = session.get(CommandRun, run_id)
+    if run is not None:
+        run.status = CommandStatus.RUNNING
+        run.started_at = utcnow()
+        session.flush()
+    return run
+
+
+def update_command_progress(
+    session: Session, run_id: str, progress: dict[str, Any]
+) -> CommandRun | None:
+    run = session.get(CommandRun, run_id)
+    if run is not None:
+        run.progress = progress
+        session.flush()
+    return run
+
+
+def finish_command_run(
+    session: Session,
+    run_id: str,
+    status: str,
+    result: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> CommandRun | None:
+    run = session.get(CommandRun, run_id)
+    if run is not None:
+        run.status = status
+        run.result = result
+        run.error = error
+        run.finished_at = utcnow()
+        session.flush()
+    return run
+
+
+def fail_interrupted_runs(session: Session) -> int:
+    query = select(CommandRun).where(CommandRun.status == CommandStatus.RUNNING)
+    count = 0
+    for run in session.scalars(query):
+        run.status = CommandStatus.FAILED
+        run.error = "interrupted by restart"
+        run.finished_at = utcnow()
+        count += 1
+    session.flush()
+    return count
