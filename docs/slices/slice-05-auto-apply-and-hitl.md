@@ -35,6 +35,11 @@ src/
 └── cli_apply.py             # Subcommand: `job-butler apply`
 ```
 
+### 2.0 Review-First Submission Policy (decided with the candidate)
+* `job-butler apply --job-id <ID>` **prepares** only: fills the form from verified data, saves a screenshot and the answer plan, and queues it as `awaiting_review` (or `needs_input` when required questions are unanswerable, or `blocked` for login/CAPTCHA/2FA barriers).
+* Nothing is submitted until the candidate clicks **Approve** (dashboard) or runs `job-butler apply approve <ID>`; the navigator then re-fills from the stored plan and submits, returning to review if the form changed.
+* Unanswerable questions are escalated, never AI-guessed. Invisible reCAPTCHA v3 scripts are not treated as barriers; visible reCAPTCHA v2 / hCaptcha / Turnstile widgets are.
+
 ### 2.1 Chromium Lifecycle & Anti-Zombie Guards
 To ensure headless browser instances never leak memory or hang indefinitely on a 1GB/2GB EC2 or local host:
 * **Strict Context Scoping**: Every navigation uses an isolated `async with async_playwright() as p:` context.
@@ -59,5 +64,5 @@ Tests in `tests/unit/test_slice5_navigator.py` and `tests/integration/test_slice
 ## 4. Acceptance Criteria
 - [ ] 100% test pass rate with `pytest tests/unit/test_slice5* tests/integration/test_slice5*`
 - [ ] Browser tests run against local mock servers without flakiness (using Playwright locators).
-- [ ] Direct forms submit seamlessly without human intervention.
+- [ ] Direct forms are prepared without human intervention and submitted only after explicit approval.
 - [ ] Account portals escalate cleanly into the Web Dashboard for one-click resolution.

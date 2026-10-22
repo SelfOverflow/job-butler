@@ -1,5 +1,6 @@
 """Queries over job postings and the audit log. Callers own the session/commit."""
 
+from collections.abc import Sequence
 from typing import Any
 
 from sqlalchemy import Integer, func, literal_column, select
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 from src.ingestion.base import RawJobPosting
 from src.ingestion.deduplicator import content_key
 from src.ingestion.scorer import JobScore
-from src.storage.models import AuditLog, JobPosting, utcnow
+from src.storage.models import ApplicationRecord, ApplicationStatus, AuditLog, JobPosting, utcnow
 
 
 def job_id(job: RawJobPosting) -> str:
@@ -121,3 +122,36 @@ def audit_after(session: Session, rowid: int, limit: int = 500) -> list[tuple[in
     rid = literal_column("rowid", Integer)
     rows = session.execute(select(rid, AuditLog).where(rid > rowid).order_by(rid).limit(limit))
     return [(int(r[0]), r[1]) for r in rows]
+
+
+def get_application(session: Session, job_id: str) -> ApplicationRecord | None:
+    return session.get(ApplicationRecord, job_id)
+
+
+def save_application(
+    session: Session, job_id: str, *, status: ApplicationStatus, **fields: Any
+) -> ApplicationRecord:
+    """Create or update the job's application; unspecified fields keep their values."""
+    if get_job(session, job_id) is None:
+        raise KeyError(job_id)
+    record = get_application(session, job_id)
+    if record is None:
+        record = ApplicationRecord(job_id=job_id, plan=[], questions=[], answers={})
+        session.add(record)
+    record.status = status
+    for name, value in fields.items():
+        setattr(record, name, value)
+    record.updated_at = utcnow()
+    session.flush()
+    return record
+
+
+def list_applications(
+    session: Session, statuses: Sequence[str] | None = None
+) -> list[ApplicationRecord]:
+    """Most recently updated first, optionally filtered by status."""
+    query = select(ApplicationRecord)
+    if statuses is not None:
+        query = query.where(ApplicationRecord.status.in_(statuses))
+    rid = literal_column("applications.rowid", Integer)
+    return list(session.scalars(query.order_by(ApplicationRecord.updated_at.desc(), rid.desc())))

@@ -105,7 +105,13 @@ make down         # Stop local Docker Compose containers
 
 ---
 
-## 5. Candidate Profile Mutability Protocol
+## 5. Application Submission Safety (Non-Negotiable)
+- **Never submit an application without explicit human approval.** `job-butler apply` only prepares (fills, screenshots, stores the answer plan); submission happens only after the user approves on the dashboard or via `job-butler apply approve`.
+- **Never guess answers.** Required questions the profile cannot answer are escalated to the user (status `needs_input`); no LLM-drafted answers on real applications.
+- **Never apply to roles failing a hard gate** (excluded employer, experience, visa).
+- On approval, re-fill from the stored plan; if the live form no longer matches the plan, return the application to review instead of submitting.
+
+## 6. Candidate Profile Mutability Protocol
 - The candidate profile at `profile/candidate_profile.yaml` can be edited at any time directly, via CLI (`job-butler profile update`), or through the Web UI (`PUT /api/profile`).
 - Before any programmatic save, the system **MUST** create a timestamped backup in `profile/backups/candidate_profile_<YYYYMMDD_HHMMSS>.yaml`.
 - The 24/7 background scheduler dynamically re-reads `candidate_profile.yaml` on every sweep cycle (hot-reloading).
