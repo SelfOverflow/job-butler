@@ -47,6 +47,24 @@ export type ProfileResponse = {
   errors: FieldError[];
 };
 export type Backup = { name: string; modified: string };
+export type PlannedField = { label: string; kind: string; value: string; source: string };
+export type Question = { label: string; kind: string; options: string[] };
+export type Application = {
+  job_id: string;
+  title: string;
+  company: string;
+  url: string;
+  status: "needs_input" | "blocked" | "awaiting_review" | "submitted" | "applied_manually" | "skipped" | "failed";
+  barrier: string | null;
+  plan: PlannedField[];
+  questions: Question[];
+  answers: Record<string, string>;
+  error: string | null;
+  screenshot_url: string | null;
+  updated_at: string;
+  submitted_at: string | null;
+};
+export type HitlAction = "prepare" | "approve" | "skip" | "resolve";
 export type ProfileUpdate = { yaml: string } | { set: Record<string, string> };
 
 export class ApiError extends Error {
@@ -97,4 +115,10 @@ export const api = {
   backups: () => request<Backup[]>("/api/profile/backups"),
   restoreBackup: (name: string) =>
     request<unknown>("/api/profile/restore", { ...json({ name }), method: "POST" }),
+  pending: () => request<Application[]>("/api/hitl/pending"),
+  /** prepare/answers never submit; only "approve" submits an application. */
+  hitl: (jobId: string, action: HitlAction) =>
+    request<Application>(`/api/hitl/${jobId}/${action}`, { method: "POST" }),
+  answer: (jobId: string, answers: Record<string, string>) =>
+    request<Application>(`/api/hitl/${jobId}/answers`, { ...json({ answers }), method: "POST" }),
 };

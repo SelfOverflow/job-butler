@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 
-import type { AuditEvent, Job } from "@/lib/api";
+import type { Application, AuditEvent, Job } from "@/lib/api";
 
 export function makeJob(overrides: Partial<Job> = {}): Job {
   return {
@@ -76,4 +76,26 @@ export class FakeWebSocket {
   static latest(): FakeWebSocket {
     return FakeWebSocket.instances[FakeWebSocket.instances.length - 1];
   }
+}
+
+export function makeApplication(overrides: Partial<Application> = {}): Application {
+  return {
+    job_id: "job_1234abcd",
+    title: "Senior Software Engineer",
+    company: "Hooli",
+    url: "https://boards.greenhouse.io/hooli/jobs/1",
+    status: "awaiting_review",
+    barrier: null,
+    plan: [
+      { label: "First Name", kind: "text", value: "Jane", source: "profile" },
+      { label: "Resume/CV", kind: "file", value: "/artifacts/resumes/job_1234abcd_resume.pdf", source: "resume" },
+    ],
+    questions: [],
+    answers: {},
+    error: null,
+    screenshot_url: "/api/hitl/job_1234abcd/screenshot",
+    updated_at: "2026-10-22T10:00:00",
+    submitted_at: null,
+    ...overrides,
+  };
 }
