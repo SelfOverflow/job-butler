@@ -8,6 +8,7 @@ import typer
 
 from src.cli_analytics import analytics_app
 from src.cli_apply import apply_app
+from src.cli_autopilot import autopilot_app
 from src.cli_common import friendly_errors, profile_loader
 from src.cli_scout import scout_app
 from src.cli_tailor import tailor_app
@@ -23,6 +24,7 @@ app.add_typer(scout_app, name="scout")
 app.add_typer(tailor_app, name="tailor")
 app.add_typer(apply_app, name="apply")
 app.add_typer(analytics_app, name="analytics")
+app.add_typer(autopilot_app, name="autopilot")
 
 
 @app.command()
