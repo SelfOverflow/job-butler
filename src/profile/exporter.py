@@ -13,6 +13,11 @@ def format_month(value: str | None) -> str:
     return f"{calendar.month_abbr[int(month)]} {year}"
 
 
+def skill_group_label(key: str) -> str:
+    """`frontend_and_web` -> `Frontend and web`."""
+    return key.replace("_", " ").capitalize()
+
+
 def to_markdown(profile: CandidateProfile) -> str:
     info = profile.personal_info
     loc = info.location
@@ -33,8 +38,7 @@ def to_markdown(profile: CandidateProfile) -> str:
     if profile.skills_inventory:
         lines += ["## Technical Skills", ""]
         for group, skills in profile.skills_inventory.items():
-            label = group.replace("_", " ").capitalize()
-            lines.append(f"- **{label}:** {', '.join(s.name for s in skills)}")
+            lines.append(f"- **{skill_group_label(group)}:** {', '.join(s.name for s in skills)}")
         lines.append("")
 
     if profile.education:
