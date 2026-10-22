@@ -43,3 +43,37 @@ export function makeEvent(overrides: Partial<AuditEvent> = {}): AuditEvent {
     ...overrides,
   };
 }
+
+/** Minimal controllable stand-in for the browser WebSocket. */
+export class FakeWebSocket {
+  static instances: FakeWebSocket[] = [];
+  onopen: (() => void) | null = null;
+  onmessage: ((event: { data: string }) => void) | null = null;
+  onclose: (() => void) | null = null;
+  closed = false;
+
+  constructor(readonly url: string) {
+    FakeWebSocket.instances.push(this);
+  }
+
+  open() {
+    this.onopen?.();
+  }
+
+  emit(message: unknown) {
+    this.onmessage?.({ data: JSON.stringify(message) });
+  }
+
+  drop() {
+    this.onclose?.();
+  }
+
+  close() {
+    this.closed = true;
+    this.onclose?.();
+  }
+
+  static latest(): FakeWebSocket {
+    return FakeWebSocket.instances[FakeWebSocket.instances.length - 1];
+  }
+}
