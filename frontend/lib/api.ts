@@ -130,4 +130,23 @@ export const api = {
     request<Application>(`/api/hitl/${jobId}/${action}`, { method: "POST" }),
   answer: (jobId: string, answers: Record<string, string>) =>
     request<Application>(`/api/hitl/${jobId}/answers`, { ...json({ answers }), method: "POST" }),
+  launchCommand: (name: string, params: Record<string, unknown> = {}) =>
+    request<{ run_id: string; status: string; single_flight: boolean }>(`/api/commands/${name}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    }),
+  runs: () => request<import("./commands").CommandRun[]>("/api/commands/runs"),
+  getRun: (id: string) => request<import("./commands").CommandRun>(`/api/commands/runs/${id}`),
+  cancelRun: (id: string) => request<{ status: string }>(`/api/commands/runs/${id}/cancel`, { method: "POST" }),
+  settings: () =>
+    request<{
+      auth_enabled: boolean;
+      gemini_model: string;
+      gemini_configured: boolean;
+      firecrawl_configured: boolean;
+      openai_configured: boolean;
+      anthropic_configured: boolean;
+      max_daily_scrape_credits: number;
+    }>("/api/settings"),
 };

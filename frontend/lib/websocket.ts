@@ -1,10 +1,12 @@
 // Auto-reconnecting client for the FastAPI `/ws/events` live feed.
 
 import type { AuditEvent } from "@/lib/api";
+import type { CommandRun } from "@/lib/commands";
 
 export type FeedMessage =
   | { type: "snapshot"; events: AuditEvent[] }
-  | { type: "audit"; event: AuditEvent };
+  | { type: "audit"; event: AuditEvent }
+  | { type: "command"; run: CommandRun };
 
 const MIN_DELAY_MS = 1_000;
 const MAX_DELAY_MS = 30_000;
