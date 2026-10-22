@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, BarChart3, Briefcase, Hand, History, LayoutDashboard, Terminal, UserRound } from "lucide-react";
+import { Activity, BarChart3, Briefcase, Hand, History, LayoutDashboard, Settings as SettingsIcon, Terminal, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/profile/", label: "Profile", icon: UserRound },
   { href: "/audit/", label: "Audit log", icon: Activity },
   { href: "/hitl/", label: "Interventions", icon: Hand },
+  { href: "/settings/", label: "Settings", icon: SettingsIcon },
 ];
 
 export function Sidebar() {
