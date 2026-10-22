@@ -72,7 +72,7 @@ def test_market_hierarchy_scoring_boost() -> None:
 )
 def test_visa_gate_rejects_foreign_roles_without_sponsorship(phrase: str) -> None:
     result = score_job(_job("Berlin, Germany", f"{JD} {phrase}"), _profile())
-    assert result.rejected_reason == "no visa sponsorship"
+    assert result.rejected_reason == "visa: no sponsorship offered"
 
 
 def test_visa_gate_skips_domestic_roles_and_candidates_without_visa_needs() -> None:

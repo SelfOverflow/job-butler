@@ -91,6 +91,8 @@ class Preferences(_Model):
     excluded_employers: tuple[NonEmptyStr, ...] = ()
     cv_page_budget_rules: PageBudget
     watched_companies: tuple[WatchedCompany, ...] = ()
+    # Overrides the total computed from work_experience dates (e.g. to exclude internships).
+    years_of_experience: float | None = Field(default=None, ge=0)
     min_base_salary: int | None = Field(default=None, ge=0)  # Annual floor, in `currency`.
     currency: Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")] | None = None  # ISO 4217
 

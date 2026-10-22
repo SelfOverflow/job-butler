@@ -42,6 +42,7 @@ Postings from any employer in `preferences.excluded_employers` are automatically
 
 ### 2.3 Multi-Dimensional Fit Rubric & Sourcing Priority
 Score = `round(100 × (4·tech + 3·seniority) / 7)` + tier boost (the 40% / 30% weights rescaled to 100):
+0. **Experience Gate (Pass/Fail, non-negotiable)**: Rejects any role whose description requires more years than the candidate has. Required years = the highest minimum across every "N+ years" requirement (ranges use the lower bound; phrases count when they mention experience, read as work ("9+ years in Python"), or follow a requirement cue). Candidate years = merged `work_experience` spans up to today, or `preferences.years_of_experience` if set. Stored jobs are re-checked on every `scout run`/`scout verify` and deactivated (`JOB_EXCLUDED` audit), and `tailor` refuses ineligible jobs.
 1. **Hard Requirements & Visa Gate (Pass/Fail)**: Rejects foreign roles that state "No visa sponsorship" or "Citizens/PR only". A role is domestic if it is in the first tier or names one of `work_authorization.citizen_countries`; the gate only applies when `requires_visa_for_international` is true.
 2. **Tech Stack Match (≈57%)**: Share of `skills_inventory` names found in the JD, saturating at 8 matched skills.
 3. **Seniority & Scope (≈43%)**: Best word overlap between the job title and a `preferences.target_roles` entry.

@@ -11,6 +11,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from src.ingestion.base import RawJobPosting, contains_phrase, words
+from src.ingestion.experience import required_years, total_experience_years
 from src.profile.models import CandidateProfile, MarketTier
 
 TECH_SATURATION = 8  # Matched skills needed for full tech marks.
@@ -90,13 +91,19 @@ def is_domestic(location: str, profile: CandidateProfile) -> bool:
 
 def score_job(job: RawJobPosting, profile: CandidateProfile) -> JobScore:
     tier, boost = classify_tier(job.location, profile.preferences.sourcing_hierarchy)
+    needed, have = required_years(job.description), total_experience_years(profile)
+    if needed is not None and needed > have:
+        reason = f"experience: requires {needed}+ years, profile has {have:.1f}"
+        return JobScore(score=0, tier=tier, boost=boost, rejected_reason=reason)
     needs_visa = profile.personal_info.work_authorization.requires_visa_for_international
     if (
         needs_visa
         and not is_domestic(job.location, profile)
         and _NO_SPONSORSHIP.search(job.description)
     ):
-        return JobScore(score=0, tier=tier, boost=boost, rejected_reason="no visa sponsorship")
+        return JobScore(
+            score=0, tier=tier, boost=boost, rejected_reason="visa: no sponsorship offered"
+        )
 
     fit = (
         TECH_WEIGHT * tech_match(job.description, profile)
