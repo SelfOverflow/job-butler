@@ -33,7 +33,8 @@ class FieldSpec:
     label: str
     kind: Kind
     required: bool
-    options: tuple[str, ...] = ()
+    options: tuple[str, ...] = ()  # Visible option labels (select/radio).
+    option_values: tuple[str, ...] = ()  # Submitted values, parallel to `options`.
     selector: str = ""  # Set by the form inspector; locates the control on the page.
 
 
