@@ -40,6 +40,7 @@ preferences:
     tier2_international_priority:
       description: "Top-Tier International Priority with Visa Sponsorship (EU & Nordics, UK, Canada, UAE, US, APAC)"
       boost: 4
+      hubs: ["Toronto", "Vancouver", "Montreal", "Waterloo", "Ottawa", "Calgary", "San Francisco", "Bay Area", "Mountain View", "Palo Alto", "San Jose", "Seattle", "New York", "NYC", "Boston", "Austin", "Los Angeles", "Chicago", "Denver", "London", "Manchester", "Edinburgh", "Cambridge", "Bristol", "Berlin", "Munich", "Hamburg", "Amsterdam", "Rotterdam", "Dublin", "Paris", "Stockholm", "Gothenburg", "Copenhagen", "Oslo", "Helsinki", "Zurich", "Geneva", "Barcelona", "Madrid", "Warsaw", "Krakow", "Tallinn", "Vienna", "Brussels", "Abu Dhabi", "Sydney", "Melbourne", "Auckland", "Wellington", "Tokyo"] # Tech hubs often listed without their country
       countries: ["Sweden", "Denmark", "Norway", "Finland", "Germany", "Netherlands", "Ireland", "France", "Spain", "Switzerland", "Poland", "Estonia", "Austria", "Belgium", "UAE", "United Arab Emirates", "Dubai", "United States", "Australia", "New Zealand", "Singapore", "Japan", "United Kingdom", "Canada"]
     tier3_gcc_middle_east:
       description: "High Priority International with Visa Sponsorship / Relocation"
