@@ -352,16 +352,17 @@ screening_question_bank:
   - question_pattern: "(?i)authorized to work in india"
     answer_type: "boolean"
     answer_value: true
-  - question_pattern: "(?i)require (visa )?sponsorship in india"
+  # India-only sponsorship questions first; anything else falls through to "yes".
+  - question_pattern: "(?i)(require|need)(?!.*outside).*sponsorship.*\\bindia\\W*$"
     answer_type: "boolean"
     answer_value: false
-  - question_pattern: "(?i)require (visa )?sponsorship (outside|in us|in uk|in eu|international)"
+  - question_pattern: "(?i)(require|need).*sponsorship"
     answer_type: "boolean"
     answer_value: true
   - question_pattern: "(?i)notice period"
     answer_type: "text"
     answer_value: "30 days (negotiable)"
-  - question_pattern: "(?i)expected salary|compensation"
+  - question_pattern: "(?i)salary|compensation|\\bctc\\b"
     answer_type: "text"
     answer_value: "Competitive market rate based on role and location"
 

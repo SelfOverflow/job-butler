@@ -1,8 +1,11 @@
+from pathlib import Path
 from typing import Any
 
 import pytest
+import yaml
 
-from src.profile.models import ScreeningQuestion
+from src.profile.loader import interpolate
+from src.profile.models import CandidateProfile, ScreeningQuestion
 from src.profile.screening import resolve
 
 
@@ -51,3 +54,40 @@ def test_whitespace_in_form_labels_is_normalized() -> None:
 def test_unmatched_question_returns_none() -> None:
     assert resolve("What is your favourite colour?", BANK) is None
     assert resolve("What is your notice period?", ()) is None
+
+
+ACTIVE_PROFILE = Path(__file__).resolve().parents[2] / "profile" / "candidate_profile.yaml"
+FAKE_ENV = {
+    "CANDIDATE_EMAIL": "x@example.com",
+    "CANDIDATE_PHONE": "0",
+    "CANDIDATE_CITY": "x",
+    "CANDIDATE_STATE": "x",
+    "CANDIDATE_POSTAL_CODE": "0",
+}
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("Are you authorized to work in India?", True),
+        ("Will you require sponsorship in India?", False),
+        ("Do you need visa sponsorship to work in India?", False),
+        ("Will you require visa sponsorship to work in the UK?", True),
+        ("Do you require sponsorship for employment in the United States?", True),
+        ("Would you need sponsorship outside India?", True),
+        ("Will you require sponsorship in India or the UK?", True),
+        ("What is your notice period?", "30 days (negotiable)"),
+        ("How many years of experience with React Native do you have?", 5),
+        (
+            "What are your salary expectations?",
+            "Competitive market rate based on role and location",
+        ),
+        ("Current CTC?", "Competitive market rate based on role and location"),
+    ],
+)
+def test_active_profile_screening_bank(question: str, expected: Any) -> None:
+    raw = yaml.safe_load(ACTIVE_PROFILE.read_text(encoding="utf-8"))
+    profile = CandidateProfile.model_validate(interpolate(raw, FAKE_ENV))
+    match = resolve(question, profile.screening_question_bank)
+    assert match is not None
+    assert match.answer_value == expected
