@@ -27,7 +27,13 @@ def sweep(
 ) -> SweepReport:
     if cancel is not None:
         cancel.check()
-    return run_sweep(profile, session, http, firecrawl, limit=limit, progress=progress)
+
+    def checked_progress(stage: str, done: int, total: int, detail: str) -> None:
+        if cancel is not None:
+            cancel.check()
+        progress(stage, done, total, detail)
+
+    return run_sweep(profile, session, http, firecrawl, limit=limit, progress=checked_progress)
 
 
 def verify(
@@ -39,10 +45,16 @@ def verify(
 ) -> tuple[int, dict[str, int]]:
     if cancel is not None:
         cancel.check()
+
+    def checked_progress(stage: str, done: int, total: int, detail: str) -> None:
+        if cancel is not None:
+            cancel.check()
+        progress(stage, done, total, detail)
+
     pruned = prune_ineligible(session, profile)
     if cancel is not None:
         cancel.check()
-    counts = verify_stored(session, http, progress)
+    counts = verify_stored(session, http, checked_progress)
     return pruned, counts
 
 

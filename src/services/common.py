@@ -30,3 +30,4 @@ class CancelToken:
     def check(self) -> None:
         if self._cancelled:
             raise CancelledError("Operation was cancelled")
+

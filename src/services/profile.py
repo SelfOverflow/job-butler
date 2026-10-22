@@ -86,3 +86,4 @@ def export_master(profile: CandidateProfile, target: Path) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(to_markdown(profile), encoding="utf-8")
     return target
+
