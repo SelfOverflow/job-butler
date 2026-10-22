@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Download,
@@ -34,7 +34,7 @@ function JobDetailContent() {
   const id = searchParams.get("id");
 
   const [job, setJob] = useState<JobDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(id));
   const [error, setError] = useState<string | null>(null);
   const [tailoring, setTailoring] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -42,24 +42,23 @@ function JobDetailContent() {
   const [stageMessage, setStageMessage] = useState<string | null>(null);
   const [cacheBuster, setCacheBuster] = useState(() => Date.now());
 
-  const loadJob = async (jobId: string) => {
-    try {
-      const data = await api.job(jobId);
-      setJob(data);
-      setTailored(Boolean(data.resume_url));
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loadJob = useCallback((jobId: string) => {
+    return api.job(jobId).then(
+      (data) => {
+        setJob(data);
+        setTailored(Boolean(data.resume_url));
+        setError(null);
+        setLoading(false);
+      },
+      (err: Error) => {
+        setError(err.message);
+        setLoading(false);
+      },
+    );
+  }, []);
 
   useEffect(() => {
-    if (!id) {
-      setLoading(false);
-      return;
-    }
+    if (!id) return;
     loadJob(id);
 
     // Connect to WebSocket events for command telemetry
@@ -86,7 +85,7 @@ function JobDetailContent() {
     });
 
     return () => stop();
-  }, [id]);
+  }, [id, loadJob]);
 
   const handleTailor = async () => {
     if (!id) return;
