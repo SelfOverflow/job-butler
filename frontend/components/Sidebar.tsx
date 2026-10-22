@@ -16,13 +16,22 @@ const LINKS = [
   { href: "/settings/", label: "Settings", icon: SettingsIcon },
 ];
 
+export function isRouteActive(pathname: string, href: string): boolean {
+  const normPath = pathname.replace(/\/+$/, "") || "/";
+  const normHref = href.replace(/\/+$/, "") || "/";
+  if (normHref === "/") {
+    return normPath === "/";
+  }
+  return normPath === normHref || normPath.startsWith(`${normHref}/`);
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   return (
     <nav aria-label="Main" className="flex gap-1 overflow-x-auto border-b border-zinc-200 p-2 md:w-56 md:flex-col md:border-r md:border-b-0 md:p-4 dark:border-zinc-800">
       <p className="hidden px-2 pb-4 text-lg font-semibold md:block">Job Butler</p>
       {LINKS.map(({ href, label, icon: Icon }) => {
-        const active = href === "/" ? pathname === "/" : pathname.startsWith(href.replace(/\/$/, ""));
+        const active = isRouteActive(pathname, href);
         return (
           <Link
             key={href}
