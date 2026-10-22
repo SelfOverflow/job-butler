@@ -9,7 +9,11 @@ dependencies = [
     "pyyaml>=6.0",
     "python-dotenv>=1.0",
     "ruamel.yaml>=0.18",
+    "typer>=0.12",
 ]
+
+[project.scripts]
+job-butler = "src.cli:app"
 
 [project.optional-dependencies]
 dev = [
