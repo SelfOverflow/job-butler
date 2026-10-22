@@ -6,10 +6,11 @@ from sqlalchemy.orm import Session
 from src.ingestion.base import ProgressFn, no_progress
 from src.ingestion.firecrawl_client import FirecrawlClient
 from src.ingestion.pipeline import SweepReport, prune_ineligible, run_sweep, verify_stored
+from src.ingestion.verifier import verify as verifier_verify
 from src.profile.models import CandidateProfile
 from src.services.common import CancelToken
 from src.storage import repository as repo
-from src.storage.models import JobPosting
+from src.storage.models import JobPosting, utcnow
 
 
 class ScoutError(Exception):
@@ -60,3 +61,25 @@ def verify(
 
 def list_jobs(session: Session, min_score: int | None = None) -> list[JobPosting]:
     return repo.list_active(session, min_score=min_score)
+
+
+def verify_one(session: Session, http: httpx.Client, job_id: str) -> tuple[str, str]:
+    row = repo.get_job(session, job_id)
+    if row is None:
+        raise ScoutError(f"Job not found: {job_id}")
+    liveness = verifier_verify(row.url, http)
+    if liveness.status == "closed":
+        repo.mark_inactive(session, row.id)
+    elif liveness.status == "live":
+        row.last_verified_at = utcnow()
+    repo.record_audit(
+        session,
+        actor="human:user",
+        action="LINK_VERIFIED",
+        status="SUCCESS" if liveness.status == "live" else "WARNING",
+        target_id=row.id,
+        details={"liveness": liveness.status, "reason": liveness.reason, "url": row.url},
+    )
+    session.commit()
+    return liveness.status, liveness.reason
+

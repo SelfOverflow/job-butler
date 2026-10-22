@@ -17,7 +17,7 @@ class ScoutSweepParams(BaseModel):
 
 
 class ScoutVerifyParams(BaseModel):
-    pass
+    job_id: str | None = None
 
 
 class TailorOneParams(BaseModel):

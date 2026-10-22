@@ -7,13 +7,15 @@ The editor works on the raw YAML (with ${VAR} placeholders), so secrets from
 from datetime import datetime
 from typing import Any, Self
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ValidationError, model_validator
+from fastapi import APIRouter, HTTPException, Response
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from src.config.settings import Settings
+from src.profile.exporter import to_markdown
 from src.profile.loader import ProfileError, ProfileLoader
 from src.profile.updater import ProfileUpdater
 from src.server.deps import SettingsDep
+from src.services import profile as profile_service
 
 router = APIRouter(prefix="/api/profile")
 
@@ -31,6 +33,17 @@ class ProfileUpdate(BaseModel):
 
 class RestoreRequest(BaseModel):
     name: str
+
+
+class QueryRequest(BaseModel):
+    question: str
+
+
+class AddBulletRequest(BaseModel):
+    role_id: str
+    text: str
+    skills: list[str] = Field(default_factory=list)
+
 
 
 def _updater(settings: Settings) -> ProfileUpdater:
@@ -91,3 +104,57 @@ def restore(request: RestoreRequest, settings: SettingsDep) -> dict[str, Any]:
     except (ProfileError, ValidationError) as exc:
         raise HTTPException(422, _errors(exc)) from None
     return {"profile": profile.model_dump(mode="json")}
+
+
+@router.get("/validate")
+def validate(settings: SettingsDep) -> dict[str, Any]:
+    loader = ProfileLoader(settings.profile_path)
+    try:
+        summary = profile_service.validate_profile(loader)
+        return {
+            "valid": True,
+            "full_name": summary.full_name,
+            "bullet_count": summary.bullet_count,
+            "role_count": summary.role_count,
+            "star_story_count": summary.star_story_count,
+            "screening_count": summary.screening_count,
+        }
+    except (ProfileError, ValidationError) as exc:
+        raise HTTPException(422, _errors(exc)) from None
+
+
+@router.post("/query")
+def query(request: QueryRequest, settings: SettingsDep) -> dict[str, Any]:
+    loader = ProfileLoader(settings.profile_path)
+    try:
+        profile = loader.load()
+        answer = profile_service.query_screening(profile, request.question)
+        return {"question": request.question, "answer": answer}
+    except ProfileError as exc:
+        raise HTTPException(404, str(exc)) from None
+    except ValidationError as exc:
+        raise HTTPException(422, _errors(exc)) from None
+
+
+@router.get("/export-master")
+def export_master(settings: SettingsDep) -> Response:
+    loader = ProfileLoader(settings.profile_path)
+    try:
+        profile = loader.load()
+        md = to_markdown(profile)
+        return Response(content=md, media_type="text/markdown; charset=utf-8")
+    except (ProfileError, ValidationError) as exc:
+        raise HTTPException(422, _errors(exc)) from None
+
+
+@router.post("/bullets")
+def add_bullet(request: AddBulletRequest, settings: SettingsDep) -> dict[str, str]:
+    updater = _updater(settings)
+    try:
+        bullet_id = profile_service.add_bullet(
+            updater, request.role_id, request.text, request.skills
+        )
+        return {"bullet_id": bullet_id}
+    except (ProfileError, ValidationError) as exc:
+        raise HTTPException(422, _errors(exc)) from None
+
