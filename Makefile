@@ -15,7 +15,7 @@ help:
 	@echo "make clean        Remove cache and temporary files"
 
 test:
-	pytest tests/unit tests/integration -v --cov=src
+	pytest tests -v --cov=src
 	@if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then \
 		cd frontend && npm test; \
 	fi
