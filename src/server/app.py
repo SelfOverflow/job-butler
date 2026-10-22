@@ -10,7 +10,9 @@ from fastapi.staticfiles import StaticFiles
 
 from src.config.settings import Settings
 from src.server import events
-from src.server.routes import analytics, audit, commands, hitl, jobs, profile
+from src.server.auth import AuthMiddleware
+from src.server.routes import analytics, audit, auth, commands, hitl, jobs, profile
+from src.server.routes import settings as settings_route
 from src.server.runner import CommandRunner
 from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
@@ -22,6 +24,8 @@ def create_app(
     settings: Settings | None = None, frontend_dir: Path | None = FRONTEND_OUT
 ) -> FastAPI:
     settings = settings or Settings()
+    if settings.auth_disabled and settings.host not in ("127.0.0.1", "localhost", "::1"):
+        raise ValueError("AUTH_DISABLED=true is only allowed on loopback (127.0.0.1)")
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -45,11 +49,14 @@ def create_app(
 
     app = FastAPI(title="Job Butler", lifespan=lifespan)
     app.state.settings = settings
+    app.add_middleware(AuthMiddleware)
 
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    app.include_router(auth.router)
+    app.include_router(settings_route.router)
     app.include_router(jobs.router)
     app.include_router(audit.router)
     app.include_router(profile.router)

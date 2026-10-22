@@ -12,6 +12,7 @@ from typing import Any
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session, sessionmaker
 
+from src.server.auth import COOKIE_NAME, verify_session_token
 from src.server.routes.audit import AuditOut
 from src.storage import repository as repo
 from src.storage.models import AuditLog
@@ -74,6 +75,14 @@ class EventBus:
 
 @router.websocket("/ws/events")
 async def events(ws: WebSocket) -> None:
+    settings = ws.app.state.settings
+    if not settings.auth_disabled:
+        cookie = ws.cookies.get(COOKIE_NAME)
+        csrf = verify_session_token(cookie, settings.session_secret) if cookie else None
+        if csrf is None:
+            await ws.close(code=1008)
+            return
+
     bus: EventBus = ws.app.state.bus
     await bus.connect(ws)
     try:

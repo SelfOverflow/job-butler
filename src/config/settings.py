@@ -11,7 +11,12 @@ class Settings(BaseSettings):
 
     app_env: Literal["local", "production"] = "local"
     debug: bool = False
+    host: str = "127.0.0.1"
     port: int = 8000
+    auth_disabled: bool = True
+    dashboard_password_hash: str | None = None
+    session_secret: str = "insecure-default-change-in-production"
+    session_expiry_hours: int = 12
     event_poll_seconds: float = 2.0  # Live feed: how often to check for new audit events.
     database_url: str = "sqlite:///./data/job_butler.db"
     artifacts_dir: Path = Path("artifacts")
