@@ -53,6 +53,9 @@ preferences:
       boost: 0
       locations: ["Global Remote"]
 
+  min_base_salary: 150000 # Annual base salary floor (optional); requires currency
+  currency: "USD" # ISO 4217 code, e.g. INR, EUR, USD
+
   excluded_employers:
     # Employers the agent must NEVER search for, recommend, or apply to:
     - "Current Employer Inc"

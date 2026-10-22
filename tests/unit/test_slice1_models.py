@@ -183,3 +183,26 @@ def test_invalid_screening_regex_rejected() -> None:
     raw["screening_question_bank"][0]["question_pattern"] = "(unclosed"
     with pytest.raises(ValidationError):
         CandidateProfile.model_validate(raw)
+
+
+@pytest.mark.parametrize(
+    ("salary", "currency", "valid"),
+    [
+        (None, None, True),
+        (180000, "USD", True),
+        (None, "INR", True),
+        (180000, None, False),  # amount without a currency is ambiguous
+        (-1, "USD", False),
+        (180000, "usd", False),
+        (180000, "DOLLARS", False),
+    ],
+)
+def test_salary_floor_validation(salary: int | None, currency: str | None, valid: bool) -> None:
+    raw = _raw()["preferences"]
+    raw.update(min_base_salary=salary, currency=currency)
+    if valid:
+        prefs = Preferences.model_validate(raw)
+        assert (prefs.min_base_salary, prefs.currency) == (salary, currency)
+    else:
+        with pytest.raises(ValidationError):
+            Preferences.model_validate(raw)

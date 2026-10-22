@@ -79,6 +79,14 @@ class Preferences(_Model):
     sourcing_hierarchy: dict[str, MarketTier] = Field(min_length=1)
     excluded_employers: tuple[NonEmptyStr, ...] = ()
     cv_page_budget_rules: PageBudget
+    min_base_salary: int | None = Field(default=None, ge=0)  # Annual floor, in `currency`.
+    currency: Annotated[str, StringConstraints(pattern=r"^[A-Z]{3}$")] | None = None  # ISO 4217
+
+    @model_validator(mode="after")
+    def _check_salary_currency(self) -> Self:
+        if self.min_base_salary is not None and self.currency is None:
+            raise ValueError("min_base_salary requires a currency (e.g. INR, EUR, USD)")
+        return self
 
 
 class Skill(_Model):

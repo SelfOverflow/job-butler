@@ -60,6 +60,8 @@ def test_set_value_parses_scalars_and_list_indices(updater: ProfileUpdater) -> N
     assert profile.work_experience[1].title == "Staff Engineer"
     profile = updater.set_value("preferences.cv_page_budget_rules.international", "3")
     assert profile.preferences.cv_page_budget_rules.international == 3
+    profile = updater.set_value("preferences.min_base_salary", "180000")
+    assert profile.preferences.min_base_salary == 180000
 
 
 @pytest.mark.parametrize(
@@ -67,7 +69,8 @@ def test_set_value_parses_scalars_and_list_indices(updater: ProfileUpdater) -> N
     [
         ("personal_info.email", "not-an-email"),
         ("personal_info.full_name", "null"),
-        ("preferences.min_base_salary", "180000"),  # not in schema
+        ("preferences.max_commute_minutes", "30"),  # not in schema
+        ("preferences.currency", "null"),  # salary set without a currency
         ("work_experience", "[]"),
     ],
 )
