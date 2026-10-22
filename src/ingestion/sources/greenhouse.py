@@ -19,7 +19,7 @@ def fetch_greenhouse(company: WatchedCompany, client: httpx.Client) -> list[RawJ
     return [
         RawJobPosting(
             title=job["title"],
-            company=company.name,
+            company=job.get("company_name") or company.name,
             location=(job.get("location") or {}).get("name", ""),
             url=job["absolute_url"],
             description=html_to_text(job.get("content", "")),

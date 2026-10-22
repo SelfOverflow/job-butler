@@ -59,7 +59,7 @@ def test_greenhouse_response_parsing(client: httpx.Client) -> None:
         raw["location"]["name"],
         raw["absolute_url"],
     )
-    assert (first.company, first.source) == ("Hooli", "greenhouse")
+    assert (first.company, first.source) == (raw["company_name"], "greenhouse")  # API name wins
     assert first.description and "<" not in first.description and "&lt;" not in first.description
     published = datetime.fromisoformat(raw["first_published"])
     assert first.posted_at == published.astimezone(UTC).replace(tzinfo=None)  # naive UTC
