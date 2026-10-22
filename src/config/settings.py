@@ -20,5 +20,6 @@ class Settings(BaseSettings):
     max_daily_scrape_credits: int = 100
     firecrawl_state_dir: Path = Path("data/firecrawl")  # Shared credit budget + 12h cache.
     gemini_api_key: str | None = None
+    gemini_model: str = "gemini-3.8-flash"
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None

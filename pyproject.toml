@@ -13,6 +13,9 @@ dependencies = [
     "sqlalchemy>=2.0",
     "httpx>=0.27",
     "rich>=13",
+    "google-genai>=2.30",
+    "typst>=0.13",
+    "pypdf>=5",
 ]
 
 [project.scripts]
