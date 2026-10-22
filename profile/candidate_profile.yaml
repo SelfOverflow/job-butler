@@ -59,8 +59,8 @@ preferences:
     - "Stepswatch SASU"
 
   cv_page_budget_rules:
-    india_domestic: 1
-    international_relocation: 2
+    domestic: 1
+    international: 2
     cover_letter: 1
 
 skills_inventory:
