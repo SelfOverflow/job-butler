@@ -57,6 +57,12 @@ job_butler/
             └── artifacts.py # Static file delivery for compiled PDFs
 ```
 
+## 2.1 Implementation Notes
+* **Next.js 16** (current stable) instead of 14. `next.config.ts` enables `output: "export"` (with `trailingSlash`) only for production builds and the `/api` rewrite only in `next dev`, because static export and rewrites cannot be combined.
+* **Live feed source**: `/ws/events` polls the `audit_logs` table (`EVENT_POLL_SECONDS`, default 2 s) and broadcasts new rows, so actions from the CLI or scheduler processes appear live. New connections receive a snapshot of the 20 latest events.
+* **Profile editing**: the form sends only changed fields as `{"set": {...}}` (JSON-encoded YAML values); the raw editor sends `{"yaml": text}` saved verbatim. Both go through the backup + validation path, and 422 responses carry `[{loc, msg}]`.
+* **Local only**: no authentication; `job-butler serve` binds to `127.0.0.1`. See slice 7 before any cloud deployment.
+
 ## 3. UI Styling & Theme
 * **Framework**: React 18+ with Next.js 14+ App Router.
 * **Styling**: Tailwind CSS with dark-mode support, modern card-based hierarchy, subtle borders, and accessible badges.
