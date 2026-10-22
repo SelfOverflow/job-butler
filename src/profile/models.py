@@ -5,16 +5,27 @@ Models are frozen and use tuples, so a validated profile can be shared safely
 catch typos in hand-edited YAML.
 """
 
-from typing import Annotated, Literal
+import hashlib
+import re
+from collections import Counter
+from collections.abc import Iterable
+from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, model_validator
 
 NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+YearMonth = Annotated[str, StringConstraints(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")]
 HttpUrlStr = Annotated[str, StringConstraints(pattern=r"^https?://\S+$")]
 
 
 class _Model(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+def _reject_duplicates(kind: str, ids: Iterable[str]) -> None:
+    dupes = sorted(i for i, n in Counter(ids).items() if n > 1)
+    if dupes:
+        raise ValueError(f"Duplicate {kind} id(s): {', '.join(dupes)}")
 
 
 class Location(_Model):
@@ -75,3 +86,108 @@ class Skill(_Model):
     proficiency: Literal["beginner", "intermediate", "advanced", "expert"]
     years_of_experience: float = Field(ge=0)
     last_used_year: int | None = None
+
+
+class AtomicBullet(_Model):
+    id: NonEmptyStr
+    text: NonEmptyStr
+    skills: tuple[NonEmptyStr, ...] = ()
+    metrics: dict[str, int | float | str] = Field(default_factory=dict)
+    tags: tuple[NonEmptyStr, ...] = ()
+
+    @property
+    def fact_hash(self) -> str:
+        """Deterministic fingerprint of the verified claim, used to detect edits."""
+        return hashlib.sha256(" ".join(self.text.split()).encode()).hexdigest()
+
+
+class WorkExperience(_Model):
+    id: NonEmptyStr
+    company: NonEmptyStr
+    title: NonEmptyStr
+    location: str | None = None
+    start_date: YearMonth
+    end_date: YearMonth | None = None
+    is_current: bool = False
+    summary: str | None = None
+    atomic_bullets: tuple[AtomicBullet, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _check_dates(self) -> Self:
+        if self.is_current and self.end_date is not None:
+            raise ValueError(f"{self.id}: current role must not have an end_date")
+        if not self.is_current and self.end_date is None:
+            raise ValueError(f"{self.id}: past role needs an end_date (or is_current: true)")
+        if self.end_date is not None and self.end_date < self.start_date:
+            raise ValueError(f"{self.id}: end_date is before start_date")
+        return self
+
+
+class Education(_Model):
+    institution: NonEmptyStr
+    degree: NonEmptyStr
+    field_of_study: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    gpa: str | None = None
+    topics: tuple[str, ...] = ()
+
+
+class Certification(_Model):
+    name: NonEmptyStr
+    issuer: NonEmptyStr
+    year: int | None = None
+
+
+class STARStory(_Model):
+    id: NonEmptyStr
+    situation: NonEmptyStr
+    task: NonEmptyStr
+    action: NonEmptyStr
+    result: NonEmptyStr
+
+
+class ScreeningQuestion(_Model):
+    question_pattern: NonEmptyStr
+    answer_type: Literal["boolean", "number", "text"]
+    answer_value: bool | int | float | str
+
+    @model_validator(mode="after")
+    def _check(self) -> Self:
+        try:
+            re.compile(self.question_pattern)
+        except re.error as exc:
+            raise ValueError(f"Invalid regex {self.question_pattern!r}: {exc}") from exc
+        value, kind = self.answer_value, self.answer_type
+        ok = (
+            isinstance(value, bool)
+            if kind == "boolean"
+            else isinstance(value, str)
+            if kind == "text"
+            else isinstance(value, int | float) and not isinstance(value, bool)
+        )
+        if not ok:
+            raise ValueError(f"answer_value {value!r} does not match answer_type {kind!r}")
+        return self
+
+
+class CandidateProfile(_Model):
+    personal_info: PersonalInfo
+    preferences: Preferences
+    skills_inventory: dict[str, tuple[Skill, ...]] = Field(default_factory=dict)
+    work_experience: tuple[WorkExperience, ...] = Field(min_length=1)
+    education: tuple[Education, ...] = ()
+    certifications: tuple[Certification, ...] = ()
+    star_stories: tuple[STARStory, ...] = ()
+    screening_question_bank: tuple[ScreeningQuestion, ...] = ()
+
+    @property
+    def bullets(self) -> tuple[AtomicBullet, ...]:
+        return tuple(b for role in self.work_experience for b in role.atomic_bullets)
+
+    @model_validator(mode="after")
+    def _check_unique_ids(self) -> Self:
+        _reject_duplicates("work_experience", (r.id for r in self.work_experience))
+        _reject_duplicates("atomic bullet", (b.id for b in self.bullets))
+        _reject_duplicates("STAR story", (s.id for s in self.star_stories))
+        return self

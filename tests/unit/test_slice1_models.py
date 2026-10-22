@@ -1,3 +1,4 @@
+import copy
 from pathlib import Path
 from typing import Any
 
@@ -6,7 +7,7 @@ import yaml
 from pydantic import ValidationError
 
 from src.config.settings import Settings
-from src.profile.models import PersonalInfo, Preferences, Skill
+from src.profile.models import CandidateProfile, PersonalInfo, Preferences, Skill, STARStory
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PROFILE_FILES = ["candidate_profile.yaml", "candidate_profile.template.yaml"]
@@ -101,3 +102,93 @@ def test_unknown_field_rejected() -> None:
 def test_invalid_skill_proficiency_rejected() -> None:
     with pytest.raises(ValidationError):
         Skill.model_validate({"name": "Go", "proficiency": "guru", "years_of_experience": 1})
+
+
+@pytest.mark.parametrize("name", PROFILE_FILES)
+def test_candidate_profile_valid(name: str) -> None:
+    raw = _raw(name)
+    profile = CandidateProfile.model_validate(raw)
+
+    assert [r.id for r in profile.work_experience] == [r["id"] for r in raw["work_experience"]]
+    for role, raw_role in zip(profile.work_experience, raw["work_experience"], strict=True):
+        assert [b.text for b in role.atomic_bullets] == [
+            b["text"] for b in raw_role["atomic_bullets"]
+        ]
+    assert len(profile.bullets) == sum(len(r["atomic_bullets"]) for r in raw["work_experience"])
+    assert len(profile.star_stories) == len(raw["star_stories"])
+    assert len(profile.screening_question_bank) == len(raw["screening_question_bank"])
+
+
+def test_bullet_fact_hash_is_deterministic_and_text_sensitive() -> None:
+    bullet = CandidateProfile.model_validate(_raw()).bullets[0]
+    again = CandidateProfile.model_validate(_raw()).bullets[0]
+    assert bullet.fact_hash == again.fact_hash
+    assert len(bullet.fact_hash) == 64
+
+    edited = bullet.model_copy(update={"text": bullet.text + " Extra."})
+    assert edited.fact_hash != bullet.fact_hash
+
+
+def test_candidate_profile_duplicate_bullet_ids_rejected() -> None:
+    raw = _raw()
+    duplicate = copy.deepcopy(raw["work_experience"][0]["atomic_bullets"][0])
+    raw["work_experience"][1]["atomic_bullets"].append(duplicate)
+    with pytest.raises(ValidationError, match="Duplicate atomic bullet id"):
+        CandidateProfile.model_validate(raw)
+
+
+def test_duplicate_role_ids_rejected() -> None:
+    raw = _raw()
+    raw["work_experience"][1]["id"] = raw["work_experience"][0]["id"]
+    with pytest.raises(ValidationError, match="Duplicate work_experience id"):
+        CandidateProfile.model_validate(raw)
+
+
+def test_empty_work_experience_rejected() -> None:
+    raw = _raw()
+    raw["work_experience"] = []
+    with pytest.raises(ValidationError):
+        CandidateProfile.model_validate(raw)
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "is_current"),
+    [
+        ("2023/01", None, True),  # wrong date format
+        ("2023-05", "2023-01", False),  # end before start
+        ("2023-01", "2023-05", True),  # current role with an end date
+        ("2023-01", None, False),  # past role without an end date
+    ],
+)
+def test_invalid_role_dates_rejected(start: str, end: str | None, is_current: bool) -> None:
+    raw = _raw()
+    raw["work_experience"][0].update(start_date=start, end_date=end, is_current=is_current)
+    with pytest.raises(ValidationError):
+        CandidateProfile.model_validate(raw)
+
+
+@pytest.mark.parametrize("missing", ["situation", "task", "action", "result"])
+def test_star_stories_schema_validation(missing: str) -> None:
+    story = {"id": "s1", "situation": "S", "task": "T", "action": "A", "result": "R"}
+    STARStory.model_validate(story)
+    del story[missing]
+    with pytest.raises(ValidationError):
+        STARStory.model_validate(story)
+
+
+@pytest.mark.parametrize(
+    ("answer_type", "answer_value"),
+    [("boolean", "yes"), ("number", "five"), ("number", True), ("text", 5)],
+)
+def test_screening_answer_type_mismatch_rejected(answer_type: str, answer_value: Any) -> None:
+    raw = _raw()
+    raw["screening_question_bank"][0].update(answer_type=answer_type, answer_value=answer_value)
+    with pytest.raises(ValidationError):
+        CandidateProfile.model_validate(raw)
+
+
+def test_invalid_screening_regex_rejected() -> None:
+    raw = _raw()
+    raw["screening_question_bank"][0]["question_pattern"] = "(unclosed"
+    with pytest.raises(ValidationError):
+        CandidateProfile.model_validate(raw)
