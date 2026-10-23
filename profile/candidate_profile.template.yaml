@@ -61,7 +61,8 @@ preferences:
     - "Current Employer Inc"
     - "Past Company LLC"
 
-  # Company job boards polled directly via their public ATS APIs (free, no API key).
+  # Company career portals polled directly via their public ATS APIs (free, no API key).
+  # They are fetched first every sweep and ranked ahead of discovered jobs.
   # ats: greenhouse | lever | ashby | workable. The board slug is the first path segment, e.g.
   # boards.greenhouse.io/<board>, jobs.lever.co/<board>, jobs.ashbyhq.com/<board>, apply.workable.com/<board>.
   watched_companies: []

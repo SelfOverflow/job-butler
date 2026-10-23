@@ -229,5 +229,6 @@ def discover(
         )
         errors += linkedin_errors
 
+    # Watched career portals come first so they win on duplicates, then searched boards.
     jobs, fetch_errors = fetch_watched(wanted, http, progress)
-    return linkedin_jobs + jobs, errors + fetch_errors
+    return jobs + linkedin_jobs, errors + fetch_errors

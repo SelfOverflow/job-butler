@@ -7,13 +7,13 @@ import httpx
 from sqlalchemy.orm import Session
 
 from src.analytics.market import analyze
-from src.ingestion.base import ProgressFn, no_progress
+from src.ingestion.base import ProgressFn, RawJobPosting, contains_phrase, no_progress, words
 from src.ingestion.deduplicator import dedupe
 from src.ingestion.discovery import discover
 from src.ingestion.filter import drop_excluded
 from src.ingestion.firecrawl_client import FirecrawlClient
 from src.ingestion.recency import is_recent
-from src.ingestion.scorer import score_job
+from src.ingestion.scorer import JobScore, score_job
 from src.ingestion.verifier import verify
 from src.profile.models import CandidateProfile
 from src.storage import repository as repo
@@ -76,7 +76,7 @@ def run_sweep(
         if s.rejected_reason:
             gate = s.rejected_reason.split(":")[0]
             report.rejected_by[gate] = report.rejected_by.get(gate, 0) + 1
-    eligible.sort(key=lambda pair: pair[1].score, reverse=True)
+    eligible = prioritise(eligible, profile)
 
     to_verify = eligible[:limit]
     progress("verify", 0, len(to_verify), "")
@@ -113,6 +113,18 @@ def run_sweep(
     )
     session.commit()
     return report
+
+
+def prioritise(
+    scored: list[tuple[RawJobPosting, JobScore]], profile: CandidateProfile
+) -> list[tuple[RawJobPosting, JobScore]]:
+    """Jobs from the candidate's watched career portals first, then by fit score."""
+    watched = [words(c.name) for c in profile.preferences.watched_companies]
+
+    def is_watched(job: RawJobPosting) -> bool:
+        return any(contains_phrase(words(job.company), name) for name in watched)
+
+    return sorted(scored, key=lambda pair: (is_watched(pair[0]), pair[1].score), reverse=True)
 
 
 def prune_ineligible(session: Session, profile: CandidateProfile) -> int:

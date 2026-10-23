@@ -337,3 +337,21 @@ def test_sweep_progress_callback_can_write_concurrently_to_db(
     assert len(progress_updates) > 0
     assert report.saved > 0
 
+
+
+def test_watched_career_portals_rank_ahead_of_discovered_jobs() -> None:
+    from src.ingestion.base import RawJobPosting
+    from src.ingestion.pipeline import prioritise
+    from src.ingestion.scorer import JobScore
+
+    def job(company: str) -> RawJobPosting:
+        return RawJobPosting("Tech Lead", company, "Remote", f"https://x/{company}", JD, "lever")
+
+    scored = [
+        (job("Initech"), JobScore(95, None, 0)),
+        (job("Hooli Inc."), JobScore(70, None, 0)),  # Watched (profile lists "Hooli").
+        (job("Globex"), JobScore(80, None, 0)),
+        (job("Hooli EU"), JobScore(75, None, 0)),
+    ]
+    ranked = prioritise(scored, _profile())
+    assert [j.company for j, _ in ranked] == ["Hooli EU", "Hooli Inc.", "Initech", "Globex"]

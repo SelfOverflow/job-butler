@@ -65,6 +65,21 @@ preferences:
     - "Stepswatch"
     - "Stepswatch SASU"
 
+  # Company career portals: fetched first every sweep and ranked ahead of discovered jobs.
+  watched_companies:
+    - {name: "Stripe", ats: "greenhouse", board: "stripe"}
+    - {name: "Monzo", ats: "greenhouse", board: "monzo"}
+    - {name: "N26", ats: "greenhouse", board: "n26"}
+    - {name: "Vercel", ats: "greenhouse", board: "vercel"}
+    - {name: "GitLab", ats: "greenhouse", board: "gitlab"}
+    - {name: "Cloudflare", ats: "greenhouse", board: "cloudflare"}
+    - {name: "Chime", ats: "greenhouse", board: "chime"}
+    - {name: "Anthropic", ats: "greenhouse", board: "anthropic"}
+    - {name: "Deliveroo", ats: "greenhouse", board: "deliveroo"}
+    - {name: "Wise", ats: "greenhouse", board: "wise"}
+    - {name: "Spotify", ats: "lever", board: "spotify"}
+    - {name: "Linear", ats: "ashby", board: "linear"}
+
   job_recency: "1w" # Only discover/save postings published within: 24h | 48h | 72h | 1w | 2w | 4w | 1m | any
   job_max_age: "4w" # Deactivate stored jobs older than this (posting date, else discovery date)
 
