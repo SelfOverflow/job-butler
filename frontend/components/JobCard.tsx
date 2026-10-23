@@ -119,9 +119,15 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
         </a>
 
         {tailored || job.resume_url ? (
-          <a href={job.resume_url ?? `/api/artifacts/${job.id}/resume`} className={action}>
-            <FileText size={14} aria-hidden /> Resume
-          </a>
+          <>
+            <a href={job.resume_url ?? `/api/artifacts/${job.id}/resume`} className={action}>
+              <FileText size={14} aria-hidden /> Resume
+            </a>
+            <button type="button" disabled={tailoring} onClick={handleTailor} className={action}>
+              <Sparkles size={14} className={tailoring ? "animate-pulse" : ""} aria-hidden />
+              {tailoring ? `Re-tailoring…${step}` : "Re-tailor"}
+            </button>
+          </>
         ) : (
           <div className="flex items-center gap-2">
             <button

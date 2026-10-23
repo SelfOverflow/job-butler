@@ -43,6 +43,20 @@ describe("JobCard Actions", () => {
     expect(screen.getByLabelText("Status Tailored")).toBeInTheDocument();
   });
 
+  it("offers Re-tailor once a resume exists and shows its progress", async () => {
+    vi.spyOn(api, "runs").mockResolvedValue([]);
+    const launchSpy = vi.spyOn(api, "launchCommand").mockResolvedValue({ run_id: "run_2", status: "queued", single_flight: false });
+    vi.spyOn(api, "getRun").mockResolvedValue(makeRun({ id: "run_2", progress: { done: 2, total: 4 } }));
+    render(<JobCard job={makeJob()} />);  // Fixture job already has a resume.
+
+    expect(screen.queryByRole("button", { name: /^tailor$/i })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Re-tailor" }));
+
+    expect(launchSpy).toHaveBeenCalledWith("tailor_one", { job_id: "job_1234abcd" });
+    expect(await screen.findByRole("button", { name: "Re-tailoring… 2/4" })).toBeDisabled();
+    expect(screen.getByRole("link", { name: /resume/i })).toBeInTheDocument();  // Old resume stays available.
+  });
+
   it("launches scout_verify when Re-verify is clicked", async () => {
     let resolveLaunch!: (val: { run_id: string; status: string; single_flight: boolean }) => void;
     const launchPromise = new Promise<{ run_id: string; status: string; single_flight: boolean }>((res) => {
