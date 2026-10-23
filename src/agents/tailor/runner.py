@@ -1,7 +1,7 @@
 """Tailor one stored job end to end: draft, fit, verify, cover letter, save, audit."""
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -10,6 +10,7 @@ from src.agents.llm import LLMClient, LLMError
 from src.agents.tailor.cover_letter import CoverLetterError, write_cover_letter
 from src.agents.tailor.drafter import ReviewError, draft_resume
 from src.agents.tailor.pdf_verifier import PdfReport, verify_pdf
+from src.agents.tailor.summary import tailor_summary
 from src.agents.tailor.typst_engine import FitError, fit_to_budget
 from src.ingestion.base import ProgressFn, no_progress
 from src.ingestion.scorer import score_job
@@ -39,6 +40,7 @@ class TailorResult:
     roles: int
     pages: int
     report: PdfReport
+    summary_tailored: bool = False  # False: the pre-written profile summary was used.
 
 
 def artifact_paths(artifacts_dir: Path, job_id: str) -> ArtifactPaths:
@@ -67,6 +69,8 @@ def tailor_job(
             raise TailorError(f"not eligible: {reason}")
         progress("tailor", 1, 4, "Drafting & ranking bullets with LLM...")
         resume = draft_resume(row, profile, llm)
+        summary, summary_tailored = tailor_summary(row, profile, resume, llm)
+        resume = replace(resume, summary=summary)
         progress("tailor", 2, 4, "Fitting Typst page budget...")
         pdf, kept = fit_to_budget(resume, profile)
         progress("tailor", 3, 4, "Verifying ATS text-layer & keywords...")
@@ -97,7 +101,13 @@ def tailor_job(
     paths.cover_txt.write_text(letter.text, encoding="utf-8")
 
     result = TailorResult(
-        paths, len(resume.ranked_ids), len(kept), len(resume.roles), report.pages, report
+        paths,
+        len(resume.ranked_ids),
+        len(kept),
+        len(resume.roles),
+        report.pages,
+        report,
+        summary_tailored,
     )
     repo.record_audit(
         session,
@@ -111,6 +121,7 @@ def tailor_job(
             "page_budget": resume.pages,
             "bullets_selected": result.selected,
             "bullets_kept": result.kept,
+            "summary": "tailored" if summary_tailored else "profile",
             "keywords_matched": len(report.keywords_matched),
             "keywords_total": len(resume.keywords),
             "resume": str(paths.resume),

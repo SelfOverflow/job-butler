@@ -1,9 +1,10 @@
 """Drafter-Reviewer loop for resume tailoring.
 
 The LLM (drafter) only *selects and ranks* bullet IDs, picks one of the profile's
-pre-written summaries, and lists JD keywords; it never writes resume text. The
+pre-written summaries, and lists JD keywords; it never writes bullet text. The
 reviewer is deterministic: unknown IDs are treated as hallucinations and rejected,
-so every rendered claim is verbatim from the candidate profile.
+so every bullet is verbatim from the candidate profile. (The job-specific summary
+is written separately in summary.py and fact-checked; the pick here is its fallback.)
 """
 
 from dataclasses import dataclass

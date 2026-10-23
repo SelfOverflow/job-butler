@@ -24,6 +24,9 @@ def _report(row: JobPosting, result: TailorResult, tier: str) -> None:
         f"Drafter: {result.selected} bullets selected across {result.roles} roles, "
         f"{result.kept} kept ({budget})",
         "Reviewer: every bullet verified verbatim against the profile",
+        "Summary: tailored to this job and fact-checked"
+        if result.summary_tailored
+        else "Summary: profile summary (tailored draft failed fact-checks)",
         f"Text-layer check: {matched}/{total} keywords matched; "
         "LinkedIn, email and phone extractable",
         f"Resume: {result.paths.resume}",

@@ -11,6 +11,7 @@ from src.agents.tailor.cover_letter import CoverLetterDraft
 from src.agents.tailor.drafter import DraftPlan
 from src.agents.tailor.pdf_verifier import PdfReport
 from src.agents.tailor.runner import TailorError, artifact_paths, tailor_job
+from src.agents.tailor.summary import SummaryDraft
 from src.ingestion.base import RawJobPosting
 from src.ingestion.scorer import JobScore
 from src.profile.loader import interpolate
@@ -18,7 +19,7 @@ from src.profile.models import CandidateProfile
 from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
 from src.storage.models import JobPosting
-from tests.fakes import FakeLLM
+from tests.fakes import FakeLLM, template_summary
 
 ROOT = Path(__file__).resolve().parents[2]
 ENV = {
@@ -40,6 +41,8 @@ LETTER = CoverLetterDraft(
 
 def llm_for(plan: DraftPlan) -> FakeLLM:
     def respond(_prompt: str, schema: type[BaseModel]) -> BaseModel:
+        if schema is SummaryDraft:
+            return template_summary()
         return plan if schema is DraftPlan else LETTER
 
     return FakeLLM(respond)

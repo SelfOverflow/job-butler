@@ -45,7 +45,7 @@ class CoverLetter:
     pdf: bytes
 
 
-def _facts(profile: CandidateProfile, resume: TailoredResume) -> list[str]:
+def verified_facts(profile: CandidateProfile, resume: TailoredResume) -> list[str]:
     facts = []
     for role, bullets in resume.roles:
         dates = f"{format_month(role.start_date)} - {format_month(role.end_date)}"
@@ -118,7 +118,7 @@ def _render(draft: CoverLetterDraft, job: JobLike, profile: CandidateProfile) ->
 def write_cover_letter(
     job: JobLike, profile: CandidateProfile, resume: TailoredResume, llm: LLMClient
 ) -> CoverLetter:
-    facts = _facts(profile, resume)
+    facts = verified_facts(profile, resume)
     allowed = _numbers("\n".join(facts) + job.description + job.title)
     feedback: str | None = None
     for _ in range(ATTEMPTS):

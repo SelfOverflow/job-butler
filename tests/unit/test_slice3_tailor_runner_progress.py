@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from src.agents.tailor.cover_letter import CoverLetterDraft
 from src.agents.tailor.drafter import DraftPlan
 from src.agents.tailor.runner import TailorError, tailor_job
+from src.agents.tailor.summary import SummaryDraft
 from src.ingestion.base import RawJobPosting
 from src.ingestion.scorer import JobScore
 from src.profile.loader import ProfileLoader
@@ -15,7 +16,7 @@ from src.profile.models import CandidateProfile
 from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
 from src.storage.models import JobPosting, JobStatus
-from tests.fakes import FakeLLM
+from tests.fakes import FakeLLM, template_summary
 
 TEMPLATE = Path(__file__).resolve().parents[2] / "profile" / "candidate_profile.template.yaml"
 ENV = {
@@ -29,6 +30,8 @@ JD = "Python, FastAPI, Kafka and PostgreSQL."
 
 def _llm(bullet_ids: list[str]) -> FakeLLM:
     def respond(prompt: str, schema: type[BaseModel]) -> BaseModel:
+        if schema is SummaryDraft:
+            return template_summary()
         if schema is CoverLetterDraft:
             return CoverLetterDraft(greeting="Hi,", paragraphs=["Keen."], closing="Best,")
         return DraftPlan(keywords=["Python", "Kafka"], bullet_ids=bullet_ids)

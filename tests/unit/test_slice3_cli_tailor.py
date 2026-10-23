@@ -7,12 +7,13 @@ from typer.testing import CliRunner
 from src.agents.llm import LLMError
 from src.agents.tailor.cover_letter import CoverLetterDraft
 from src.agents.tailor.drafter import DraftPlan
+from src.agents.tailor.summary import SummaryDraft
 from src.cli import app
 from src.ingestion.base import RawJobPosting
 from src.ingestion.scorer import JobScore
 from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
-from tests.fakes import FakeLLM
+from tests.fakes import FakeLLM, template_summary
 
 TEMPLATE = Path(__file__).resolve().parents[2] / "profile" / "candidate_profile.template.yaml"
 ENV = {
@@ -35,6 +36,8 @@ def _llm(bullet_ids: list[str]) -> FakeLLM:
     def respond(prompt: str, schema: type[BaseModel]) -> BaseModel:
         if schema is CoverLetterDraft:
             return LETTER
+        if schema is SummaryDraft:
+            return template_summary()
         ids = ["b_invented"] if "Doomed" in prompt else bullet_ids
         return DraftPlan(keywords=["Python", "Kafka"], bullet_ids=ids)
 
@@ -87,6 +90,7 @@ def test_tailor_single_job(env: dict[str, str], tmp_path: Path) -> None:
     assert "[✓] Fit score: 94 (Tier 1)" in out
     assert "[✓] Drafter: 2 bullets selected across 2 roles, 2 kept (1-page budget met)" in out
     assert "[✓] Reviewer: every bullet verified verbatim against the profile" in out
+    assert "[✓] Summary: tailored to this job and fact-checked" in out
     assert (
         "[✓] Text-layer check: 2/2 keywords matched; LinkedIn, email and phone extractable" in out
     )

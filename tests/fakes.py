@@ -20,3 +20,14 @@ class FakeLLM:
         result = self._respond(prompt, schema)
         assert isinstance(result, schema)
         return result
+
+
+def template_summary() -> BaseModel:
+    """A summary grounded in the template profile, for fakes answering SummaryDraft."""
+    from src.agents.tailor.summary import SummaryDraft
+
+    return SummaryDraft(
+        text="Senior Backend Engineer who architected an event-driven ingestion pipeline "
+        "handling 25,000 requests per second with 99.99% uptime."
+    )
+
