@@ -68,6 +68,14 @@ preferences:
   job_recency: "1w" # Only discover/save postings published within: 24h | 48h | 72h | 1w | 2w | 4w | 1m | any
   job_max_age: "4w" # Deactivate stored jobs older than this (posting date, else discovery date)
 
+  # LinkedIn employer discovery (public no-login pages, throttled to ~1 request/s).
+  # Keeps only jobs whose Apply button leaves LinkedIn, and stores the employer's own
+  # Greenhouse/Lever posting (URL and posting date), never the LinkedIn link.
+  linkedin:
+    enabled: true
+    locations: ["India", "United Kingdom", "Germany", "Netherlands", "Canada", "United States", "United Arab Emirates", "Singapore"] # One search per target role and location
+    results_per_search: 10
+
   cv_page_budget_rules:
     domestic: 1
     international: 2

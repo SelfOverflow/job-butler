@@ -57,6 +57,8 @@ def db_session() -> Iterator[Session]:
 STAGES = {
     "search": "Searching Firecrawl",
     "boards": "Fetching company boards",
+    "linkedin": "Searching LinkedIn",
+    "resolve": "Resolving employers",
     "verify": "Verifying links",
     "tailor": "Tailoring resumes",
 }

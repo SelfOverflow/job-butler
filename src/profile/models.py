@@ -86,6 +86,14 @@ class WatchedCompany(_Model):
     ]  # e.g. boards.greenhouse.io/<board>
 
 
+class LinkedInSearch(_Model):
+    """LinkedIn employer discovery: only offsite-apply jobs, resolved to the employer's ATS."""
+
+    enabled: bool = False
+    locations: tuple[NonEmptyStr, ...] = ()  # One search per target role and location.
+    results_per_search: int = Field(default=10, ge=1, le=25)
+
+
 class Preferences(_Model):
     target_roles: tuple[NonEmptyStr, ...] = Field(min_length=1)
     # Ordered highest priority first; keys are free-form tier names.
@@ -93,6 +101,7 @@ class Preferences(_Model):
     excluded_employers: tuple[NonEmptyStr, ...] = ()
     cv_page_budget_rules: PageBudget
     watched_companies: tuple[WatchedCompany, ...] = ()
+    linkedin: LinkedInSearch = LinkedInSearch()
     # Overrides the total computed from work_experience dates (e.g. to exclude internships).
     years_of_experience: float | None = Field(default=None, ge=0)
     job_recency: Recency = "1w"  # Only discover and save postings published this recently.
