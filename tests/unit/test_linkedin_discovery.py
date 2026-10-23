@@ -87,7 +87,8 @@ def test_linkedin_offsite_jobs_resolve_to_employer_boards(http: httpx.Client) ->
     details["2"] = respx.get(DETAIL_URL.format(id="2")).respond(200, html=onsite)
     acme = respx.get(BOARD.format("acme")).respond(200, json=ACME)
     respx.route(host="boards-api.greenhouse.io").respond(404)
-    respx.route(host="api.lever.co").respond(404)
+    for host in ("api.lever.co", "api.ashbyhq.com", "apply.workable.com"):
+        respx.route(host=host).respond(404)
     stages: list[str] = []
 
     profile = _profile(linkedin={"enabled": True, "locations": ["India"]})
@@ -122,7 +123,8 @@ def test_unguessable_boards_fall_back_to_firecrawl(http: httpx.Client, tmp_path:
     adyen = respx.get(BOARD.format("adyen")).respond(200, json=ACME)
     respx.get(BOARD.format("nowherelabs-india")).respond(200, json=ACME)
     respx.route(host="boards-api.greenhouse.io").respond(404)
-    respx.route(host="api.lever.co").respond(404)
+    for host in ("api.lever.co", "api.ashbyhq.com", "apply.workable.com"):
+        respx.route(host=host).respond(404)
 
     profile = _profile(linkedin={"enabled": True, "locations": ["India"]})
     firecrawl = FirecrawlClient("fc-key", http, tmp_path, daily_credits=100)

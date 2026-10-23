@@ -80,7 +80,7 @@ class WatchedCompany(_Model):
     """A company job board polled directly via its ATS's public API."""
 
     name: NonEmptyStr
-    ats: Literal["greenhouse", "lever"]
+    ats: Literal["greenhouse", "lever", "ashby", "workable"]
     board: Annotated[
         str, StringConstraints(pattern=r"^[A-Za-z0-9_-]+$")
     ]  # e.g. boards.greenhouse.io/<board>

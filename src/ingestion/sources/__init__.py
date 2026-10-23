@@ -5,13 +5,17 @@ from collections.abc import Callable, Sequence
 import httpx
 
 from src.ingestion.base import ProgressFn, RawJobPosting, no_progress
+from src.ingestion.sources.ashby import fetch_ashby
 from src.ingestion.sources.greenhouse import fetch_greenhouse
 from src.ingestion.sources.lever import fetch_lever
+from src.ingestion.sources.workable import fetch_workable
 from src.profile.models import WatchedCompany
 
 FETCHERS: dict[str, Callable[[WatchedCompany, httpx.Client], list[RawJobPosting]]] = {
     "greenhouse": fetch_greenhouse,
     "lever": fetch_lever,
+    "ashby": fetch_ashby,
+    "workable": fetch_workable,
 }
 
 

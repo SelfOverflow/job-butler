@@ -31,9 +31,15 @@ from src.ingestion.sources import FETCHERS, fetch_watched
 from src.ingestion.sources.linkedin import LinkedInClient, LinkedInJob, RateLimitedError
 from src.profile.models import CandidateProfile, WatchedCompany
 
-AtsName = Literal["greenhouse", "lever"]
-ATS_BOARDS: tuple[AtsName, ...] = ("greenhouse", "lever")
-SITES = ("boards.greenhouse.io", "job-boards.greenhouse.io", "jobs.lever.co")
+AtsName = Literal["greenhouse", "lever", "ashby", "workable"]
+ATS_BOARDS: tuple[AtsName, ...] = ("greenhouse", "lever", "ashby", "workable")
+SITES = (
+    "boards.greenhouse.io",
+    "job-boards.greenhouse.io",
+    "jobs.lever.co",
+    "jobs.ashbyhq.com",
+    "apply.workable.com",
+)
 RESULTS_PER_QUERY = 10
 _SLUG = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -52,6 +58,10 @@ def _board_for(url: str) -> WatchedCompany | None:
             return None
     elif host == "jobs.lever.co" and segments:
         ats, slug = "lever", segments[0]
+    elif host == "jobs.ashbyhq.com" and segments:
+        ats, slug = "ashby", segments[0]
+    elif host == "apply.workable.com" and segments and segments[0] not in ("j", "api"):
+        ats, slug = "workable", segments[0]
     else:
         return None
     return WatchedCompany(name=slug, ats=ats, board=slug) if _SLUG.match(slug) else None

@@ -57,7 +57,7 @@ def test_boards_from_results() -> None:
         _result("https://job-boards.greenhouse.io/hooli/jobs/456"),  # same board
         _result("https://boards.greenhouse.io/embed/job_app?for=pied-piper&token=9"),
         _result("https://jobs.lever.co/initech/abc-def"),
-        _result("https://jobs.ashbyhq.com/globex/1"),  # no Ashby source yet
+        _result("https://jobs.ashbyhq.com/globex/1"),
         _result("https://example.com/careers/1"),
         _result("https://jobs.lever.co/bad%20slug/1"),
     ]
@@ -65,6 +65,7 @@ def test_boards_from_results() -> None:
         WatchedCompany(name="hooli", ats="greenhouse", board="hooli"),
         WatchedCompany(name="pied-piper", ats="greenhouse", board="pied-piper"),
         WatchedCompany(name="initech", ats="lever", board="initech"),
+        WatchedCompany(name="globex", ats="ashby", board="globex"),
     ]
 
 
