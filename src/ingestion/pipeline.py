@@ -56,7 +56,12 @@ def run_sweep(
     report.excluded = len(jobs) - len(kept)
     unique = dedupe(kept)
     report.duplicates = len(kept) - len(unique)
-    fresh = [j for j in unique if is_recent(j.posted_at, profile.preferences.job_recency)]
+    prefs = profile.preferences
+    fresh = [
+        j
+        for j in unique
+        if is_recent(j.posted_at, prefs.job_recency) and is_recent(j.posted_at, prefs.job_max_age)
+    ]
     report.stale = len(unique) - len(fresh)
     market = analyze(fresh, profile)  # Whole eligible market, not just the saved top N.
     if market.total:
@@ -111,15 +116,19 @@ def run_sweep(
 
 
 def prune_ineligible(session: Session, profile: CandidateProfile) -> int:
-    """Re-score stored jobs against the current profile; deactivate those failing a gate.
+    """Re-score stored jobs against the current profile; deactivate those failing a gate
+    or older than `preferences.job_max_age`.
 
     Kept jobs get fresh score/tier/boost, so profile edits (tiers, skills, experience)
     take effect without waiting for the job to be rediscovered.
     """
     pruned = 0
+    max_age = profile.preferences.job_max_age
     for row in repo.list_active(session):
         result = score_job(repo.to_posting(row), profile)
         reason = result.rejected_reason
+        if not reason and not is_recent(row.posted_at or row.discovered_at, max_age):
+            reason = f"stale: older than {max_age}"
         if not reason:
             row.score, row.tier, row.boost = result.score, result.tier, result.boost
         else:

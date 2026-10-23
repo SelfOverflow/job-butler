@@ -16,6 +16,7 @@ const PROFILE = {
       years_of_experience: null,
       excluded_employers: [],
       job_recency: "1w",
+      job_max_age: "any",
     },
   },
   errors: [],

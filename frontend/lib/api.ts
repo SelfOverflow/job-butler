@@ -41,7 +41,7 @@ export type AuditEvent = {
 export type AuditPage = { items: AuditEvent[]; next_offset: number | null };
 export type AuditFilters = { actor?: string; action?: string; status?: string };
 
-export type Recency = "24h" | "48h" | "72h" | "1w" | "2w" | "1m" | "any";
+export type Recency = "24h" | "48h" | "72h" | "1w" | "2w" | "4w" | "1m" | "any";
 export type FieldError = { loc: string; msg: string };
 export type Preferences = {
   target_roles: string[];
@@ -50,6 +50,7 @@ export type Preferences = {
   years_of_experience: number | null;
   excluded_employers: string[];
   job_recency: Recency;
+  job_max_age: Recency;
 };
 export type ProfileResponse = {
   yaml: string;

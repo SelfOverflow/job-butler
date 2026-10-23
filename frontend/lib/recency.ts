@@ -6,6 +6,7 @@ export const RECENCY_OPTIONS: { value: Recency; label: string; hours: number | n
   { value: "72h", label: "72 hours", hours: 72 },
   { value: "1w", label: "1 week", hours: 168 },
   { value: "2w", label: "2 weeks", hours: 336 },
+  { value: "4w", label: "4 weeks", hours: 672 },
   { value: "1m", label: "1 month", hours: 720 },
   { value: "any", label: "Any time", hours: null },
 ];

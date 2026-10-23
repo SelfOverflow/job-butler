@@ -71,7 +71,8 @@ preferences:
   #    ats: "lever"
   #    board: "palantir"
 
-  job_recency: "1w" # Only discover/save postings published within: 24h | 48h | 72h | 1w | 2w | 1m | any
+  job_recency: "1w" # Only discover/save postings published within: 24h | 48h | 72h | 1w | 2w | 4w | 1m | any
+  job_max_age: "any" # Deactivate stored jobs older than this (posting date, else discovery date)
 
   cv_page_budget_rules:
     domestic: 1       # Exactly 1 page for domestic applications

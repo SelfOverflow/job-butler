@@ -16,6 +16,7 @@ const FIELDS: { key: Key; label: string; kind: Kind; hint?: string }[] = [
   { key: "years_of_experience", label: "Years of experience", kind: "number", hint: "Blank = computed from roles" },
   { key: "excluded_employers", label: "Excluded employers", kind: "lines", hint: "One per line, include aliases" },
   { key: "job_recency", label: "Job recency", kind: "choice", hint: "Only discover and save jobs posted within this window" },
+  { key: "job_max_age", label: "Maximum job age", kind: "choice", hint: "Each sweep deactivates stored jobs older than this" },
 ];
 
 function toInput(value: ProfileFields[Key]): string {

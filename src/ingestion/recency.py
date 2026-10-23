@@ -16,6 +16,7 @@ RECENCY_HOURS: dict[Recency, int | None] = {
     "72h": 72,
     "1w": 168,
     "2w": 336,
+    "4w": 672,
     "1m": 720,
     "any": None,
 }

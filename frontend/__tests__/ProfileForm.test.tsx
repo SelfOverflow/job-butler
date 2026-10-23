@@ -12,6 +12,7 @@ const INITIAL: ProfileFields = {
   years_of_experience: null,
   excluded_employers: ["OakNorth", "Tejas Networks"],
   job_recency: "1w",
+  job_max_age: "any",
 };
 
 describe("ProfileForm", () => {
@@ -74,5 +75,13 @@ describe("ProfileForm", () => {
     await userEvent.selectOptions(screen.getByLabelText(/job recency/i), "24h");
     await userEvent.click(screen.getByRole("button", { name: /save/i }));
     expect(onSave).toHaveBeenCalledWith({ "preferences.job_recency": '"24h"' });
+  });
+
+  it("saves the maximum job age choice", async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(<ProfileForm initial={INITIAL} onSave={onSave} />);
+    await userEvent.selectOptions(screen.getByLabelText(/maximum job age/i), "4 weeks");
+    await userEvent.click(screen.getByRole("button", { name: /save/i }));
+    expect(onSave).toHaveBeenCalledWith({ "preferences.job_max_age": '"4w"' });
   });
 });

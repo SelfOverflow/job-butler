@@ -29,6 +29,7 @@ NOW = datetime(2026, 10, 22, 12, 0)
         ("72h", "cdr:1,cd_min:10/19/2026,cd_max:10/22/2026"),
         ("1w", "qdr:w"),
         ("2w", "cdr:1,cd_min:10/08/2026,cd_max:10/22/2026"),
+        ("4w", "cdr:1,cd_min:09/24/2026,cd_max:10/22/2026"),
         ("1m", "qdr:m"),
         ("any", None),
     ],
@@ -59,6 +60,7 @@ def test_recency_hours_cover_every_option() -> None:
         "72h": 72,
         "1w": 168,
         "2w": 336,
+        "4w": 672,
         "1m": 720,
         "any": None,
     }
@@ -69,6 +71,9 @@ def test_profile_recency_preference() -> None:
     assert CandidateProfile.model_validate(raw).preferences.job_recency == "1w"  # default
     raw["preferences"]["job_recency"] = "72h"
     assert CandidateProfile.model_validate(raw).preferences.job_recency == "72h"
+    assert CandidateProfile.model_validate(raw).preferences.job_max_age == "any"  # default
+    raw["preferences"]["job_max_age"] = "4w"
+    assert CandidateProfile.model_validate(raw).preferences.job_max_age == "4w"
     raw["preferences"]["job_recency"] = "3 days"
     with pytest.raises(ValidationError):
         CandidateProfile.model_validate(raw)

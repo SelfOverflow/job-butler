@@ -239,6 +239,35 @@ def test_prune_ineligible_deactivates_intern_jobs(session: Session) -> None:
 
 
 
+def test_prune_deactivates_jobs_older_than_max_age(session: Session) -> None:
+    from datetime import timedelta
+
+    from src.ingestion.base import RawJobPosting
+    from src.ingestion.scorer import JobScore
+    from src.storage.models import utcnow
+
+    def job(n: int, posted_days_ago: int | None) -> RawJobPosting:
+        posted = utcnow() - timedelta(days=posted_days_ago) if posted_days_ago else None
+        title = f"Senior Software Engineer {n}"  # Distinct content keys.
+        url = f"https://x/{n}"
+        return RawJobPosting(title, "Hooli", "San Francisco, CA", url, JD, "lever", posted)
+
+    old = repo.upsert_job(session, job(1, 29), JobScore(90, None, 0))
+    recent = repo.upsert_job(session, job(2, 27), JobScore(90, None, 0))
+    undated_old = repo.upsert_job(session, job(3, None), JobScore(90, None, 0))
+    undated_old.discovered_at = utcnow() - timedelta(days=40)  # age falls back to discovery
+    session.commit()
+    base = _profile()
+    profile = base.model_copy(
+        update={"preferences": base.preferences.model_copy(update={"job_max_age": "4w"})}
+    )
+
+    assert prune_ineligible(session, profile) == 2
+    assert (old.is_active, recent.is_active, undated_old.is_active) == (False, True, False)
+    events = repo.query_audit(session, action="JOB_EXCLUDED")
+    assert {e.details["reason"] for e in events} == {"stale: older than 4w"}
+
+
 def test_sweep_skips_postings_older_than_the_recency_window(session: Session) -> None:
     fresh = {**GOOD, "first_published": "2099-01-01T00:00:00Z"}
     stale = {**_gh_job(8, "Tech Lead", "New York, NY"), "first_published": "2001-01-01T00:00:00Z"}
