@@ -11,6 +11,7 @@ from src.ingestion.scorer import JobScore
 from src.server.app import create_app
 from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
+from tests.fakes import ats_review
 
 TEMPLATE = Path(__file__).resolve().parents[2] / "profile" / "candidate_profile.template.yaml"
 ENV = {
@@ -109,6 +110,14 @@ def test_job_detail_and_artifact_download(
 ) -> None:
     detail = client.get(f"/api/jobs/{ids['top']}").json()
     assert detail["description"] == "Python" and detail["url"] == "https://x/1"
+    assert detail["ats_review"] is None  # Not tailored yet.
+    report = artifact_paths(settings.artifacts_dir, ids["top"]).ats_report
+    report.parent.mkdir(parents=True)
+    report.write_text(ats_review(77).model_dump_json())
+    review = client.get(f"/api/jobs/{ids['top']}").json()["ats_review"]
+    assert (review["score"], review["verdict"]) == (77, "shortlist")
+    report.write_text("{corrupt")
+    assert client.get(f"/api/jobs/{ids['top']}").json()["ats_review"] is None
     assert client.get("/api/jobs/job_deadbeef").status_code == 404
 
     url = f"/api/artifacts/{ids['top']}/resume"

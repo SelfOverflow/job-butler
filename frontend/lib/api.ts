@@ -23,8 +23,25 @@ export type Job = {
   cover_letter_txt_url: string | null;
 };
 
+export type RequirementCheck = {
+  requirement: string;
+  priority: "required" | "preferred";
+  status: "covered" | "synonym_only" | "missing_have_it" | "gap";
+  note: string;
+};
+
+/** Recruiter/ATS review of the tailored resume (src/agents/tailor/ats_review.py). */
+export type AtsReview = {
+  score: number;
+  verdict: "shortlist" | "borderline" | "reject";
+  requirements: RequirementCheck[];
+  issues: string[];
+  ungrounded_claims: string[];
+};
+
 export type JobDetail = Job & {
   description: string;
+  ats_review: AtsReview | null;
 };
 
 export type AuditEvent = {

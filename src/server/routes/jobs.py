@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Path, Query
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ValidationError
 
+from src.agents.tailor.ats_review import AtsReview
 from src.agents.tailor.runner import artifact_paths
 from src.config.settings import Settings
 from src.profile.loader import ProfileError, ProfileLoader
@@ -43,6 +44,15 @@ class JobOut(BaseModel):
 
 class JobDetail(JobOut):
     description: str
+    ats_review: AtsReview | None = None  # Latest recruiter/ATS review, once tailored.
+
+
+def _ats_review(settings: Settings, job_id: str) -> AtsReview | None:
+    path = artifact_paths(settings.artifacts_dir, job_id).ats_report
+    try:
+        return AtsReview.model_validate_json(path.read_text(encoding="utf-8"))
+    except (OSError, ValidationError):  # Missing or unreadable: show no review.
+        return None
 
 
 def _tier_labels(settings: Settings) -> dict[str, str]:
@@ -89,7 +99,10 @@ def get_job(job_id: JobId, session: SessionDep, settings: SettingsDep) -> dict[s
     row = repo.get_job(session, job_id)
     if row is None:
         raise HTTPException(404, f"No job with id {job_id}")
-    return _out(row, settings, _tier_labels(settings))
+    return {
+        **_out(row, settings, _tier_labels(settings)),
+        "ats_review": _ats_review(settings, row.id),
+    }
 
 
 @router.post("/jobs/prune")

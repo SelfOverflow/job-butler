@@ -150,6 +150,16 @@ describe("JobDetailPage", () => {
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
   });
 
+  it("shows the recruiter ATS review once the job is tailored", async () => {
+    const ats_review = { score: 88, verdict: "shortlist" as const, requirements: [], issues: [], ungrounded_claims: [] };
+    mockFetch((url) => (url === "/api/jobs/job_1234abcd" ? makeJobDetail({ ats_review }) : []));
+
+    render(<JobDetailPage />);
+
+    expect(await screen.findByLabelText("ATS score 88 of 100")).toBeInTheDocument();
+    expect(screen.getByText("Shortlist")).toBeInTheDocument();
+  });
+
   it("shows an error alert when job is not found", async () => {
     mockFetch(() => ({ detail: "Not found" }), 404);
 

@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { AtsReviewPanel } from "@/components/AtsReviewPanel";
 import { JobDescription } from "@/components/JobDescription";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { PrepareButton } from "@/components/PrepareButton";
@@ -290,6 +291,7 @@ function JobDetailContent() {
                 title={`Tailored Resume for ${job.title} at ${job.company}`}
                 className="h-[720px] w-full rounded-lg border border-zinc-200 bg-zinc-50 shadow-inner dark:border-zinc-800 dark:bg-zinc-950"
               />
+              {job.ats_review && <AtsReviewPanel review={job.ats_review} />}
               {job.cover_letter_url && (
                 <div className="flex items-center justify-between rounded-lg bg-zinc-50 p-3 text-xs dark:bg-zinc-800/60">
                   <span className="flex items-center gap-1.5 font-medium text-zinc-700 dark:text-zinc-300">

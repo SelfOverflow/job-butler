@@ -35,6 +35,7 @@ export function makeJobDetail(overrides: Partial<JobDetail> = {}): JobDetail {
   return {
     ...makeJob(),
     description: "We are looking for a Senior Software Engineer to build distributed systems.",
+    ats_review: null,
     ...overrides,
   };
 }
