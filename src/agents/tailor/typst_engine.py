@@ -13,7 +13,7 @@ from src.agents.tailor.drafter import TailoredResume
 from src.ingestion.base import contains_phrase, words
 from src.ingestion.scorer import skill_variants
 from src.profile.exporter import format_month, skill_group_label
-from src.profile.models import CandidateProfile
+from src.profile.models import CandidateProfile, Certification
 
 TEMPLATE = Path(__file__).resolve().parents[3] / "templates" / "resume.typ"
 
@@ -51,11 +51,18 @@ def resume_data(
         "roles": roles,
         "skills": _skills(resume, profile, keep),
         "education": education,
-        "certifications": [
-            f"{c.name}, {c.issuer}" + (f" ({c.year})" if c.year else "")
-            for c in profile.certifications
-        ],
+        "certifications": [_certification(c) for c in profile.certifications],
+        "certifications_heading": "Certifications & Courses"
+        if any(c.kind == "course" for c in profile.certifications)
+        else "Certifications",
     }
+
+
+def _certification(cert: Certification) -> str:
+    """`Name, Issuer (year)`; courses are labelled so they never read as certifications."""
+    name = f"{cert.name} (course completion)" if cert.kind == "course" else cert.name
+    issuer = f"{cert.issuer} via {cert.platform}" if cert.platform else cert.issuer
+    return f"{name}, {issuer}" + (f" ({cert.year})" if cert.year else "")
 
 
 def _keyword_rank(skill: str, keywords: Sequence[str]) -> int | None:

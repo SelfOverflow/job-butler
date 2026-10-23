@@ -22,6 +22,11 @@
   #text(size: 9pt, data.contact.join("  |  "))
 ]
 
+#if data.skills.len() > 0 [
+  == Technical Skills
+  #for group in data.skills [*#group.label:* #group.names.join(", ") \ ]
+]
+
 == Professional Experience
 #for role in data.roles [
   #block(above: 0.7em, below: 0.35em)[
@@ -31,17 +36,12 @@
   #for bullet in role.bullets [- #bullet]
 ]
 
-#if data.skills.len() > 0 [
-  == Technical Skills
-  #for group in data.skills [*#group.label:* #group.names.join(", ") \ ]
-]
-
 #if data.education.len() > 0 [
   == Education
   #for entry in data.education [#entry \ ]
 ]
 
 #if data.certifications.len() > 0 [
-  == Certifications
+  == #data.certifications_heading
   #for cert in data.certifications [- #cert]
 ]

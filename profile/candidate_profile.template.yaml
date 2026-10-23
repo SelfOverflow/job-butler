@@ -170,6 +170,12 @@ certifications:
   - name: "AWS Certified Solutions Architect"
     issuer: "Amazon Web Services"
     year: 2024
+  # kind: "course" marks a course-completion certificate (rendered "(course completion)");
+  # platform is where it was taken. Both are optional (default kind: "certification").
+  # - name: "AWS Cloud Practitioner Essentials"
+  #   issuer: "Amazon Web Services"
+  #   kind: "course"
+  #   platform: "Coursera"
 
 star_stories:
   - id: "star_incident_resolution"

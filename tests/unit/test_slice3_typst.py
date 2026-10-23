@@ -78,6 +78,37 @@ def test_typst_single_column_pdf_compilation() -> None:
         assert role.title in text and role.company in text
     assert "Jan 2023 - Present" in text and "Jun 2020 - Dec 2022" in text
     assert "Professional Experience" in text and "Technical Skills" in text and "Education" in text
+    assert text.index("Technical Skills") < text.index("Professional Experience")
+
+
+def test_course_completions_are_labelled_as_courses() -> None:
+    raw = _raw()
+    raw["certifications"] = [
+        {
+            "name": "AWS Certified Solutions Architect",
+            "issuer": "Amazon Web Services",
+            "year": 2024,
+        },
+        {
+            "name": "AWS Cloud Practitioner Essentials",
+            "issuer": "Amazon Web Services",
+            "kind": "course",
+            "platform": "Coursera",
+            "year": 2026,
+        },
+    ]
+    profile = CandidateProfile.model_validate(raw)
+    resume = review(DraftPlan(keywords=["Python"], bullet_ids=["b_alpha_1"]), JOB, profile)
+
+    data = resume_data(resume, profile, resume.ranked_ids)
+    assert data["certifications_heading"] == "Certifications & Courses"
+    assert data["certifications"] == [
+        "AWS Certified Solutions Architect, Amazon Web Services (2024)",
+        "AWS Cloud Practitioner Essentials (course completion), Amazon Web Services"
+        " via Coursera (2026)",
+    ]
+    text = _text(render_pdf(resume, profile, resume.ranked_ids))
+    assert "Certifications & Courses" in text and "(course completion)" in text
 
 
 def test_profile_text_is_rendered_literally() -> None:

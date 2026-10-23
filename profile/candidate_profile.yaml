@@ -359,6 +359,8 @@ education:
 certifications:
   - name: "AWS Cloud Practitioner Essentials"
     issuer: "Amazon Web Services"
+    kind: "course" # Course-completion certificate, not the AWS certification exam
+    platform: "Coursera"
     year: 2026
   - name: "Using Python to Access Web Data"
     issuer: "Coursera"

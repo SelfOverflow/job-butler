@@ -173,6 +173,9 @@ class Certification(_Model):
     name: NonEmptyStr
     issuer: NonEmptyStr
     year: int | None = None
+    # "course" = a course-completion certificate, not a proctored certification exam.
+    kind: Literal["certification", "course"] = "certification"
+    platform: NonEmptyStr | None = None  # Where it was taken, e.g. "Coursera".
 
 
 class STARStory(_Model):
