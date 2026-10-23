@@ -14,8 +14,10 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { PrepareButton } from "@/components/PrepareButton";
 import { api, type JobDetail } from "@/lib/api";
+import type { CommandProgress } from "@/lib/commands";
 import { ageLabel } from "@/lib/recency";
 import { connectEvents } from "@/lib/websocket";
 
@@ -39,7 +41,7 @@ function JobDetailContent() {
   const [tailoring, setTailoring] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [tailored, setTailored] = useState(false);
-  const [stageMessage, setStageMessage] = useState<string | null>(null);
+  const [progress, setProgress] = useState<CommandProgress | null>(null);
   const [cacheBuster, setCacheBuster] = useState(() => Date.now());
 
   const loadJob = useCallback((jobId: string) => {
@@ -68,16 +70,17 @@ function JobDetailContent() {
         if (targetId === id) {
           if (msg.run.status === "running") {
             setTailoring(true);
-            setStageMessage(msg.run.progress?.detail || msg.run.progress?.stage || "Tailoring in progress…");
+            setProgress(msg.run.progress ?? null);
           } else if (msg.run.status === "succeeded") {
             setTailoring(false);
             setTailored(true);
-            setStageMessage(null);
+            setProgress(null);
             setCacheBuster(Date.now());
             loadJob(id);
           } else if (msg.run.status === "failed") {
             setTailoring(false);
-            setStageMessage(null);
+            setProgress(null);
+            setJob((j) => j && { ...j, status: "tailor_failed" });
             setError(msg.run.error ?? "Resume tailoring failed");
           }
         }
@@ -90,7 +93,7 @@ function JobDetailContent() {
   const handleTailor = async () => {
     if (!id) return;
     setTailoring(true);
-    setStageMessage("Initiating tailor command…");
+    setProgress({ detail: "Initiating tailor command…" });
     setError(null);
     try {
       const res = await api.launchCommand("tailor_one", { job_id: id });
@@ -102,16 +105,17 @@ function JobDetailContent() {
             clearInterval(pollTimer);
             setTailoring(false);
             setTailored(true);
-            setStageMessage(null);
+            setProgress(null);
             setCacheBuster(Date.now());
             loadJob(id);
           } else if (run.status === "failed" || run.status === "cancelled") {
             clearInterval(pollTimer);
             setTailoring(false);
-            setStageMessage(null);
+            setProgress(null);
+            setJob((j) => j && { ...j, status: run.status === "failed" ? "tailor_failed" : j.status });
             setError(run.error ?? "Resume tailoring failed");
           } else if (run.progress?.detail || run.progress?.stage) {
-            setStageMessage(run.progress.detail || run.progress.stage || "Tailoring in progress…");
+            setProgress(run.progress);
           }
         } catch {
           // Keep polling
@@ -120,7 +124,7 @@ function JobDetailContent() {
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setTailoring(false);
-      setStageMessage(null);
+      setProgress(null);
     }
   };
 
@@ -173,6 +177,7 @@ function JobDetailContent() {
   if (!job) return null;
 
   const resumeUrl = job.resume_url ?? `/api/artifacts/${job.id}/resume`;
+  const percent = progress?.total ? Math.round(((progress.done ?? 0) / progress.total) * 100) : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -206,6 +211,7 @@ function JobDetailContent() {
               <span aria-label={`Fit score ${job.score}`} className={`${pill} ${scoreColour(job.score)}`}>
                 Score: {job.score}
               </span>
+              <JobStatusBadge status={tailoring ? "tailoring" : job.status} />
               {job.tier_label && (
                 <span className={`${pill} bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300`}>
                   {job.tier_label}
@@ -282,9 +288,25 @@ function JobDetailContent() {
           {tailoring ? (
             <div className="flex min-h-[550px] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-zinc-200 bg-zinc-50/50 p-8 text-center dark:border-zinc-800 dark:bg-zinc-950/50">
               <Loader2 size={36} className="animate-spin text-blue-600" />
-              <div className="flex flex-col gap-1">
+              <div className="flex w-full max-w-sm flex-col gap-2">
                 <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Tailoring Resume…</h3>
-                <p className="text-xs text-zinc-500">{stageMessage || "Running Drafter & Reviewer loop..."}</p>
+                {progress?.total ? (
+                  <>
+                    <p className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                      Step {progress.done ?? 0} of {progress.total} ({percent}%)
+                    </p>
+                    <div
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={percent}
+                      className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800"
+                    >
+                      <div className="h-full rounded-full bg-blue-600 transition-all duration-500" style={{ width: `${percent}%` }} />
+                    </div>
+                  </>
+                ) : null}
+                <p className="text-xs text-zinc-500">{progress?.detail || "Running Drafter & Reviewer loop..."}</p>
               </div>
             </div>
           ) : tailored ? (

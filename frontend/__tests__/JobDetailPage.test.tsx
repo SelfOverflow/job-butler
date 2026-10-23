@@ -1,10 +1,20 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import JobDetailPage from "@/app/jobs/detail/page";
 import { api } from "@/lib/api";
+import type { FeedMessage } from "@/lib/websocket";
 import { makeJobDetail, mockFetch } from "./fixtures";
+
+let emit: (msg: FeedMessage) => void = () => {};
+
+vi.mock("@/lib/websocket", () => ({
+  connectEvents: (onMessage: (msg: FeedMessage) => void) => {
+    emit = onMessage;
+    return () => {};
+  },
+}));
 
 let mockSearchParams = new URLSearchParams({ id: "job_1234abcd" });
 
@@ -85,6 +95,41 @@ describe("JobDetailPage", () => {
       "href",
       "/api/artifacts/job_1234abcd/resume",
     );
+  });
+
+  it("shows the persisted status and live tailoring progress from WebSocket events", async () => {
+    mockFetch((url) => {
+      if (url === "/api/jobs/job_1234abcd") return makeJobDetail({ status: "discovered", resume_url: null });
+      return {};
+    });
+
+    render(<JobDetailPage />);
+
+    expect(await screen.findByLabelText("Status Discovered")).toBeInTheDocument();
+
+    act(() =>
+      emit({
+        type: "command",
+        run: {
+          id: "run_1",
+          command: "tailor_one",
+          params: { job_id: "job_1234abcd" },
+          status: "running",
+          progress: { stage: "tailor", done: 2, total: 4, detail: "Fitting Typst page budget..." },
+          result: null,
+          error: null,
+          requested_by: "human:user",
+          created_at: "2026-10-23T00:00:00",
+          started_at: "2026-10-23T00:00:00",
+          finished_at: null,
+        },
+      }),
+    );
+
+    expect(screen.getByLabelText("Status Tailoring…")).toBeInTheDocument();
+    expect(screen.getByText("Step 2 of 4 (50%)")).toBeInTheDocument();
+    expect(screen.getByText("Fitting Typst page budget...")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "50");
   });
 
   it("shows an error alert when job is not found", async () => {

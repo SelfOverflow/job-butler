@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ExternalLink, FileText, Mail, RefreshCw, Sparkles } from "lucide-react";
 
+import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { PrepareButton } from "@/components/PrepareButton";
 import { api, type Job } from "@/lib/api";
 import { ageLabel } from "@/lib/recency";
@@ -70,6 +71,7 @@ export function JobCard({ job }: { job: Job }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
+        <JobStatusBadge status={tailoring ? "tailoring" : job.status} />
         {job.tier_label && <span className={`${pill} bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300`}>{job.tier_label}</span>}
         <span className={`${pill} ${verifiedLive ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"}`}>
           {verifiedLive ? "Live" : "Unverified"}

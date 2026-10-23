@@ -32,6 +32,17 @@ describe("JobCard", () => {
     );
   });
 
+  it.each([
+    ["discovered", "Discovered"],
+    ["tailoring", "Tailoring…"],
+    ["tailored", "Tailored"],
+    ["tailor_failed", "Tailor Failed"],
+    ["applied", "Applied"],
+  ] as const)("renders the %s status badge", (status, label) => {
+    render(<JobCard job={makeJob({ status })} />);
+    expect(screen.getByLabelText(`Status ${label}`)).toHaveTextContent(label);
+  });
+
   it("opens external postings in a new tab safely", () => {
     render(<JobCard job={makeJob()} />);
     const link = screen.getByRole("link", { name: /posting/i });

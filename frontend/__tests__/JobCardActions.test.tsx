@@ -22,7 +22,7 @@ describe("JobCard Actions", () => {
 
     await userEvent.click(tailorBtn);
     expect(launchSpy).toHaveBeenCalledWith("tailor_one", { job_id: job.id });
-    expect(screen.getByText(/tailoring/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /tailoring/i })).toBeInTheDocument();
 
     // Finish launch
     resolveLaunch({ run_id: "run_test_123", status: "queued", single_flight: false });

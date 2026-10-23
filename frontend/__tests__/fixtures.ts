@@ -19,6 +19,7 @@ export function makeJob(overrides: Partial<Job> = {}): Job {
     tier: "tier1_india_domestic",
     tier_label: "Tier 1",
     is_active: true,
+    status: "discovered",
     posted_at: hoursAgo(5),
     discovered_at: hoursAgo(1),
     last_verified_at: "2026-10-22T07:05:00",

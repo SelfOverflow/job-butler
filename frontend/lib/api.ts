@@ -1,6 +1,8 @@
 // Typed client for the FastAPI backend. Paths are same-origin: FastAPI serves the
 // static export in production, and `next dev` proxies /api in development.
 
+export type JobStatus = "discovered" | "tailoring" | "tailored" | "tailor_failed" | "applied";
+
 export type Job = {
   id: string;
   title: string;
@@ -12,6 +14,7 @@ export type Job = {
   tier: string | null;
   tier_label: string | null;
   is_active: boolean;
+  status: JobStatus;
   posted_at: string | null;
   discovered_at: string;
   last_verified_at: string | null;
