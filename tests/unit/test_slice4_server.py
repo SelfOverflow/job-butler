@@ -155,6 +155,14 @@ def test_serves_static_frontend_when_built(
         assert c.get("/health").json() == {"status": "ok"}  # API still wins
 
 
+def test_prune_jobs_api(client: TestClient, ids: dict[str, str]) -> None:
+    res = client.post(f"/api/jobs/{ids['low']}/prune")
+    assert res.status_code == 200 and res.json()["status"] == "pruned"
+    assert [j["id"] for j in client.get("/api/jobs").json()] == [ids["top"]]
+    assert client.post("/api/jobs/job_0000dead/prune").status_code == 404
+    assert client.post("/api/jobs/prune").json() == {"pruned": 0}  # Template: nothing stale
+
+
 def test_dev_mode_redirects_ui_to_live_next_server(settings: Settings, tmp_path: Path) -> None:
     out = tmp_path / "out"
     out.mkdir()

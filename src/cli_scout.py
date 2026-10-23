@@ -109,6 +109,25 @@ def list_jobs(
 
 
 @scout_app.command()
+def prune(
+    job_id: Annotated[str | None, typer.Option(help="Remove one job for good.")] = None,
+) -> None:
+    """Deactivate jobs failing a profile gate or older than job_max_age (or one job)."""
+    with db_session() as session:
+        if job_id:
+            try:
+                row = scout_service.prune_one(session, job_id)
+            except scout_service.ScoutError as exc:
+                typer.echo(f"[✗] {exc}")
+                raise typer.Exit(1) from None
+            typer.echo(f"[✓] Pruned {row.id}: {row.title} at {row.company}")
+            return
+        with friendly_errors():
+            profile = profile_loader().load()
+        typer.echo(f"[✓] Pruned {scout_service.prune(session, profile)} job(s)")
+
+
+@scout_app.command()
 def verify() -> None:
     """Re-check every active job's link; closed postings are deactivated."""
     with friendly_errors():

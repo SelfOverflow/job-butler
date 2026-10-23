@@ -12,6 +12,7 @@ from src.agents.tailor.runner import artifact_paths
 from src.config.settings import Settings
 from src.profile.loader import ProfileError, ProfileLoader
 from src.server.deps import SessionDep, SettingsDep
+from src.services import scout as scout_service
 from src.storage import repository as repo
 from src.storage.models import JobPosting, utcnow
 
@@ -89,6 +90,24 @@ def get_job(job_id: JobId, session: SessionDep, settings: SettingsDep) -> dict[s
     if row is None:
         raise HTTPException(404, f"No job with id {job_id}")
     return _out(row, settings, _tier_labels(settings))
+
+
+@router.post("/jobs/prune")
+def prune_jobs(session: SessionDep, settings: SettingsDep) -> dict[str, int]:
+    try:
+        profile = ProfileLoader(settings.profile_path).load()
+    except (ProfileError, ValidationError) as exc:
+        raise HTTPException(422, f"Profile invalid: {exc}") from None
+    return {"pruned": scout_service.prune(session, profile)}
+
+
+@router.post("/jobs/{job_id}/prune")
+def prune_job(job_id: JobId, session: SessionDep) -> dict[str, str]:
+    try:
+        row = scout_service.prune_one(session, job_id)
+    except scout_service.ScoutError as exc:
+        raise HTTPException(404, str(exc)) from None
+    return {"job_id": row.id, "status": row.status}
 
 
 @router.get("/artifacts/{job_id}/{kind}")

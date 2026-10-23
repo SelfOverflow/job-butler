@@ -44,7 +44,7 @@ def upsert_job(session: Session, job: RawJobPosting, score: JobScore) -> JobPost
     row.url, row.description, row.source = job.url, job.description, job.source
     row.posted_at = job.posted_at
     row.score, row.tier, row.boost = score.score, score.tier, score.boost
-    row.is_active = True
+    row.is_active = row.status != JobStatus.PRUNED
     row.last_seen_at = utcnow()
     return row
 

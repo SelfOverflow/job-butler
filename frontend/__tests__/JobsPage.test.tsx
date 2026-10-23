@@ -1,8 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import JobsPage from "@/app/jobs/page";
+import { api } from "@/lib/api";
 import { hoursAgo, makeJob, mockFetch } from "./fixtures";
 
 const JOBS = [
@@ -23,6 +24,34 @@ describe("Jobs page", () => {
     expect(screen.queryByText("Lead Mobile Engineer")).not.toBeInTheDocument();
     expect(screen.getByText("Tech Lead")).toBeInTheDocument();
     expect(screen.getByText("1 of 2 jobs")).toBeInTheDocument();
+  });
+
+  it("prunes stale and ineligible jobs, then reloads the list", async () => {
+    let remaining = JOBS;
+    mockFetch(() => remaining);
+    const pruneSpy = vi.spyOn(api, "pruneJobs").mockImplementation(async () => {
+      remaining = JOBS.slice(0, 1);
+      return { pruned: 1 };
+    });
+    render(<JobsPage />);
+    await screen.findByText("Tech Lead");
+
+    await userEvent.click(screen.getByRole("button", { name: /prune jobs/i }));
+    expect(pruneSpy).toHaveBeenCalled();
+    expect(await screen.findByText("Pruned 1 job(s)")).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText("Tech Lead")).not.toBeInTheDocument());
+  });
+
+  it("removes a job pruned from its card", async () => {
+    mockFetch(() => JOBS);
+    vi.spyOn(api, "pruneJob").mockResolvedValue({ job_id: "job_00000002", status: "pruned" });
+    render(<JobsPage />);
+    await screen.findByText("Tech Lead");
+
+    await userEvent.click(screen.getAllByRole("button", { name: /^prune$/i })[1]);
+    await userEvent.click(screen.getByRole("button", { name: "Prune job" }));
+    await waitFor(() => expect(screen.queryByText("Tech Lead")).not.toBeInTheDocument());
+    expect(screen.getByText("1 of 1 jobs")).toBeInTheDocument();
   });
 
   it("filters by minimum score", async () => {

@@ -49,4 +49,18 @@ describe("JobCard Actions", () => {
     resolveLaunch({ run_id: "run_verify_456", status: "queued", single_flight: false });
     expect(await screen.findByText("Live")).toBeInTheDocument();
   });
+
+  it("prunes the job after confirmation and notifies the list", async () => {
+    const pruneSpy = vi.spyOn(api, "pruneJob").mockResolvedValue({ job_id: "job_1234abcd", status: "pruned" });
+    const onPruned = vi.fn();
+    render(<JobCard job={makeJob()} onPruned={onPruned} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /^prune$/i }));
+    expect(screen.getByRole("dialog")).toHaveTextContent(/won't bring it back/i);
+    expect(pruneSpy).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Prune job" }));
+    expect(pruneSpy).toHaveBeenCalledWith("job_1234abcd");
+    expect(onPruned).toHaveBeenCalledWith("job_1234abcd");
+  });
 });

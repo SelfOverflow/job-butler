@@ -10,7 +10,7 @@ from src.ingestion.verifier import verify as verifier_verify
 from src.profile.models import CandidateProfile
 from src.services.common import CancelToken
 from src.storage import repository as repo
-from src.storage.models import JobPosting, utcnow
+from src.storage.models import JobPosting, JobStatus, utcnow
 
 
 class ScoutError(Exception):
@@ -57,6 +57,30 @@ def verify(
         cancel.check()
     counts = verify_stored(session, http, checked_progress)
     return pruned, counts
+
+
+def prune(session: Session, profile: CandidateProfile) -> int:
+    """Deactivate stored jobs failing a profile gate or older than `job_max_age`."""
+    return prune_ineligible(session, profile)
+
+
+def prune_one(session: Session, job_id: str) -> JobPosting:
+    """Manually remove one job; it stays hidden even if a later sweep finds it again."""
+    row = repo.get_job(session, job_id)
+    if row is None:
+        raise ScoutError(f"Job not found: {job_id}")
+    row.is_active = False
+    row.status = JobStatus.PRUNED
+    repo.record_audit(
+        session,
+        actor="human:user",
+        action="JOB_EXCLUDED",
+        status="SUCCESS",
+        target_id=row.id,
+        details={"reason": "manual: pruned by user", "title": row.title, "company": row.company},
+    )
+    session.commit()
+    return row
 
 
 def list_jobs(session: Session, min_score: int | None = None) -> list[JobPosting]:

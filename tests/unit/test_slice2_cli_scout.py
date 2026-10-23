@@ -143,3 +143,14 @@ def test_cli_scout_verify_command(db_url: str, http: None) -> None:
     assert "Pruned 1 stored job(s) that no longer fit the profile" in out
     assert "live 0, closed 1, unknown 0" in out
     assert "No active jobs yet" in _invoke("list")
+
+
+def test_cli_scout_prune_command(db_url: str) -> None:
+    good = _job("Tech Lead", "Remote", "https://x/1")
+    intern = _job("SWE Intern", "Remote", "https://x/2")
+    _seed(db_url, (good, JobScore(90, None, 0), False), (intern, JobScore(90, None, 0), False))
+
+    assert "[✓] Pruned 1 job(s)" in _invoke("prune")
+    good_id = repo.job_id(good)
+    assert f"[✓] Pruned {good_id}: Tech Lead at Hooli" in _invoke("prune", "--job-id", good_id)
+    assert "Job not found: job_missing" in _invoke("prune", "--job-id", "job_missing", exit_code=1)

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Trash2 } from "lucide-react";
 
 import { JobCard } from "@/components/JobCard";
 import { api, type Job, type Recency } from "@/lib/api";
@@ -14,10 +15,30 @@ export default function JobsPage() {
   const [query, setQuery] = useState("");
   const [minScore, setMinScore] = useState(0);
   const [recency, setRecency] = useState<Recency>("any");
+  const [pruning, setPruning] = useState(false);
+  const [pruneNote, setPruneNote] = useState<string | null>(null);
+
+  const load = useCallback(() => api.jobs().then(setJobs, (e: Error) => setError(e.message)), []);
 
   useEffect(() => {
-    api.jobs().then(setJobs, (e: Error) => setError(e.message));
-  }, []);
+    load();
+  }, [load]);
+
+  const handlePruneAll = async () => {
+    setPruning(true);
+    setPruneNote(null);
+    try {
+      const { pruned } = await api.pruneJobs();
+      setPruneNote(`Pruned ${pruned} job(s)`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setPruning(false);
+    }
+  };
+
+  const removeJob = (id: string) => setJobs((current) => current?.filter((j) => j.id !== id) ?? null);
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -35,8 +56,19 @@ export default function JobsPage() {
         <div>
           <h1 className="text-2xl font-semibold">Jobs</h1>
           {jobs && <p className="text-sm text-zinc-500">{`${visible.length} of ${jobs.length} jobs`}</p>}
+          {pruneNote && <p role="status" className="text-sm text-emerald-700 dark:text-emerald-400">{pruneNote}</p>}
         </div>
         <div className="flex gap-2">
+          <button
+            type="button"
+            disabled={pruning}
+            onClick={handlePruneAll}
+            title="Deactivate jobs that fail a profile gate or are older than your maximum job age"
+            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            <Trash2 size={14} aria-hidden />
+            {pruning ? "Pruning…" : "Prune jobs"}
+          </button>
           <input
             type="search"
             aria-label="Search jobs"
@@ -85,7 +117,7 @@ export default function JobsPage() {
       )}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {visible.map((job) => (
-          <JobCard key={job.id} job={job} />
+          <JobCard key={job.id} job={job} onPruned={removeJob} />
         ))}
       </div>
     </section>

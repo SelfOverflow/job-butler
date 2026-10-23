@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink, FileText, Mail, RefreshCw, Sparkles } from "lucide-react";
+import { ExternalLink, FileText, Mail, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { PrepareButton } from "@/components/PrepareButton";
 import { api, type Job } from "@/lib/api";
@@ -19,12 +20,29 @@ const pill = "rounded-full px-2 py-0.5 text-xs font-medium";
 const action =
   "inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2.5 py-1 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800";
 
-export function JobCard({ job }: { job: Job }) {
+export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) => void }) {
   const [tailoring, setTailoring] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [tailored, setTailored] = useState(Boolean(job.resume_url));
   const [verifiedLive, setVerifiedLive] = useState(Boolean(job.last_verified_at));
   const [error, setError] = useState<string | null>(null);
+  const [confirmPrune, setConfirmPrune] = useState(false);
+  const [pruning, setPruning] = useState(false);
+
+  const handlePrune = async () => {
+    setPruning(true);
+    setError(null);
+    try {
+      await api.pruneJob(job.id);
+      setConfirmPrune(false);
+      onPruned?.(job.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setConfirmPrune(false);
+    } finally {
+      setPruning(false);
+    }
+  };
 
   const handleTailor = async () => {
     setTailoring(true);
@@ -127,7 +145,22 @@ export function JobCard({ job }: { job: Job }) {
         </button>
 
         {(tailored || job.resume_url) && <PrepareButton jobId={job.id} />}
+
+        <button type="button" onClick={() => setConfirmPrune(true)} className={action}>
+          <Trash2 size={14} aria-hidden /> Prune
+        </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmPrune}
+        title="Prune this job?"
+        description={`${job.title} at ${job.company} will be removed from your jobs. Later sweeps won't bring it back.`}
+        confirmLabel="Prune job"
+        destructive
+        busy={pruning}
+        onConfirm={handlePrune}
+        onCancel={() => setConfirmPrune(false)}
+      />
 
       {error && (
         <span role="alert" className="text-xs text-red-600 dark:text-red-400">

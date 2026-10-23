@@ -23,6 +23,7 @@ class JobStatus(StrEnum):
     TAILORED = "tailored"
     TAILOR_FAILED = "tailor_failed"
     APPLIED = "applied"
+    PRUNED = "pruned"  # Removed by the user; later sweeps never reactivate it.
 
 
 class JobPosting(Base):

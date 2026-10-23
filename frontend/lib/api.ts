@@ -1,7 +1,7 @@
 // Typed client for the FastAPI backend. Paths are same-origin: FastAPI serves the
 // static export in production, and `next dev` proxies /api in development.
 
-export type JobStatus = "discovered" | "tailoring" | "tailored" | "tailor_failed" | "applied";
+export type JobStatus = "discovered" | "tailoring" | "tailored" | "tailor_failed" | "applied" | "pruned";
 
 export type Job = {
   id: string;
@@ -118,6 +118,11 @@ export const AUDIT_PAGE_SIZE = 50;
 export const api = {
   jobs: () => request<Job[]>("/api/jobs"),
   job: (id: string) => request<JobDetail>(`/api/jobs/${id}`),
+  /** Deactivate jobs failing a profile gate or older than `job_max_age`. */
+  pruneJobs: () => request<{ pruned: number }>("/api/jobs/prune", { method: "POST" }),
+  /** Remove one job for good; later sweeps never bring it back. */
+  pruneJob: (id: string) =>
+    request<{ job_id: string; status: string }>(`/api/jobs/${id}/prune`, { method: "POST" }),
   audit: (filters: AuditFilters, offset = 0) => {
     const params = new URLSearchParams(
       Object.entries(filters).filter((entry): entry is [string, string] => Boolean(entry[1])),
