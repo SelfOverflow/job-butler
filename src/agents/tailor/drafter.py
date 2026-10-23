@@ -94,7 +94,9 @@ def review(plan: DraftPlan, job: JobLike, profile: CandidateProfile) -> Tailored
     return TailoredResume(tuple(keywords), tuple(ranked), roles, pages, summary)
 
 
-def _prompt(job: JobLike, profile: CandidateProfile, feedback: str | None) -> str:
+def _prompt(
+    job: JobLike, profile: CandidateProfile, feedback: str | None, guidance: str | None = None
+) -> str:
     lines = [
         "You are tailoring a resume. Select the candidate's existing, verified bullets that best",
         "match the job below.",
@@ -117,6 +119,8 @@ def _prompt(job: JobLike, profile: CandidateProfile, feedback: str | None) -> st
         f"Job: {job.title} at {job.company} ({job.location})",
         f"<job_description>\n{job.description[:MAX_JD_CHARS]}\n</job_description>",
     ]
+    if guidance:
+        lines.append(f"\nA recruiter review of a previous draft said: {guidance}")
     if feedback:
         lines.append(
             f"\nYour previous answer was rejected: {feedback}. Answer again following the rules."
@@ -124,11 +128,13 @@ def _prompt(job: JobLike, profile: CandidateProfile, feedback: str | None) -> st
     return "\n".join(lines)
 
 
-def draft_resume(job: JobLike, profile: CandidateProfile, llm: LLMClient) -> TailoredResume:
+def draft_resume(
+    job: JobLike, profile: CandidateProfile, llm: LLMClient, guidance: str | None = None
+) -> TailoredResume:
     """Draft, review, and retry once with the reviewer's feedback."""
     feedback: str | None = None
     for _ in range(ATTEMPTS):
-        plan = llm.generate_json(_prompt(job, profile, feedback), DraftPlan)
+        plan = llm.generate_json(_prompt(job, profile, feedback, guidance), DraftPlan)
         try:
             return review(plan, job, profile)
         except ReviewError as exc:

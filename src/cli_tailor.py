@@ -29,10 +29,24 @@ def _report(row: JobPosting, result: TailorResult, tier: str) -> None:
         else "Summary: profile summary (tailored draft failed fact-checks)",
         f"Text-layer check: {matched}/{total} keywords matched; "
         "LinkedIn, email and phone extractable",
+        _ats_line(result),
         f"Resume: {result.paths.resume}",
         f"Cover letter: {result.paths.cover_pdf} and {result.paths.cover_txt}",
     ):
         typer.echo(f"[✓] {line}")
+
+
+def _ats_line(result: TailorResult) -> str:
+    if (ats := result.ats) is None:
+        return "Recruiter ATS review: unavailable (LLM error)"
+    parts = [f"Recruiter ATS review: {ats.score}/100, {ats.verdict}"]
+    if result.ats_revised:
+        parts.append("revised once for missed requirements")
+    if ats.missing_have_it:
+        parts.append(f"still missing (you have): {', '.join(ats.missing_have_it)}")
+    if ats.gaps:
+        parts.append(f"gaps: {', '.join(ats.gaps)}")
+    return "; ".join(parts)
 
 
 @tailor_app.callback(invoke_without_command=True)

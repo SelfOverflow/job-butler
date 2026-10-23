@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typer.testing import CliRunner
 
 from src.agents.llm import LLMError
+from src.agents.tailor.ats_review import AtsReview
 from src.agents.tailor.cover_letter import CoverLetterDraft
 from src.agents.tailor.drafter import DraftPlan
 from src.agents.tailor.summary import SummaryDraft
@@ -13,7 +14,7 @@ from src.ingestion.base import RawJobPosting
 from src.ingestion.scorer import JobScore
 from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
-from tests.fakes import FakeLLM, template_summary
+from tests.fakes import FakeLLM, ats_review, template_summary
 
 TEMPLATE = Path(__file__).resolve().parents[2] / "profile" / "candidate_profile.template.yaml"
 ENV = {
@@ -38,6 +39,8 @@ def _llm(bullet_ids: list[str]) -> FakeLLM:
             return LETTER
         if schema is SummaryDraft:
             return template_summary()
+        if schema is AtsReview:
+            return ats_review()
         ids = ["b_invented"] if "Doomed" in prompt else bullet_ids
         return DraftPlan(keywords=["Python", "Kafka"], bullet_ids=ids)
 
@@ -91,13 +94,14 @@ def test_tailor_single_job(env: dict[str, str], tmp_path: Path) -> None:
     assert "[✓] Drafter: 2 bullets selected across 2 roles, 2 kept (1-page budget met)" in out
     assert "[✓] Reviewer: every bullet verified verbatim against the profile" in out
     assert "[✓] Summary: tailored to this job and fact-checked" in out
+    assert "[✓] Recruiter ATS review: 82/100, shortlist" in out
     assert (
         "[✓] Text-layer check: 2/2 keywords matched; LinkedIn, email and phone extractable" in out
     )
     resume = tmp_path / "artifacts" / "resumes" / f"{job_id}_resume.pdf"
     assert f"[✓] Resume: {resume}" in out and resume.exists()
     assert (tmp_path / "artifacts" / "cover_letters" / f"{job_id}_cover.txt").exists()
-    assert "Tailoring resumes" in out and "4/4" in out  # Live progress bar on stderr.
+    assert "Tailoring resumes" in out and "5/5" in out  # Live progress bar on stderr.
 
 
 def test_tailor_unknown_job_and_missing_target(env: dict[str, str]) -> None:

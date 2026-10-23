@@ -5,6 +5,7 @@ import pytest
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from src.agents.tailor.ats_review import AtsReview
 from src.agents.tailor.cover_letter import CoverLetterDraft
 from src.agents.tailor.drafter import DraftPlan
 from src.agents.tailor.runner import TailorError, tailor_job
@@ -16,7 +17,7 @@ from src.profile.models import CandidateProfile
 from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
 from src.storage.models import JobPosting, JobStatus
-from tests.fakes import FakeLLM, template_summary
+from tests.fakes import FakeLLM, ats_review, template_summary
 
 TEMPLATE = Path(__file__).resolve().parents[2] / "profile" / "candidate_profile.template.yaml"
 ENV = {
@@ -32,6 +33,8 @@ def _llm(bullet_ids: list[str]) -> FakeLLM:
     def respond(prompt: str, schema: type[BaseModel]) -> BaseModel:
         if schema is SummaryDraft:
             return template_summary()
+        if schema is AtsReview:
+            return ats_review()
         if schema is CoverLetterDraft:
             return CoverLetterDraft(greeting="Hi,", paragraphs=["Keen."], closing="Best,")
         return DraftPlan(keywords=["Python", "Kafka"], bullet_ids=bullet_ids)
@@ -77,10 +80,11 @@ def test_tailor_job_reports_four_stages_and_marks_tailored(
 
     tailor_job(row, profile, _llm(["b_alpha_1", "b_beta_1"]), tmp_path / "a", session, progress)
 
-    assert [(c[0], c[1], c[2]) for c in calls] == [("tailor", i, 4) for i in range(5)]
+    assert [(c[0], c[1], c[2]) for c in calls] == [("tailor", i, 5) for i in range(6)]
     assert all(c[4] == JobStatus.TAILORING for c in calls)
     assert "Drafting" in calls[1][3] and "page budget" in calls[2][3]
-    assert "ATS" in calls[3][3] and "cover letter" in calls[4][3]
+    assert "text-layer" in calls[3][3] and "Recruiter ATS review" in calls[4][3]
+    assert "cover letter" in calls[5][3]
     session.expire_all()
     assert row.status == JobStatus.TAILORED
 

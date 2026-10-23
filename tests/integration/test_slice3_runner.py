@@ -7,6 +7,8 @@ import yaml
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from src.agents.llm import LLMError
+from src.agents.tailor.ats_review import AtsReview
 from src.agents.tailor.cover_letter import CoverLetterDraft
 from src.agents.tailor.drafter import DraftPlan
 from src.agents.tailor.pdf_verifier import PdfReport
@@ -19,7 +21,7 @@ from src.profile.models import CandidateProfile
 from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
 from src.storage.models import JobPosting
-from tests.fakes import FakeLLM, template_summary
+from tests.fakes import FakeLLM, ats_review, template_summary
 
 ROOT = Path(__file__).resolve().parents[2]
 ENV = {
@@ -43,6 +45,8 @@ def llm_for(plan: DraftPlan) -> FakeLLM:
     def respond(_prompt: str, schema: type[BaseModel]) -> BaseModel:
         if schema is SummaryDraft:
             return template_summary()
+        if schema is AtsReview:
+            return ats_review()
         return plan if schema is DraftPlan else LETTER
 
     return FakeLLM(respond)
@@ -133,3 +137,60 @@ def test_tailor_refuses_roles_requiring_more_experience(
     with pytest.raises(TailorError, match="not eligible: experience: requires 25"):
         tailor_job(row, profile, llm_for(GOOD_PLAN), tmp_path / "artifacts", session)
     assert not (tmp_path / "artifacts").exists()
+
+
+def _reviewing_llm(*reviews: BaseModel | None) -> FakeLLM:
+    """Plan/summary/letter as usual; ATS reviews answered in order (None = LLM error)."""
+    queue = list(reviews)
+
+    def respond(prompt: str, schema: type[BaseModel]) -> BaseModel:
+        if schema is AtsReview:
+            review = queue.pop(0) if len(queue) > 1 else queue[0]
+            if review is None:
+                raise LLMError("Gemini request failed: timed out")
+            return review
+        return llm_for(GOOD_PLAN)._respond(prompt, schema)
+
+    return FakeLLM(respond)
+
+
+def test_ats_review_is_saved_and_audited(
+    profile: CandidateProfile, session: Session, row: JobPosting, tmp_path: Path
+) -> None:
+    result = tailor_job(row, profile, _reviewing_llm(ats_review(82)), tmp_path / "a", session)
+
+    assert result.ats is not None and result.ats.score == 82 and not result.ats_revised
+    saved = AtsReview.model_validate_json(result.paths.ats_report.read_text())
+    assert saved.verdict == "shortlist"
+    [event] = repo.query_audit(session, action="RESUME_TAILORED")
+    assert (event.details["ats_score"], event.details["ats_verdict"]) == (82, "shortlist")
+
+
+def test_missed_requirements_trigger_one_guided_revision(
+    profile: CandidateProfile, session: Session, row: JobPosting, tmp_path: Path
+) -> None:
+    llm = _reviewing_llm(ats_review(60, missing=("Kafka",)), ats_review(85))
+
+    result = tailor_job(row, profile, llm, tmp_path / "a", session)
+
+    assert result.ats_revised and result.ats is not None and result.ats.score == 85
+    guided = [p for p in llm.prompts if "recruiter review of a previous draft" in p]
+    assert guided and all("Kafka" in p for p in guided)  # Drafter and summary both guided.
+
+
+def test_a_worse_revision_is_discarded(
+    profile: CandidateProfile, session: Session, row: JobPosting, tmp_path: Path
+) -> None:
+    llm = _reviewing_llm(ats_review(70, missing=("Kafka",)), ats_review(50))
+    result = tailor_job(row, profile, llm, tmp_path / "a", session)
+    assert not result.ats_revised and result.ats is not None and result.ats.score == 70
+
+
+def test_unavailable_ats_review_does_not_fail_tailoring(
+    profile: CandidateProfile, session: Session, row: JobPosting, tmp_path: Path
+) -> None:
+    result = tailor_job(row, profile, _reviewing_llm(None), tmp_path / "a", session)
+
+    assert result.ats is None and result.paths.resume.exists()
+    assert not result.paths.ats_report.exists()
+    assert row.status == "tailored"

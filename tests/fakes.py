@@ -31,3 +31,17 @@ def template_summary() -> BaseModel:
         "handling 25,000 requests per second with 99.99% uptime."
     )
 
+
+def ats_review(score: int = 82, missing: tuple[str, ...] = ()) -> BaseModel:
+    """A recruiter/ATS review for fakes answering AtsReview."""
+    from src.agents.tailor.ats_review import AtsReview, RequirementCheck
+
+    checks = [RequirementCheck(requirement="Python", priority="required", status="covered")]
+    checks += [
+        RequirementCheck(requirement=m, priority="required", status="missing_have_it")
+        for m in missing
+    ]
+    return AtsReview(
+        score=score, verdict="shortlist", requirements=checks, issues=[], ungrounded_claims=[]
+    )
+

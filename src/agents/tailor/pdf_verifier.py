@@ -35,6 +35,11 @@ def _extract(pdf: bytes) -> tuple[int, str]:
         return 0, ""
 
 
+def extract_text(pdf: bytes) -> str:
+    """The text layer an ATS parses."""
+    return _extract(pdf)[1]
+
+
 def verify_pdf(
     pdf: bytes, profile: CandidateProfile, keywords: Sequence[str], max_pages: int
 ) -> PdfReport:

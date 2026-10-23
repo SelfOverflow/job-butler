@@ -65,7 +65,13 @@ def grounding_problems(
     return problems
 
 
-def _prompt(job: JobLike, profile: CandidateProfile, facts: list[str], feedback: str | None) -> str:
+def _prompt(
+    job: JobLike,
+    profile: CandidateProfile,
+    facts: list[str],
+    feedback: str | None,
+    guidance: str | None = None,
+) -> str:
     lines = [
         f"Write the resume summary for {profile.personal_info.full_name}, tailored to the job",
         "below. Rules:",
@@ -90,13 +96,19 @@ def _prompt(job: JobLike, profile: CandidateProfile, facts: list[str], feedback:
         f"Job: {job.title} at {job.company} ({job.location})",
         f"<job_description>\n{job.description[:MAX_JD_CHARS]}\n</job_description>",
     ]
+    if guidance:
+        lines.append(f"\nA recruiter review of a previous draft said: {guidance}")
     if feedback:
         lines.append(f"\nYour previous summary was rejected: {feedback}. Write it again.")
     return "\n".join(lines)
 
 
 def tailor_summary(
-    job: JobLike, profile: CandidateProfile, resume: TailoredResume, llm: LLMClient
+    job: JobLike,
+    profile: CandidateProfile,
+    resume: TailoredResume,
+    llm: LLMClient,
+    guidance: str | None = None,
 ) -> tuple[str | None, bool]:
     """(summary, tailored): a fact-checked job-specific summary, else the profile one."""
     facts = verified_facts(profile, resume)
@@ -104,7 +116,9 @@ def tailor_summary(
     for _ in range(ATTEMPTS):
         try:
             text = " ".join(
-                llm.generate_json(_prompt(job, profile, facts, feedback), SummaryDraft).text.split()
+                llm.generate_json(
+                    _prompt(job, profile, facts, feedback, guidance), SummaryDraft
+                ).text.split()
             )
         except LLMError:
             break
