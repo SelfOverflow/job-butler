@@ -38,11 +38,12 @@ def tailor_one(
     session: Session,
     llm: LLMClient,
     artifacts_dir: Path,
+    progress: ProgressFn = no_progress,
 ) -> tuple[JobPosting, TailorResult]:
     row = repo.get_job(session, job_id)
     if row is None:
         raise TailorError(f"No job with id {job_id}")
-    result = tailor_job(row, profile, llm, artifacts_dir, session)
+    result = tailor_job(row, profile, llm, artifacts_dir, session, progress)
     return row, result
 
 

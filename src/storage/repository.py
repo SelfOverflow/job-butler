@@ -20,6 +20,7 @@ from src.storage.models import (
     CommandRun,
     CommandStatus,
     JobPosting,
+    JobStatus,
     MarketSnapshotRecord,
     utcnow,
 )
@@ -35,7 +36,9 @@ def upsert_job(session: Session, job: RawJobPosting, score: JobScore) -> JobPost
     key = content_key(job)
     row = session.scalar(select(JobPosting).where(JobPosting.content_key == key))
     if row is None:
-        row = JobPosting(id=job_id(job), content_key=key, discovered_at=utcnow())
+        row = JobPosting(
+            id=job_id(job), content_key=key, discovered_at=utcnow(), status=JobStatus.DISCOVERED
+        )
         session.add(row)
     row.title, row.company, row.location = job.title, job.company, job.location
     row.url, row.description, row.source = job.url, job.description, job.source
@@ -55,6 +58,14 @@ def to_posting(row: JobPosting) -> RawJobPosting:
 
 def get_job(session: Session, job_id: str) -> JobPosting | None:
     return session.get(JobPosting, job_id)
+
+
+def update_job_status(session: Session, job_id: str, status: str) -> JobPosting | None:
+    row = get_job(session, job_id)
+    if row is not None:
+        row.status = status
+        session.flush()
+    return row
 
 
 def list_active(

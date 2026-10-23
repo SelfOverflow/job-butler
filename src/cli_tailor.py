@@ -58,13 +58,15 @@ def tailor(
         labels = tier_labels()
         if job_id:
             try:
-                row, result = tailor_service.tailor_one(
-                    job_id,
-                    profile=profile,
-                    session=session,
-                    llm=llm,
-                    artifacts_dir=settings.artifacts_dir,
-                )
+                with progress_bars() as progress:
+                    row, result = tailor_service.tailor_one(
+                        job_id,
+                        profile=profile,
+                        session=session,
+                        llm=llm,
+                        artifacts_dir=settings.artifacts_dir,
+                        progress=progress,
+                    )
             except TailorError as exc:
                 typer.echo(f"[✗] {exc}")
                 raise typer.Exit(1) from None

@@ -31,6 +31,7 @@ class JobOut(BaseModel):
     tier: str | None
     tier_label: str | None
     is_active: bool
+    status: str
     posted_at: datetime | None
     discovered_at: datetime
     last_verified_at: datetime | None

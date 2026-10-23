@@ -98,6 +98,7 @@ def test_jobs_list_api(client: TestClient, ids: dict[str, str], settings: Settin
         "Hooli",
     )
     assert top["resume_url"] == f"/api/artifacts/{ids['top']}/resume"
+    assert top["status"] == "discovered"
     assert top["cover_letter_url"] is None and jobs[1]["resume_url"] is None
     assert [j["id"] for j in client.get("/api/jobs?min_score=50").json()] == [ids["top"]]
     assert len(client.get("/api/jobs?include_inactive=true").json()) == 3

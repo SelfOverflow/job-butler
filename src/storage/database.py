@@ -7,7 +7,7 @@ reads without `database is locked` errors.
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine, create_engine, event, inspect, text
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -33,6 +33,12 @@ def make_engine(url: str) -> Engine:
 
 def init_db(engine: Engine) -> None:
     Base.metadata.create_all(engine)
+    # Lightweight migration for databases created before `job_postings.status` existed.
+    if "status" not in {c["name"] for c in inspect(engine).get_columns("job_postings")}:
+        with engine.begin() as conn:
+            conn.execute(
+                text("ALTER TABLE job_postings ADD COLUMN status VARCHAR(30) DEFAULT 'discovered'")
+            )
 
 
 def session_factory(engine: Engine) -> sessionmaker[Session]:

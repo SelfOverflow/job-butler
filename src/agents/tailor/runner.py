@@ -11,10 +11,11 @@ from src.agents.tailor.cover_letter import CoverLetterError, write_cover_letter
 from src.agents.tailor.drafter import ReviewError, draft_resume
 from src.agents.tailor.pdf_verifier import PdfReport, verify_pdf
 from src.agents.tailor.typst_engine import FitError, fit_to_budget
+from src.ingestion.base import ProgressFn, no_progress
 from src.ingestion.scorer import score_job
 from src.profile.models import CandidateProfile
 from src.storage import repository as repo
-from src.storage.models import JobPosting
+from src.storage.models import JobPosting, JobStatus
 
 ACTOR = "agent:tailor"
 
@@ -55,18 +56,27 @@ def tailor_job(
     llm: LLMClient,
     artifacts_dir: Path,
     session: Session,
+    progress: ProgressFn = no_progress,
 ) -> TailorResult:
     started = time.monotonic()
+    row.status = JobStatus.TAILORING
+    session.commit()
     try:
+        progress("tailor", 0, 4, "Starting resume tailoring...")
         if reason := score_job(repo.to_posting(row), profile).rejected_reason:
             raise TailorError(f"not eligible: {reason}")
+        progress("tailor", 1, 4, "Drafting & ranking bullets with LLM...")
         resume = draft_resume(row, profile, llm)
+        progress("tailor", 2, 4, "Fitting Typst page budget...")
         pdf, kept = fit_to_budget(resume, profile)
+        progress("tailor", 3, 4, "Verifying ATS text-layer & keywords...")
         report = verify_pdf(pdf, profile, resume.keywords, resume.pages)
         if not report.passed:
             raise TailorError(f"text-layer check failed: {'; '.join(report.problems)}")
+        progress("tailor", 4, 4, "Writing tailored cover letter...")
         letter = write_cover_letter(row, profile, resume, llm)
     except (LLMError, ReviewError, FitError, CoverLetterError, TailorError) as exc:
+        row.status = JobStatus.TAILOR_FAILED
         repo.record_audit(
             session,
             actor=ACTOR,
@@ -106,5 +116,6 @@ def tailor_job(
             "resume": str(paths.resume),
         },
     )
+    row.status = JobStatus.TAILORED
     session.commit()
     return result

@@ -17,6 +17,14 @@ class Base(DeclarativeBase):
     pass
 
 
+class JobStatus(StrEnum):
+    DISCOVERED = "discovered"
+    TAILORING = "tailoring"
+    TAILORED = "tailored"
+    TAILOR_FAILED = "tailor_failed"
+    APPLIED = "applied"
+
+
 class JobPosting(Base):
     __tablename__ = "job_postings"
 
@@ -36,6 +44,7 @@ class JobPosting(Base):
     discovered_at: Mapped[datetime] = mapped_column(default=utcnow)
     last_seen_at: Mapped[datetime] = mapped_column(default=utcnow)
     last_verified_at: Mapped[datetime | None]
+    status: Mapped[str] = mapped_column(String(30), default=JobStatus.DISCOVERED, index=True)
 
 
 class AuditLog(Base):

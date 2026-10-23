@@ -251,6 +251,7 @@ class CommandRunner:
                     session=session,
                     llm=llm,
                     artifacts_dir=self.settings.artifacts_dir,
+                    progress=progress,
                 )
                 return {"job_id": row.id, "pages": res.pages, "resume": str(res.paths.resume)}
             elif command == "tailor_matches":

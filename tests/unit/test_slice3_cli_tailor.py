@@ -93,6 +93,7 @@ def test_tailor_single_job(env: dict[str, str], tmp_path: Path) -> None:
     resume = tmp_path / "artifacts" / "resumes" / f"{job_id}_resume.pdf"
     assert f"[✓] Resume: {resume}" in out and resume.exists()
     assert (tmp_path / "artifacts" / "cover_letters" / f"{job_id}_cover.txt").exists()
+    assert "Tailoring resumes" in out and "4/4" in out  # Live progress bar on stderr.
 
 
 def test_tailor_unknown_job_and_missing_target(env: dict[str, str]) -> None:
