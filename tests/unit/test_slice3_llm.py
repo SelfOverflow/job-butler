@@ -55,6 +55,22 @@ def test_gemini_api_errors_are_wrapped() -> None:
         _gemini(StubInteractions(error=error)).generate_json("p", Answer)
 
 
+def test_interactions_timeouts_and_connection_errors_are_wrapped() -> None:
+    # Interactions API errors are not subclasses of errors.APIError.
+    from google.genai._gaos.lib.compat_errors import APITimeoutError
+
+    error = APITimeoutError(request=None)  # type: ignore[arg-type]
+    with pytest.raises(LLMError, match="Gemini request failed"):
+        _gemini(StubInteractions(error=error)).generate_json("p", Answer)
+
+
+def test_gemini_client_sets_a_request_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, Any] = {}
+    monkeypatch.setattr("src.agents.llm.genai.Client", lambda **kw: seen.update(kw))
+    GeminiClient("key", "gemini-test")
+    assert seen["http_options"].timeout == 120_000
+
+
 def test_make_llm_requires_api_key(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     with pytest.raises(LLMError, match="GEMINI_API_KEY"):

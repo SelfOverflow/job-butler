@@ -7,12 +7,13 @@ tests) never touches agent code.
 from typing import Any, Protocol, TypeVar
 
 from google import genai
-from google.genai import errors
+from google.genai import types
 from pydantic import BaseModel, ValidationError
 
 from src.config.settings import Settings
 
 T = TypeVar("T", bound=BaseModel)
+TIMEOUT_MS = 120_000  # A hung request must fail the run, not leave it "tailoring" forever.
 
 
 class LLMError(Exception):
@@ -28,7 +29,9 @@ class GeminiClient:
 
     def __init__(self, api_key: str, model: str, sdk: Any = None) -> None:
         self.model = model
-        self._sdk: Any = sdk or genai.Client(api_key=api_key)  # non-streaming calls only
+        self._sdk: Any = sdk or genai.Client(  # non-streaming calls only
+            api_key=api_key, http_options=types.HttpOptions(timeout=TIMEOUT_MS)
+        )
 
     def generate_json(self, prompt: str, schema: type[T]) -> T:
         try:
@@ -40,7 +43,7 @@ class GeminiClient:
                     "schema": schema.model_json_schema(),
                 },
             )
-        except errors.APIError as exc:
+        except Exception as exc:  # SDK errors (incl. Interactions timeouts) share no base class.
             raise LLMError(f"Gemini request failed: {exc}") from exc
         try:
             return schema.model_validate_json(interaction.output_text or "")
