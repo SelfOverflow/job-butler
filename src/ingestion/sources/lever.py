@@ -5,7 +5,7 @@ from typing import Any
 
 import httpx
 
-from src.ingestion.base import RawJobPosting, html_to_text, to_naive_utc
+from src.ingestion.base import RawJobPosting, html_to_markdown, plain_to_markdown, to_naive_utc
 from src.profile.models import WatchedCompany
 
 API = "https://api.lever.co/v0/postings/{board}"
@@ -19,17 +19,19 @@ def fetch_lever(company: WatchedCompany, client: httpx.Client) -> list[RawJobPos
 
 
 def _to_posting(post: dict[str, Any], company: WatchedCompany) -> RawJobPosting:
-    sections = [post.get("descriptionPlain", "")]
+    sections = [plain_to_markdown(post.get("descriptionPlain", ""))]
     for item in post.get("lists", []):
-        sections += [item.get("text", ""), html_to_text(item.get("content", ""))]
-    sections.append(post.get("additionalPlain", ""))
+        if heading := " ".join(item.get("text", "").split()):
+            sections.append(f"## {heading}")
+        sections.append(html_to_markdown(item.get("content", "")))
+    sections.append(plain_to_markdown(post.get("additionalPlain", "")))
     created_ms = post.get("createdAt")
     return RawJobPosting(
         title=post["text"],
         company=company.name,
         location=post.get("categories", {}).get("location") or "",
         url=post["hostedUrl"],
-        description=" ".join(" ".join(sections).split()),
+        description="\n\n".join(s for s in sections if s),
         source="lever",
         posted_at=to_naive_utc(datetime.fromtimestamp(created_ms / 1000, UTC))
         if created_ms

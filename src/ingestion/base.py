@@ -60,6 +60,34 @@ def html_to_text(markup: str) -> str:
     return " ".join(html.unescape(stripped).split())
 
 
+_BLOCK_END = re.compile(r"</(p|div|h[1-6]|ul|ol|li|section|table|tr)>|<br\s*/?>", re.I)
+_HEADING = re.compile(r"<h[1-6][^>]*>(.*?)</h[1-6]>", re.I | re.S)
+_BOLD_PARA = re.compile(r"<p[^>]*>\s*<(strong|b)>(.*?)</\1>\s*</p>", re.I | re.S)
+
+
+def plain_to_markdown(text: str) -> str:
+    """Normalise plain text into lines and blank-line separated paragraphs."""
+    lines = [" ".join(line.split()) for line in text.replace("\xa0", " ").splitlines()]
+    out = "\n".join(lines)
+    return re.sub(r"\n{3,}", "\n\n", out).strip()
+
+
+def html_to_markdown(markup: str) -> str:
+    """Readable Markdown subset from (possibly entity-escaped) HTML.
+
+    Keeps `## ` headings, `- ` bullets and paragraph breaks so descriptions render with
+    structure; word content is identical to `html_to_text`, so scoring is unaffected.
+    """
+    text = html.unescape(markup).replace("\n", " ")
+    text = _HEADING.sub(r"\n\n## \1\n\n", text)
+    text = _BOLD_PARA.sub(r"\n\n## \2\n\n", text)
+    text = re.sub(r"<li[^>]*>", "\n- ", text, flags=re.I)
+    text = _BLOCK_END.sub(lambda m: "\n" if m.group(0).lower().startswith("<br") else "\n\n", text)
+    text = html.unescape(re.sub(r"<[^>]+>", " ", text))
+    md = plain_to_markdown(text)
+    return re.sub(r"(?m)^(- .*)\n\n(?=- )", r"\1\n", md)  # Tight lists.
+
+
 def to_naive_utc(moment: datetime) -> datetime:
     """Storage uses naive UTC; aware datetimes are converted, naive ones assumed UTC."""
     return moment.astimezone(UTC).replace(tzinfo=None) if moment.tzinfo else moment

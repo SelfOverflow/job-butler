@@ -9,7 +9,7 @@ import pytest
 import respx
 from pydantic import ValidationError
 
-from src.ingestion.base import html_to_text
+from src.ingestion.base import html_to_markdown, html_to_text
 from src.ingestion.sources import fetch_watched
 from src.ingestion.sources.greenhouse import fetch_greenhouse
 from src.ingestion.sources.lever import fetch_lever
@@ -45,6 +45,24 @@ def test_html_to_text() -> None:
     assert html_to_text(escaped) == "About us We ship fast."
 
 
+def test_html_to_markdown_keeps_headings_paragraphs_and_bullets() -> None:
+    escaped = (
+        "&lt;h2&gt;&lt;strong&gt;About us &lt;/strong&gt;&lt;/h2&gt;"
+        "&lt;p&gt;We &lt;b&gt;ship&lt;/b&gt;&amp;nbsp; fast.&lt;br&gt;Every day.&lt;/p&gt;"
+        "&lt;p&gt;&lt;strong&gt;What you'll do&lt;/strong&gt;&lt;/p&gt;"
+        "&lt;ul&gt;&lt;li&gt;Build &lt;em&gt;APIs&lt;/em&gt;&lt;/li&gt;\n"
+        "&lt;li&gt;Lead&lt;/li&gt;&lt;/ul&gt;"
+        "&lt;div&gt;&amp;nbsp;&lt;/div&gt;&lt;p&gt;Apply now.&lt;/p&gt;"
+    )
+    assert html_to_markdown(escaped) == (
+        "## About us\n\n"
+        "We ship fast.\nEvery day.\n\n"
+        "## What you'll do\n\n"
+        "- Build APIs\n- Lead\n\n"
+        "Apply now."
+    )
+
+
 def test_greenhouse_response_parsing(client: httpx.Client) -> None:
     payload = _fixture("greenhouse_jobs.json")
     route = respx.get(GREENHOUSE_API, params={"content": "true"}).respond(200, json=payload)
@@ -61,6 +79,7 @@ def test_greenhouse_response_parsing(client: httpx.Client) -> None:
     )
     assert (first.company, first.source) == (raw["company_name"], "greenhouse")  # API name wins
     assert first.description and "<" not in first.description and "&lt;" not in first.description
+    assert first.description.startswith("## Who we are\n\n## About Stripe\n\nStripe is")
     published = datetime.fromisoformat(raw["first_published"])
     assert first.posted_at == published.astimezone(UTC).replace(tzinfo=None)  # naive UTC
 
@@ -80,8 +99,9 @@ def test_lever_response_parsing(client: httpx.Client) -> None:
     )
     assert first.source == "lever"
     assert raw["descriptionPlain"].split()[0] in first.description
-    assert raw["lists"][0]["text"] in first.description
-    assert "<li>" not in first.description
+    assert f"## {raw['lists'][0]['text']}\n\n- Provide administrative" in first.description
+    assert first.description.startswith("A World-Changing Company\n\nPalantir builds")
+    assert "<li>" not in first.description and "\xa0" not in first.description
     assert first.posted_at == datetime.fromtimestamp(raw["createdAt"] / 1000, UTC).replace(
         tzinfo=None
     )

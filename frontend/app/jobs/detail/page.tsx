@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { JobDescription } from "@/components/JobDescription";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { PrepareButton } from "@/components/PrepareButton";
 import { api, type JobDetail } from "@/lib/api";
@@ -244,8 +245,8 @@ function JobDetailContent() {
           <h2 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             Job Description
           </h2>
-          <div className="max-h-[750px] overflow-y-auto whitespace-pre-line text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-            {job.description || "No description provided for this posting."}
+          <div className="max-h-[750px] overflow-y-auto text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
+            <JobDescription text={job.description} />
           </div>
         </section>
 
