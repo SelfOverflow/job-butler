@@ -22,6 +22,11 @@
   #text(size: 9pt, data.contact.join("  |  "))
 ]
 
+#if data.summary != "" [
+  == Summary
+  #data.summary
+]
+
 #if data.skills.len() > 0 [
   == Technical Skills
   #for group in data.skills [*#group.label:* #group.names.join(", ") \ ]

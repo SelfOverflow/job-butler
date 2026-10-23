@@ -178,6 +178,13 @@ class Certification(_Model):
     platform: NonEmptyStr | None = None  # Where it was taken, e.g. "Coursera".
 
 
+class Summary(_Model):
+    """A pre-written resume summary for one role type; rendered verbatim when chosen."""
+
+    id: NonEmptyStr
+    text: Annotated[str, StringConstraints(min_length=1, max_length=450)]  # ~3-4 lines.
+
+
 class STARStory(_Model):
     id: NonEmptyStr
     situation: NonEmptyStr
@@ -213,6 +220,7 @@ class ScreeningQuestion(_Model):
 class CandidateProfile(_Model):
     personal_info: PersonalInfo
     preferences: Preferences
+    summaries: tuple[Summary, ...] = ()
     skills_inventory: dict[str, tuple[Skill, ...]] = Field(default_factory=dict)
     work_experience: tuple[WorkExperience, ...] = Field(min_length=1)
     education: tuple[Education, ...] = ()

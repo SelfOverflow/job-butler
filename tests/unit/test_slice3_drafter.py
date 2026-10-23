@@ -121,3 +121,26 @@ def test_prompt_lists_bullets_and_fences_the_job_description(profile: CandidateP
         assert f"[{bullet.id}] {bullet.text}" in prompt
     assert f"<job_description>\n{JD}\n</job_description>" in prompt
     assert "untrusted" in prompt
+
+
+def test_review_selects_a_profile_summary_verbatim(profile: CandidateProfile) -> None:
+    plan = DraftPlan(keywords=[], bullet_ids=["b_alpha_1"], summary_id="sum_fullstack")
+    assert review(plan, JOB, profile).summary == profile.summaries[1].text
+
+    default = review(DraftPlan(keywords=[], bullet_ids=["b_alpha_1"]), JOB, profile)
+    assert default.summary == profile.summaries[0].text  # No pick: first summary.
+
+    with pytest.raises(ReviewError, match="summary id not in the profile: sum_invented"):
+        review(DraftPlan(keywords=[], bullet_ids=[], summary_id="sum_invented"), JOB, profile)
+
+
+def test_profile_without_summaries_has_no_summary(profile: CandidateProfile) -> None:
+    bare = profile.model_copy(update={"summaries": ()})
+    assert review(DraftPlan(keywords=[], bullet_ids=["b_alpha_1"]), JOB, bare).summary is None
+
+
+def test_prompt_offers_summaries_by_id(profile: CandidateProfile) -> None:
+    llm = _llm(DraftPlan(keywords=["Python"], bullet_ids=["b_alpha_1"], summary_id="sum_backend"))
+    draft_resume(JOB, profile, llm)
+    assert f"[sum_backend] {profile.summaries[0].text}" in llm.prompts[0]
+

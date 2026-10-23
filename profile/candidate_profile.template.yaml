@@ -89,6 +89,15 @@ preferences:
     international: 2  # Exactly 2 pages for international relocation applications
     cover_letter: 1   # Exactly 1 page for cover letters
 
+# Resume summaries (3-4 lines each), one per role type you target. The tailor picks the
+# best fit for each job and renders it verbatim above Technical Skills, so keep every
+# claim backed by your work_experience. Omit to leave the Summary section out.
+summaries:
+  - id: "sum_backend"
+    text: "Senior Backend Engineer with 6+ years building high-throughput distributed microservices in Python and Kafka, with a track record of leading teams and improving reliability for enterprise platforms."
+  - id: "sum_fullstack"
+    text: "Full-Stack Engineer experienced in building enterprise client portals end to end, from React frontends to Python APIs, with a focus on maintainable, well-tested code."
+
 skills_inventory:
   languages_and_frameworks:
     - name: "Python"

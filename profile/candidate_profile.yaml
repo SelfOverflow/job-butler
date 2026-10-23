@@ -96,6 +96,16 @@ preferences:
     international: 2
     cover_letter: 1
 
+# Resume summaries, one per role type. The tailor picks the best fit for each job and
+# renders it verbatim above Technical Skills. Every claim is backed by work_experience.
+summaries:
+  - id: "sum_mobile_fintech"
+    text: "Senior Full-Stack and Mobile Engineer with 5+ years of experience delivering production systems in regulated fintech and carrier-grade telecommunications. Built OakNorth's Personal Savings app from scratch in React Native (Expo) and TypeScript for 100K+ active users, integrated KYC and PSD2 open banking providers (Equifax, Experian, TrueLayer), and reduced analytics instrumentation costs by 50%."
+  - id: "sum_react_native"
+    text: "Senior React Native and Frontend Engineer specializing in cross-platform mobile architecture with React Native, Expo, TypeScript and a Turborepo monorepo. Experienced in interactive data visualisation (Cytoscape.js, Highcharts.js), EAS and GitHub Actions build pipelines with test-driven development, and automated regression testing that cut QA cycle time by 60%."
+  - id: "sum_fullstack_platform"
+    text: "Senior Full-Stack Engineer with 5+ years across TypeScript, React, Node.js (Express) and containerized microservices on Docker and GitHub Actions. Built network topology and telemetry platforms for a 500+ node national MPLS-IP rollout, reducing operator errors by 90%, and drove 100% of production microservice deployments through automated CI/CD pipelines."
+
 skills_inventory:
   frontend_and_web:
     - name: "React.js"

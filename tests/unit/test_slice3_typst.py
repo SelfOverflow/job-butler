@@ -79,6 +79,21 @@ def test_typst_single_column_pdf_compilation() -> None:
     assert "Jan 2023 - Present" in text and "Jun 2020 - Dec 2022" in text
     assert "Professional Experience" in text and "Technical Skills" in text and "Education" in text
     assert text.index("Technical Skills") < text.index("Professional Experience")
+    assert text.index("Summary") < text.index("Technical Skills")
+    assert " ".join(profile.summaries[0].text.split()[:6]) in " ".join(text.split())
+
+
+def test_domestic_roles_fit_one_page_with_the_summary() -> None:
+    # Domestic = the profile's first tier (India for the active profile; US in the template).
+    profile = _big_profile(roles=3, bullets_per_role=8)
+    ids = [b.id for b in profile.bullets]
+    resume = review(DraftPlan(keywords=["Python"], bullet_ids=ids), JOB, profile)
+    assert resume.pages == 1 and resume.summary
+
+    pdf, kept = fit_to_budget(resume, profile)
+
+    assert page_count(pdf) == 1 and len(kept) < len(ids)  # Bullets trimmed, not the summary.
+    assert "Summary" in _text(pdf)
 
 
 def test_course_completions_are_labelled_as_courses() -> None:

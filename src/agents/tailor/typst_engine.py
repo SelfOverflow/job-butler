@@ -47,6 +47,7 @@ def resume_data(
     ]
     return {
         "name": info.full_name,
+        "summary": resume.summary or "",
         "contact": [info.email, info.phone, place, *(link for link in links if link)],
         "roles": roles,
         "skills": _skills(resume, profile, keep),
