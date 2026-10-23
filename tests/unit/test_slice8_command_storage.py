@@ -67,3 +67,20 @@ def test_fail_interrupted_runs(tmp_path: Path) -> None:
         f2 = repo.get_command_run(session, r2.id)
         assert f2 is not None
         assert f2.status == CommandStatus.QUEUED
+
+
+def test_fail_interrupted_tailoring(tmp_path: Path) -> None:
+    from src.ingestion.base import RawJobPosting
+    from src.ingestion.scorer import JobScore
+    from src.storage.models import JobStatus
+
+    engine = make_engine(f"sqlite:///{tmp_path / 'jobs.db'}")
+    init_db(engine)
+    with session_factory(engine)() as session:
+        posting = RawJobPosting("Tech Lead", "Hooli", "Remote", "https://x/1", "", "lever")
+        row = repo.upsert_job(session, posting, JobScore(90, None, 0))
+        row.status = JobStatus.TAILORING  # Server died mid-tailoring.
+        session.commit()
+
+        assert repo.fail_interrupted_tailoring(session) == 1
+        assert row.status == JobStatus.TAILOR_FAILED

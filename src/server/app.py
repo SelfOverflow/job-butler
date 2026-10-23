@@ -35,6 +35,7 @@ def create_app(
         app.state.sessions = session_factory(engine)
         with app.state.sessions() as session:
             repo.fail_interrupted_runs(session)
+            repo.fail_interrupted_tailoring(session)
             session.commit()
         app.state.bus = events.EventBus(app.state.sessions, settings.event_poll_seconds)
         await app.state.bus.start()

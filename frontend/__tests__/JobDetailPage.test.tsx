@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import JobDetailPage from "@/app/jobs/detail/page";
 import { api } from "@/lib/api";
+import { resetTailorStore } from "@/lib/tailorStore";
 import type { FeedMessage } from "@/lib/websocket";
-import { makeJobDetail, mockFetch } from "./fixtures";
+import { makeJobDetail, makeRun, mockFetch } from "./fixtures";
 
 let emit: (msg: FeedMessage) => void = () => {};
 
@@ -26,6 +27,23 @@ describe("JobDetailPage", () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams({ id: "job_1234abcd" });
     vi.restoreAllMocks();
+    resetTailorStore();
+  });
+
+  it("restores the progress bar for a run already in flight (after navigating back)", async () => {
+    mockFetch((url) => {
+      if (url === "/api/jobs/job_1234abcd") return makeJobDetail({ status: "tailoring", resume_url: null });
+      if (url === "/api/commands/runs") return [makeRun({ progress: { done: 3, total: 4, detail: "Verifying ATS text-layer & keywords..." } })];
+      if (url === "/api/commands/runs/run_1") return makeRun({ progress: { done: 3, total: 4, detail: "Verifying ATS text-layer & keywords..." } });
+      return {};
+    });
+
+    render(<JobDetailPage />);
+
+    expect(await screen.findByText("Step 3 of 4 (75%)")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "75");
+    expect(screen.getByText("Verifying ATS text-layer & keywords...")).toBeInTheDocument();
+    expect(screen.getByLabelText("Status Tailoring…")).toBeInTheDocument();
   });
 
   it("renders job information and description on the left column", async () => {

@@ -20,7 +20,7 @@ import { PrepareButton } from "@/components/PrepareButton";
 import { api, type JobDetail } from "@/lib/api";
 import type { CommandProgress } from "@/lib/commands";
 import { ageLabel } from "@/lib/recency";
-import { connectEvents } from "@/lib/websocket";
+import { isActive, useTailorRun, useTailorStore } from "@/lib/tailorStore";
 
 function scoreColour(score: number): string {
   if (score >= 80) return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300";
@@ -39,17 +39,26 @@ function JobDetailContent() {
   const [job, setJob] = useState<JobDetail | null>(null);
   const [loading, setLoading] = useState(() => Boolean(id));
   const [error, setError] = useState<string | null>(null);
-  const [tailoring, setTailoring] = useState(false);
+  const [launching, setLaunching] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [tailored, setTailored] = useState(false);
-  const [progress, setProgress] = useState<CommandProgress | null>(null);
   const [cacheBuster, setCacheBuster] = useState(() => Date.now());
+
+  // Shared store: survives navigation and is re-synced from the server on mount.
+  const run = useTailorRun(id);
+  const startTailoring = useTailorStore((state) => state.start);
+  const running = isActive(run);
+  const tailoring = launching || running;
+  const progress: CommandProgress | null = running && run
+    ? run.progress
+    : launching
+      ? { detail: "Initiating tailor command…" }
+      : null;
+  const tailored = Boolean(job?.resume_url) || run?.status === "succeeded";
 
   const loadJob = useCallback((jobId: string) => {
     return api.job(jobId).then(
       (data) => {
         setJob(data);
-        setTailored(Boolean(data.resume_url));
         setError(null);
         setLoading(false);
       },
@@ -61,71 +70,35 @@ function JobDetailContent() {
   }, []);
 
   useEffect(() => {
-    if (!id) return;
-    loadJob(id);
+    if (id) loadJob(id);
+  }, [id, loadJob]);
 
-    // Connect to WebSocket events for command telemetry
-    const stop = connectEvents((msg) => {
-      if (msg.type === "command" && msg.run && msg.run.command === "tailor_one") {
-        const targetId = msg.run.params?.job_id;
-        if (targetId === id) {
-          if (msg.run.status === "running") {
-            setTailoring(true);
-            setProgress(msg.run.progress ?? null);
-          } else if (msg.run.status === "succeeded") {
-            setTailoring(false);
-            setTailored(true);
-            setProgress(null);
-            setCacheBuster(Date.now());
-            loadJob(id);
-          } else if (msg.run.status === "failed") {
-            setTailoring(false);
-            setProgress(null);
-            setJob((j) => j && { ...j, status: "tailor_failed" });
-            setError(msg.run.error ?? "Resume tailoring failed");
-          }
-        }
+  // When a run seen in flight finishes, refresh the job and the PDF preview.
+  useEffect(() => {
+    if (!id) return;
+    return useTailorStore.subscribe((state, previous) => {
+      const now = state.runs[id];
+      if (!now || isActive(now) || !isActive(previous.runs[id])) return;
+      if (now.status === "succeeded") {
+        setCacheBuster(Date.now());
+        loadJob(id);
+      } else {
+        setJob((j) => j && { ...j, status: now.status === "failed" ? "tailor_failed" : j.status });
+        setError(now.error ?? "Resume tailoring failed");
       }
     });
-
-    return () => stop();
   }, [id, loadJob]);
 
   const handleTailor = async () => {
     if (!id) return;
-    setTailoring(true);
-    setProgress({ detail: "Initiating tailor command…" });
+    setLaunching(true);
     setError(null);
     try {
-      const res = await api.launchCommand("tailor_one", { job_id: id });
-      // Poll fallback in case WebSocket is disconnected or in test environments
-      const pollTimer = setInterval(async () => {
-        try {
-          const run = await api.getRun(res.run_id);
-          if (run.status === "succeeded") {
-            clearInterval(pollTimer);
-            setTailoring(false);
-            setTailored(true);
-            setProgress(null);
-            setCacheBuster(Date.now());
-            loadJob(id);
-          } else if (run.status === "failed" || run.status === "cancelled") {
-            clearInterval(pollTimer);
-            setTailoring(false);
-            setProgress(null);
-            setJob((j) => j && { ...j, status: run.status === "failed" ? "tailor_failed" : j.status });
-            setError(run.error ?? "Resume tailoring failed");
-          } else if (run.progress?.detail || run.progress?.stage) {
-            setProgress(run.progress);
-          }
-        } catch {
-          // Keep polling
-        }
-      }, 1500);
+      await startTailoring(id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-      setTailoring(false);
-      setProgress(null);
+    } finally {
+      setLaunching(false);
     }
   };
 

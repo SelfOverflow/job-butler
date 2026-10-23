@@ -287,3 +287,12 @@ def fail_interrupted_runs(session: Session) -> int:
         count += 1
     session.flush()
     return count
+
+
+def fail_interrupted_tailoring(session: Session) -> int:
+    """At startup nothing can still be tailoring; mark jobs left mid-run as failed."""
+    rows = list(session.scalars(select(JobPosting).where(JobPosting.status == JobStatus.TAILORING)))
+    for row in rows:
+        row.status = JobStatus.TAILOR_FAILED
+    session.flush()
+    return len(rows)

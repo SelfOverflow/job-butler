@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { PrepareButton } from "@/components/PrepareButton";
 import { api, type Job } from "@/lib/api";
+import { isActive, useTailorRun, useTailorStore } from "@/lib/tailorStore";
 import { ageLabel } from "@/lib/recency";
 
 function scoreColour(score: number): string {
@@ -21,9 +22,20 @@ const action =
   "inline-flex items-center gap-1 rounded-md border border-zinc-200 px-2.5 py-1 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800";
 
 export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) => void }) {
-  const [tailoring, setTailoring] = useState(false);
+  const [launching, setLaunching] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [tailored, setTailored] = useState(Boolean(job.resume_url));
+  const run = useTailorRun(job.id);
+  const startTailoring = useTailorStore((state) => state.start);
+  const tailoring = launching || isActive(run);
+  const tailored = Boolean(job.resume_url) || run?.status === "succeeded";
+  const status = tailoring
+    ? "tailoring"
+    : run?.status === "succeeded"
+      ? "tailored"
+      : run?.status === "failed"
+        ? "tailor_failed"
+        : job.status;
+  const step = isActive(run) && run?.progress.total ? ` ${run.progress.done ?? 0}/${run.progress.total}` : "";
   const [verifiedLive, setVerifiedLive] = useState(Boolean(job.last_verified_at));
   const [error, setError] = useState<string | null>(null);
   const [confirmPrune, setConfirmPrune] = useState(false);
@@ -45,15 +57,14 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
   };
 
   const handleTailor = async () => {
-    setTailoring(true);
+    setLaunching(true);
     setError(null);
     try {
-      await api.launchCommand("tailor_one", { job_id: job.id });
-      setTailored(true);
+      await startTailoring(job.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
-      setTailoring(false);
+      setLaunching(false);
     }
   };
 
@@ -89,7 +100,7 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
       </div>
 
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <JobStatusBadge status={tailoring ? "tailoring" : job.status} />
+        <JobStatusBadge status={status} />
         {job.tier_label && <span className={`${pill} bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300`}>{job.tier_label}</span>}
         <span className={`${pill} ${verifiedLive ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"}`}>
           {verifiedLive ? "Live" : "Unverified"}
@@ -120,7 +131,7 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
               className={action}
             >
               <Sparkles size={14} aria-hidden />
-              {tailoring ? "Tailoring…" : "Tailor"}
+              {tailoring ? `Tailoring…${step}` : "Tailor"}
             </button>
             <code className="rounded bg-zinc-100 px-2 py-1 text-xs dark:bg-zinc-800">
               job-butler tailor --job-id {job.id}

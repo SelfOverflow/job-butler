@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 
 import type { Application, AuditEvent, Job, JobDetail } from "@/lib/api";
+import type { CommandRun } from "@/lib/commands";
 
 /** Naive-UTC timestamp `hours` before now, matching the API's format. */
 export function hoursAgo(hours: number): string {
@@ -111,6 +112,23 @@ export function makeApplication(overrides: Partial<Application> = {}): Applicati
     screenshot_url: "/api/hitl/job_1234abcd/screenshot",
     updated_at: "2026-10-22T10:00:00",
     submitted_at: null,
+    ...overrides,
+  };
+}
+
+export function makeRun(overrides: Partial<CommandRun> = {}): CommandRun {
+  return {
+    id: "run_1",
+    command: "tailor_one",
+    params: { job_id: "job_1234abcd" },
+    status: "running",
+    progress: { stage: "tailor", done: 2, total: 4, detail: "Fitting Typst page budget..." },
+    result: null,
+    error: null,
+    requested_by: "human:user",
+    created_at: "2026-10-23T00:00:00",
+    started_at: "2026-10-23T00:00:01",
+    finished_at: null,
     ...overrides,
   };
 }

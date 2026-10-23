@@ -1,18 +1,27 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { JobCard } from "@/components/JobCard";
 import { api } from "@/lib/api";
-import { makeJob } from "./fixtures";
+import { resetTailorStore, useTailorStore } from "@/lib/tailorStore";
+import { makeJob, makeRun } from "./fixtures";
 
 describe("JobCard Actions", () => {
+  afterEach(() => {
+    resetTailorStore();
+    vi.restoreAllMocks();
+  });
+
   it("shows Tailor and Re-verify buttons and launches tailor_one", async () => {
     let resolveLaunch!: (val: { run_id: string; status: string; single_flight: boolean }) => void;
     const launchPromise = new Promise<{ run_id: string; status: string; single_flight: boolean }>((res) => {
       resolveLaunch = res;
     });
     const launchSpy = vi.spyOn(api, "launchCommand").mockReturnValue(launchPromise);
+    vi.spyOn(api, "runs").mockResolvedValue([]);
+    const progress = { done: 1, total: 4, detail: "Drafting & ranking bullets with LLM..." };
+    vi.spyOn(api, "getRun").mockResolvedValue(makeRun({ id: "run_test_123", progress }));
 
     const job = makeJob({ resume_url: null, cover_letter_url: null });
     render(<JobCard job={job} />);
@@ -24,9 +33,14 @@ describe("JobCard Actions", () => {
     expect(launchSpy).toHaveBeenCalledWith("tailor_one", { job_id: job.id });
     expect(screen.getByRole("button", { name: /tailoring/i })).toBeInTheDocument();
 
-    // Finish launch
+    // Launch returns; the card shows live progress, not a resume, until the run succeeds.
     resolveLaunch({ run_id: "run_test_123", status: "queued", single_flight: false });
+    expect(await screen.findByRole("button", { name: "Tailoring… 1/4" })).toBeDisabled();
+    expect(screen.queryByRole("link", { name: /resume/i })).not.toBeInTheDocument();
+
+    act(() => useTailorStore.getState().upsert(makeRun({ id: "run_test_123", status: "succeeded" })));
     expect(await screen.findByRole("link", { name: /resume/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Status Tailored")).toBeInTheDocument();
   });
 
   it("launches scout_verify when Re-verify is clicked", async () => {
