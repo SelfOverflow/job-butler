@@ -155,6 +155,19 @@ def test_serves_static_frontend_when_built(
         assert c.get("/health").json() == {"status": "ok"}  # API still wins
 
 
+def test_dev_mode_redirects_ui_to_live_next_server(settings: Settings, tmp_path: Path) -> None:
+    out = tmp_path / "out"
+    out.mkdir()
+    (out / "index.html").write_text("<h1>Stale build</h1>")
+    dev = settings.model_copy(update={"dev_frontend_url": "http://localhost:3000"})
+    with TestClient(create_app(dev, frontend_dir=out), follow_redirects=False) as c:
+        res = c.get("/jobs/detail/?id=job_1234abcd")
+        assert res.status_code == 307
+        assert res.headers["location"] == "http://localhost:3000/jobs/detail/?id=job_1234abcd"
+        assert c.get("/health").json() == {"status": "ok"}  # API still served here
+        assert c.get("/api/jobs").status_code == 200
+
+
 def test_serve_command_starts_uvicorn(settings: Settings, monkeypatch: pytest.MonkeyPatch) -> None:
     from typer.testing import CliRunner
 

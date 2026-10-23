@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     dashboard_password_hash: str | None = None
     session_secret: str = "insecure-default-change-in-production"
     session_expiry_hours: int = 12
+    # `make dev` only: send UI requests on :8000 to the live `next dev` server, not frontend/out.
+    dev_frontend_url: str | None = None
     event_poll_seconds: float = 2.0  # Live feed: how often to check for new audit events.
     database_url: str = "sqlite:///./data/job_butler.db"
     artifacts_dir: Path = Path("artifacts")

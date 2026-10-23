@@ -5,7 +5,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.config.settings import Settings
@@ -64,7 +65,14 @@ def create_app(
     app.include_router(analytics.router)
     app.include_router(commands.router)
     app.include_router(events.router)
-    if frontend_dir is not None and frontend_dir.is_dir():
+    if dev_url := settings.dev_frontend_url:
+
+        @app.get("/{path:path}", include_in_schema=False)
+        def to_dev_frontend(path: str, request: Request) -> RedirectResponse:
+            query = f"?{request.url.query}" if request.url.query else ""
+            return RedirectResponse(f"{dev_url.rstrip('/')}/{path}{query}")
+
+    elif frontend_dir is not None and frontend_dir.is_dir():
         # Mounted last so API routes win; html=True serves <page>/index.html.
         app.mount("/", StaticFiles(directory=frontend_dir, html=True), name="frontend")
     return app

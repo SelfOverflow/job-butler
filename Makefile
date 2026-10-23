@@ -1,4 +1,4 @@
-.PHONY: help test lint format dev up down build clean
+.PHONY: help test lint format dev dev-backend dev-frontend build-frontend up down build clean
 
 VENV ?= .venv
 export PATH := $(if $(wildcard $(VENV)/bin),$(abspath $(VENV)/bin):$(PATH),$(PATH))
@@ -11,7 +11,8 @@ help:
 	@echo "make format       Format code with ruff"
 	@echo "make dev-backend  Run FastAPI backend locally"
 	@echo "make dev-frontend Run Next.js frontend locally"
-	@echo "make dev          Run both backend and frontend concurrently"
+	@echo "make build-frontend Rebuild the static UI (frontend/out) from a clean cache"
+	@echo "make dev          Run backend (:8000) and frontend (:3000) with live reload"
 	@echo "make up           Start full stack in Docker Compose"
 	@echo "make down         Stop Docker Compose containers"
 	@echo "make build        Build Docker images"
@@ -31,16 +32,24 @@ format:
 	ruff format src tests
 
 dev-backend:
-	uvicorn src.server.app:create_app --factory --host 0.0.0.0 --port 8000 --reload
+	DEV_FRONTEND_URL=http://localhost:3000 uvicorn src.server.app:create_app --factory \
+		--host 0.0.0.0 --port 8000 --reload --reload-dir src
 
+# Live code on both ports: uvicorn reloads Python, `next dev` hot-reloads the UI, and
+# :8000 redirects UI pages to :3000 instead of serving a stale frontend/out build.
 dev-frontend:
 	@if [ -d "frontend" ]; then \
-		cd frontend && npm run dev; \
+		cd frontend && rm -rf .next && npm run dev; \
+	fi
+
+build-frontend:
+	@if [ -d "frontend" ]; then \
+		cd frontend && rm -rf .next out && npm run build; \
 	fi
 
 dev:
 	@echo "Starting backend on :8000 and frontend on :3000..."
-	@make -j 2 dev-backend dev-frontend
+	@$(MAKE) -j 2 dev-backend dev-frontend
 
 up:
 	docker compose up --build -d
