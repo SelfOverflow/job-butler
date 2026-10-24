@@ -235,12 +235,20 @@ class CommandRunner:
                     return dataclasses.asdict(rep)
             elif command == "scout_verify":
                 job_id = params.get("job_id")
+                delete_closed = bool(params.get("delete_closed", False))
                 with httpx.Client(headers={"User-Agent": "job-butler/0.1"}) as http:
                     if job_id:
-                        status, reason = scout_service.verify_one(session, http, job_id)
+                        status, reason = scout_service.verify_one(
+                            session, http, job_id, delete_closed=delete_closed
+                        )
                         return {"job_id": job_id, "status": status, "reason": reason}
                     pruned, counts = scout_service.verify(
-                        session, http, profile, progress=progress, cancel=cancel
+                        session,
+                        http,
+                        profile,
+                        progress=progress,
+                        cancel=cancel,
+                        delete_closed=delete_closed,
                     )
                     return {"pruned": pruned, "counts": counts}
             elif command == "tailor_one":

@@ -118,3 +118,30 @@ def test_cancel_running_command(app_client: TestClient) -> None:
             time.sleep(0.05)
 
         assert res_get.json()["status"] == CommandStatus.CANCELLED
+
+
+def test_scout_verify_command_with_delete_closed(app_client: TestClient) -> None:
+    import time
+
+    with patch(
+        "src.services.scout.verify",
+        return_value=(0, {"live": 2, "closed": 1, "unknown": 0, "deleted": 1}),
+    ) as mock_verify:
+        res = app_client.post("/api/commands/scout_verify", json={"delete_closed": True})
+        assert res.status_code == 202
+        run_id = res.json()["run_id"]
+
+        for _ in range(50):
+            res_get = app_client.get(f"/api/commands/runs/{run_id}")
+            if res_get.json()["status"] in (CommandStatus.SUCCEEDED, CommandStatus.FAILED):
+                break
+            time.sleep(0.05)
+
+        assert res_get.json()["status"] == CommandStatus.SUCCEEDED
+        assert res_get.json()["result"] == {
+            "pruned": 0,
+            "counts": {"live": 2, "closed": 1, "unknown": 0, "deleted": 1},
+        }
+        mock_verify.assert_called_once()
+        _, kwargs = mock_verify.call_args
+        assert kwargs.get("delete_closed") is True

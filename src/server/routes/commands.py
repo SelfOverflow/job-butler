@@ -18,6 +18,7 @@ class ScoutSweepParams(BaseModel):
 
 class ScoutVerifyParams(BaseModel):
     job_id: str | None = None
+    delete_closed: bool = False
 
 
 class TailorOneParams(BaseModel):

@@ -42,6 +42,36 @@ describe("Jobs page", () => {
     await waitFor(() => expect(screen.queryByText("Tech Lead")).not.toBeInTheDocument());
   });
 
+  it("re-verifies all jobs and updates verification note", async () => {
+    const remaining = JOBS;
+    mockFetch(() => remaining);
+    const launchSpy = vi.spyOn(api, "launchCommand").mockResolvedValue({
+      run_id: "run_verify_all",
+      status: "queued",
+      single_flight: false,
+    });
+    const getRunSpy = vi.spyOn(api, "getRun").mockResolvedValue({
+      id: "run_verify_all",
+      command: "scout_verify",
+      params: { delete_closed: true },
+      status: "succeeded",
+      progress: { done: 2, total: 2 },
+      result: { pruned: 0, counts: { live: 1, closed: 1, deleted: 1, unknown: 0 } },
+      error: null,
+      requested_by: "human:user",
+      created_at: new Date().toISOString(),
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
+    });
+    render(<JobsPage />);
+    await screen.findByText("Tech Lead");
+
+    await userEvent.click(screen.getByRole("button", { name: /re-verify all/i }));
+    expect(launchSpy).toHaveBeenCalledWith("scout_verify", { delete_closed: true });
+    expect(getRunSpy).toHaveBeenCalledWith("run_verify_all");
+    expect(await screen.findByText(/re-verified: 1 live, 1 closed & deleted/i)).toBeInTheDocument();
+  });
+
   it("removes a job pruned from its card", async () => {
     mockFetch(() => JOBS);
     vi.spyOn(api, "pruneJob").mockResolvedValue({ job_id: "job_00000002", status: "pruned" });

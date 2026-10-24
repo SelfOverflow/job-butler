@@ -6,6 +6,7 @@ import httpx
 import pytest
 import respx
 import yaml
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.ingestion.pipeline import prune_ineligible, run_sweep, verify_stored
@@ -13,6 +14,7 @@ from src.profile.loader import interpolate
 from src.profile.models import CandidateProfile
 from src.storage import repository as repo
 from src.storage.database import init_db, make_engine, session_factory
+from src.storage.models import JobPosting
 
 ROOT = Path(__file__).resolve().parents[2]
 ENV = {
@@ -131,6 +133,20 @@ def test_verify_stored_deactivates_closed_jobs(session: Session, http: httpx.Cli
         e.details["liveness"]: e.status for e in repo.query_audit(session, action="LINK_VERIFIED")
     }
     assert statuses == {"closed": "WARNING", "unknown": "WARNING"}
+
+
+def test_verify_stored_deletes_closed_jobs(session: Session, http: httpx.Client) -> None:
+    run_sweep(_profile(), session, http, firecrawl=None)
+    respx.get(GOOD["absolute_url"]).respond(200, html="This position has been filled.")
+    respx.get(OKAY["absolute_url"]).respond(503)
+
+    counts = verify_stored(session, http, delete_closed=True)
+
+    assert counts == {"live": 0, "closed": 1, "unknown": 1, "deleted": 1}
+    assert [j.title for j in repo.list_active(session)] == ["Software Engineer"]
+    all_jobs = list(session.scalars(select(JobPosting)))
+    assert len(all_jobs) == 1
+    assert all_jobs[0].title == "Software Engineer"
 
 
 def test_progress_events_cover_each_stage(session: Session, http: httpx.Client) -> None:

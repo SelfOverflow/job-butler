@@ -86,6 +86,19 @@ def mark_inactive(session: Session, job_id: str) -> None:
     row.last_verified_at = utcnow()
 
 
+def delete_job(session: Session, job_id: str) -> bool:
+    """Delete a job posting and its associated application record (if any)."""
+    app = get_application(session, job_id)
+    if app is not None:
+        session.delete(app)
+    row = get_job(session, job_id)
+    if row is None:
+        return False
+    session.delete(row)
+    session.flush()
+    return True
+
+
 def record_audit(
     session: Session,
     *,

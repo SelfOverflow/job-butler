@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ExternalLink, FileText, Mail, RefreshCw, Sparkles, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,9 +38,8 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
         ? "tailor_failed"
         : job.status;
   const step = isActive(run) && run?.progress.total ? ` ${run.progress.done ?? 0}/${run.progress.total}` : "";
-  const [liveness, setLiveness] = useState<"live" | "closed" | "unverified">(
-    !job.is_active ? "closed" : job.last_verified_at ? "live" : "unverified",
-  );
+  const [overrideLiveness, setOverrideLiveness] = useState<"live" | "closed" | null>(null);
+  const liveness = overrideLiveness ?? (!job.is_active ? "closed" : job.last_verified_at ? "live" : "unverified");
   const [error, setError] = useState<string | null>(null);
   const [confirmPrune, setConfirmPrune] = useState(false);
   const [pruning, setPruning] = useState(false);
@@ -48,10 +47,6 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
   const queryClient = useQueryClient();
   const pruneJobMutation = usePruneJobMutation();
   const launchCommandMutation = useLaunchCommandMutation();
-
-  useEffect(() => {
-    setLiveness(!job.is_active ? "closed" : job.last_verified_at ? "live" : "unverified");
-  }, [job.is_active, job.last_verified_at]);
 
   const handlePrune = async () => {
     setPruning(true);
@@ -92,11 +87,9 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
       }
       const outcome = (run?.result as { status?: string } | null)?.status;
       if (outcome === "closed") {
-        setLiveness("closed");
-      } else if (outcome === "live") {
-        setLiveness("live");
+        setOverrideLiveness("closed");
       } else {
-        setLiveness("live");
+        setOverrideLiveness("live");
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.jobs });
     } catch (err) {

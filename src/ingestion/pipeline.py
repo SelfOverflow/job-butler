@@ -4,6 +4,7 @@ import time
 from dataclasses import asdict, dataclass, field
 
 import httpx
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.analytics.market import analyze
@@ -17,7 +18,7 @@ from src.ingestion.scorer import JobScore, score_job
 from src.ingestion.verifier import verify
 from src.profile.models import CandidateProfile
 from src.storage import repository as repo
-from src.storage.models import utcnow
+from src.storage.models import JobPosting, JobStatus, utcnow
 
 ACTOR = "agent:scout"
 
@@ -159,18 +160,40 @@ def prune_ineligible(session: Session, profile: CandidateProfile) -> int:
 
 
 def verify_stored(
-    session: Session, http: httpx.Client, progress: ProgressFn = no_progress
+    session: Session,
+    http: httpx.Client,
+    progress: ProgressFn = no_progress,
+    delete_closed: bool = False,
 ) -> dict[str, int]:
-    """Re-check every active job; closed ones are deactivated, unknown ones kept."""
+    """Re-check every active job; closed ones are deactivated (or deleted), unknown ones kept."""
     counts = {"live": 0, "closed": 0, "unknown": 0}
+    if delete_closed:
+        counts["deleted"] = 0
+        inactive_rows = list(
+            session.scalars(
+                select(JobPosting).where(
+                    JobPosting.is_active == False,  # noqa: E712
+                    JobPosting.status != JobStatus.PRUNED,
+                )
+            )
+        )
+        for inact in inactive_rows:
+            repo.delete_job(session, inact.id)
+            counts["deleted"] += 1
+
     rows = repo.list_active(session)
     progress("verify", 0, len(rows), "")
     for done, row in enumerate(rows, start=1):
         liveness = verify(row.url, http)
         progress("verify", done, len(rows), row.url)
         counts[liveness.status] += 1
+        target_id, target_url = row.id, row.url
         if liveness.status == "closed":
-            repo.mark_inactive(session, row.id)
+            if delete_closed:
+                repo.delete_job(session, row.id)
+                counts["deleted"] += 1
+            else:
+                repo.mark_inactive(session, row.id)
         elif liveness.status == "live":
             row.last_verified_at = utcnow()
         repo.record_audit(
@@ -178,8 +201,8 @@ def verify_stored(
             actor=ACTOR,
             action="LINK_VERIFIED",
             status="SUCCESS" if liveness.status == "live" else "WARNING",
-            target_id=row.id,
-            details={"liveness": liveness.status, "reason": liveness.reason, "url": row.url},
+            target_id=target_id,
+            details={"liveness": liveness.status, "reason": liveness.reason, "url": target_url},
         )
         session.commit()
     session.commit()

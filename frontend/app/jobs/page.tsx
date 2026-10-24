@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { RefreshCw, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { JobCard } from "@/components/JobCard";
-import type { Job, Recency } from "@/lib/api";
-import { queryKeys, useJobsQuery, usePruneJobsMutation } from "@/lib/queries";
+import { api, type Job, type Recency } from "@/lib/api";
+import { queryKeys, useJobsQuery, useLaunchCommandMutation, usePruneJobsMutation } from "@/lib/queries";
 import { RECENCY_OPTIONS, withinRecency } from "@/lib/recency";
 
 const SCORE_FLOORS = [0, 60, 70, 80, 90];
@@ -15,12 +15,15 @@ export default function JobsPage() {
   const queryClient = useQueryClient();
   const { data: jobs = null, error: jobsError } = useJobsQuery();
   const pruneMutation = usePruneJobsMutation();
+  const launchCommandMutation = useLaunchCommandMutation();
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [minScore, setMinScore] = useState(0);
   const [recency, setRecency] = useState<Recency>("any");
   const [pruning, setPruning] = useState(false);
   const [pruneNote, setPruneNote] = useState<string | null>(null);
+  const [verifyingAll, setVerifyingAll] = useState(false);
+  const [verifyNote, setVerifyNote] = useState<string | null>(null);
 
   const displayError = error ?? (jobsError ? jobsError.message : null);
 
@@ -34,6 +37,45 @@ export default function JobsPage() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setPruning(false);
+    }
+  };
+
+  const handleVerifyAll = async () => {
+    setVerifyingAll(true);
+    setVerifyNote(null);
+    setError(null);
+    try {
+      const res = await launchCommandMutation.mutateAsync({
+        name: "scout_verify",
+        params: { delete_closed: true },
+      });
+      let run = await api.getRun(res.run_id).catch(() => null);
+      for (let i = 0; i < 30 && run && (run.status === "queued" || run.status === "running"); i++) {
+        await new Promise((r) => setTimeout(r, 500));
+        run = await api.getRun(res.run_id).catch(() => null);
+      }
+      if (run?.status === "failed") {
+        setError(run.error || "Verification sweep failed");
+      } else if (run?.status === "succeeded") {
+        const result = run.result as {
+          counts?: { live?: number; closed?: number; deleted?: number; unknown?: number };
+        } | null;
+        const counts = result?.counts;
+        const live = counts?.live ?? 0;
+        const closedDeleted = counts?.deleted ?? counts?.closed ?? 0;
+        const unknown = counts?.unknown ?? 0;
+        setVerifyNote(
+          `Re-verified: ${live} live, ${closedDeleted} closed & deleted${unknown > 0 ? `, ${unknown} unknown` : ""}`,
+        );
+      } else {
+        setVerifyNote("Verification sweep running in background");
+      }
+      await queryClient.invalidateQueries({ queryKey: queryKeys.jobs });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.runs });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setVerifyingAll(false);
     }
   };
 
@@ -58,11 +100,22 @@ export default function JobsPage() {
           <h1 className="text-2xl font-semibold">Jobs</h1>
           {jobs && <p className="text-sm text-zinc-500">{`${visible.length} of ${jobs.length} jobs`}</p>}
           {pruneNote && <p role="status" className="text-sm text-emerald-700 dark:text-emerald-400">{pruneNote}</p>}
+          {verifyNote && <p role="status" className="text-sm text-emerald-700 dark:text-emerald-400">{verifyNote}</p>}
         </div>
         <div className="flex gap-2">
           <button
             type="button"
-            disabled={pruning}
+            disabled={verifyingAll || pruning}
+            onClick={handleVerifyAll}
+            title="Re-verify active job links; delete any that cannot be verified"
+            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+          >
+            <RefreshCw size={14} className={verifyingAll ? "animate-spin" : ""} aria-hidden />
+            {verifyingAll ? "Verifying…" : "Re-verify all"}
+          </button>
+          <button
+            type="button"
+            disabled={pruning || verifyingAll}
             onClick={handlePruneAll}
             title="Deactivate jobs that fail a profile gate or are older than your maximum job age"
             className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:hover:bg-zinc-800"

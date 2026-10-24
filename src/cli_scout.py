@@ -128,12 +128,22 @@ def prune(
 
 
 @scout_app.command()
-def verify() -> None:
-    """Re-check every active job's link; closed postings are deactivated."""
+def verify(
+    delete_closed: Annotated[
+        bool,
+        typer.Option(
+            "--delete-closed",
+            help="Delete closed jobs from the database instead of deactivating them",
+        ),
+    ] = False,
+) -> None:
+    """Re-check every active job's link; closed postings are deactivated (or deleted)."""
     with friendly_errors():
         profile = profile_loader().load()
     with _http() as http, db_session() as session, progress_bars() as progress:
-        pruned, counts = scout_service.verify(session, http, profile, progress=progress)
+        pruned, counts = scout_service.verify(
+            session, http, profile, progress=progress, delete_closed=delete_closed
+        )
     typer.echo(f"[✓] Pruned {pruned} stored job(s) that no longer fit the profile")
     summary = ", ".join(f"{status} {n}" for status, n in counts.items())
     typer.echo(f"[✓] Verified: {summary}")

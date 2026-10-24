@@ -43,6 +43,7 @@ def verify(
     profile: CandidateProfile,
     progress: ProgressFn = no_progress,
     cancel: CancelToken | None = None,
+    delete_closed: bool = False,
 ) -> tuple[int, dict[str, int]]:
     if cancel is not None:
         cancel.check()
@@ -55,7 +56,7 @@ def verify(
     pruned = prune_ineligible(session, profile)
     if cancel is not None:
         cancel.check()
-    counts = verify_stored(session, http, checked_progress)
+    counts = verify_stored(session, http, checked_progress, delete_closed=delete_closed)
     return pruned, counts
 
 
@@ -87,13 +88,19 @@ def list_jobs(session: Session, min_score: int | None = None) -> list[JobPosting
     return repo.list_active(session, min_score=min_score)
 
 
-def verify_one(session: Session, http: httpx.Client, job_id: str) -> tuple[str, str]:
+def verify_one(
+    session: Session, http: httpx.Client, job_id: str, delete_closed: bool = False
+) -> tuple[str, str]:
     row = repo.get_job(session, job_id)
     if row is None:
         raise ScoutError(f"Job not found: {job_id}")
     liveness = verifier_verify(row.url, http)
+    target_id, target_url = row.id, row.url
     if liveness.status == "closed":
-        repo.mark_inactive(session, row.id)
+        if delete_closed:
+            repo.delete_job(session, row.id)
+        else:
+            repo.mark_inactive(session, row.id)
     elif liveness.status == "live":
         row.last_verified_at = utcnow()
     repo.record_audit(
@@ -101,8 +108,8 @@ def verify_one(session: Session, http: httpx.Client, job_id: str) -> tuple[str, 
         actor="human:user",
         action="LINK_VERIFIED",
         status="SUCCESS" if liveness.status == "live" else "WARNING",
-        target_id=row.id,
-        details={"liveness": liveness.status, "reason": liveness.reason, "url": row.url},
+        target_id=target_id,
+        details={"liveness": liveness.status, "reason": liveness.reason, "url": target_url},
     )
     session.commit()
     return liveness.status, liveness.reason
