@@ -20,10 +20,12 @@ export type ApplicationWorkflowState = {
   progressStage: string | null;
   progressDone: number;
   progressTotal: number;
+  logs: string[];
   error: string | null;
   activeRunId: string | null;
   isHeaded: boolean;
   setHeaded: (headed: boolean) => void;
+  addLog: (line: string) => void;
   startWorkflow: (job: { id: string; resume_url?: string | null; status?: string }) => Promise<void>;
   updateFromRun: (run: CommandRun) => void;
   reset: () => void;
@@ -50,11 +52,17 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
   progressStage: null,
   progressDone: 0,
   progressTotal: 0,
+  logs: [],
   error: null,
   activeRunId: null,
   isHeaded: false,
 
   setHeaded: (isHeaded) => set({ isHeaded }),
+
+  addLog: (line) =>
+    set((state) => ({
+      logs: state.logs[state.logs.length - 1] === line ? state.logs : [...state.logs.slice(-25), line],
+    })),
 
   reset: () =>
     set({
@@ -64,6 +72,7 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
       progressStage: null,
       progressDone: 0,
       progressTotal: 0,
+      logs: [],
       error: null,
       activeRunId: null,
     }),
@@ -71,12 +80,18 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
   updateFromRun: (run) => {
     if (run.id !== get().activeRunId) return;
     if (run.progress) {
+      const stage = run.progress.stage ?? get().progressStage;
+      const detail = run.progress.detail ?? get().progressDetail;
       set({
-        progressStage: run.progress.stage ?? get().progressStage,
-        progressDetail: run.progress.detail ?? get().progressDetail,
+        progressStage: stage,
+        progressDetail: detail,
         progressDone: run.progress.done ?? get().progressDone,
         progressTotal: run.progress.total ?? get().progressTotal,
       });
+      if (detail) {
+        const timestamp = new Date().toLocaleTimeString();
+        get().addLog(`[${timestamp}] [${stage ?? "info"}] ${detail}`);
+      }
     }
   },
 
