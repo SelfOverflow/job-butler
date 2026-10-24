@@ -116,6 +116,27 @@ def test_lever_posting_without_location(client: httpx.Client) -> None:
     assert (job.location, job.description, job.posted_at) == ("", "", None)
 
 
+def test_lever_posting_with_html_description(client: httpx.Client) -> None:
+    respx.get(LEVER_API, params={"mode": "json"}).respond(
+        200,
+        json=[
+            {
+                "text": "Senior Engineer",
+                "hostedUrl": "https://jobs.lever.co/hooli/2",
+                "categories": {"location": "Remote"},
+                "description": (
+                    "<h2>About the role</h2><p>We build systems.</p>"
+                    "<ul><li>Python</li><li>React</li></ul>"
+                ),
+                "descriptionPlain": "About the role We build systems. Python React",
+            }
+        ],
+    )
+    [job] = fetch_lever(WatchedCompany(name="Hooli", ats="lever", board="hooli"), client)
+    assert "## About the role" in job.description
+    assert "- Python\n- React" in job.description
+
+
 def test_fetch_watched_isolates_failing_boards(client: httpx.Client) -> None:
     respx.get(GREENHOUSE_API).respond(200, json=_fixture("greenhouse_jobs.json"))
     respx.get(LEVER_API).respond(503)

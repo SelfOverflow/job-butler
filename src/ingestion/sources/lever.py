@@ -19,12 +19,22 @@ def fetch_lever(company: WatchedCompany, client: httpx.Client) -> list[RawJobPos
 
 
 def _to_posting(post: dict[str, Any], company: WatchedCompany) -> RawJobPosting:
-    sections = [plain_to_markdown(post.get("descriptionPlain", ""))]
+    desc = (
+        html_to_markdown(post["description"])
+        if post.get("description")
+        else plain_to_markdown(post.get("descriptionPlain", ""))
+    )
+    sections = [desc]
     for item in post.get("lists", []):
         if heading := " ".join(item.get("text", "").split()):
             sections.append(f"## {heading}")
         sections.append(html_to_markdown(item.get("content", "")))
-    sections.append(plain_to_markdown(post.get("additionalPlain", "")))
+    addl = (
+        html_to_markdown(post["additional"])
+        if post.get("additional")
+        else plain_to_markdown(post.get("additionalPlain", ""))
+    )
+    sections.append(addl)
     created_ms = post.get("createdAt")
     return RawJobPosting(
         title=post["text"],
