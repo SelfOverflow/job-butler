@@ -194,6 +194,11 @@ export const api = {
   trends: () => request<Trends>("/api/analytics/trends"),
   upskill: () => request<UpskillReport>("/api/analytics/upskill"),
   pending: () => request<Application[]>("/api/hitl/pending"),
+  applications: (status?: string) => {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+    return request<Application[]>(`/api/hitl/applications${qs}`);
+  },
+  application: (jobId: string) => request<Application>(`/api/hitl/${jobId}`),
   /** prepare/answers never submit; only "approve" submits an application. */
   hitl: (jobId: string, action: HitlAction) =>
     request<Application>(`/api/hitl/${jobId}/${action}`, { method: "POST" }),

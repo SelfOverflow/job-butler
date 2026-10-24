@@ -18,6 +18,8 @@ export const queryKeys = {
   trends: ["trends"] as const,
   upskill: ["upskill"] as const,
   pending: ["pending"] as const,
+  applications: (status?: string) => ["applications", status ?? "all"] as const,
+  application: (jobId: string) => ["application", jobId] as const,
   runs: ["runs"] as const,
   run: (id: string) => ["runs", id] as const,
   settings: ["settings"] as const,
@@ -167,14 +169,31 @@ export function usePendingApplicationsQuery() {
   });
 }
 
+export function useApplicationsQuery(status?: string) {
+  return useQuery({
+    queryKey: queryKeys.applications(status),
+    queryFn: () => api.applications(status),
+  });
+}
+
+export function useApplicationQuery(jobId: string) {
+  return useQuery({
+    queryKey: queryKeys.application(jobId),
+    queryFn: () => api.application(jobId),
+    enabled: Boolean(jobId),
+  });
+}
+
 export function useHitlActionMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ jobId, action }: { jobId: string; action: HitlAction }) =>
       api.hitl(jobId, action),
-    onSuccess: () => {
+    onSuccess: (_data, { jobId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pending });
       queryClient.invalidateQueries({ queryKey: queryKeys.jobs });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.application(jobId) });
     },
   });
 }
@@ -184,8 +203,10 @@ export function useSubmitAnswersMutation() {
   return useMutation({
     mutationFn: ({ jobId, answers }: { jobId: string; answers: Record<string, string> }) =>
       api.answer(jobId, answers),
-    onSuccess: () => {
+    onSuccess: (_data, { jobId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.pending });
+      queryClient.invalidateQueries({ queryKey: ["applications"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.application(jobId) });
     },
   });
 }
