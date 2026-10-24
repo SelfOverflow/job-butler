@@ -16,6 +16,7 @@ from src.agents.tailor.typst_engine import FitError, fit_to_budget
 from src.ingestion.base import ProgressFn, no_progress
 from src.ingestion.scorer import score_job
 from src.profile.models import CandidateProfile
+from src.services.common import CancelledError, CancelToken
 from src.storage import repository as repo
 from src.storage.models import JobPosting, JobStatus
 
@@ -73,12 +74,21 @@ def _draft(
     llm: LLMClient,
     progress: ProgressFn,
     guidance: str | None = None,
+    cancel: CancelToken | None = None,
 ) -> _Draft:
+    if cancel is not None:
+        cancel.check()
     resume = draft_resume(row, profile, llm, guidance)
+    if cancel is not None:
+        cancel.check()
     summary, summary_tailored = tailor_summary(row, profile, resume, llm, guidance)
     resume = replace(resume, summary=summary)
+    if cancel is not None:
+        cancel.check()
     progress("tailor", 2, STEPS, "Fitting Typst page budget...")
     pdf, kept = fit_to_budget(resume, profile)
+    if cancel is not None:
+        cancel.check()
     progress("tailor", 3, STEPS, "Verifying ATS text-layer & keywords...")
     report = verify_pdf(pdf, profile, resume.keywords, resume.pages)
     if not report.passed:
@@ -94,7 +104,12 @@ def _review(
 
 
 def _revise(
-    row: JobPosting, profile: CandidateProfile, llm: LLMClient, draft: _Draft, ats: AtsReview
+    row: JobPosting,
+    profile: CandidateProfile,
+    llm: LLMClient,
+    draft: _Draft,
+    ats: AtsReview,
+    cancel: CancelToken | None = None,
 ) -> tuple[_Draft, AtsReview] | None:
     """One revision for requirements the candidate has but the resume never states."""
     guidance = (
@@ -102,10 +117,14 @@ def _revise(
         f"verified facts show them: {', '.join(ats.missing_have_it)}. Prefer bullets and "
         "summary wording that evidence them, using the posting's exact terms."
     )
+    if cancel is not None:
+        cancel.check()
     try:
-        retry = _draft(row, profile, llm, no_progress, guidance)
+        retry = _draft(row, profile, llm, no_progress, guidance, cancel=cancel)
     except (LLMError, ReviewError, FitError, TailorError):
         return None
+    if cancel is not None:
+        cancel.check()
     retry_ats = _review(row, profile, retry, llm)
     if retry_ats is None or retry_ats.score < ats.score:
         return None
@@ -119,24 +138,42 @@ def tailor_job(
     artifacts_dir: Path,
     session: Session,
     progress: ProgressFn = no_progress,
+    cancel: CancelToken | None = None,
 ) -> TailorResult:
     started = time.monotonic()
+    prev_status = row.status
     row.status = JobStatus.TAILORING
     session.commit()
     try:
+        if cancel is not None:
+            cancel.check()
         progress("tailor", 0, STEPS, "Starting resume tailoring...")
         if reason := score_job(repo.to_posting(row), profile).rejected_reason:
             raise TailorError(f"not eligible: {reason}")
+        if cancel is not None:
+            cancel.check()
         progress("tailor", 1, STEPS, "Drafting bullets & job-specific summary with LLM...")
-        draft = _draft(row, profile, llm, progress)
+        draft = _draft(row, profile, llm, progress, cancel=cancel)
+        if cancel is not None:
+            cancel.check()
         progress("tailor", 4, STEPS, "Recruiter ATS review...")
         ats, revised = _review(row, profile, draft, llm), False
+        if cancel is not None:
+            cancel.check()
         if ats is not None and ats.missing_have_it:
             progress("tailor", 4, STEPS, "Revising for requirements the resume missed...")
-            if better := _revise(row, profile, llm, draft, ats):
+            if better := _revise(row, profile, llm, draft, ats, cancel=cancel):
                 (draft, ats), revised = better, True
+        if cancel is not None:
+            cancel.check()
         progress("tailor", 5, STEPS, "Writing tailored cover letter...")
         letter = write_cover_letter(row, profile, draft.resume, llm)
+        if cancel is not None:
+            cancel.check()
+    except CancelledError:
+        row.status = prev_status if prev_status != JobStatus.TAILORING else JobStatus.DISCOVERED
+        session.commit()
+        raise
     except (LLMError, ReviewError, FitError, CoverLetterError, TailorError) as exc:
         row.status = JobStatus.TAILOR_FAILED
         repo.record_audit(

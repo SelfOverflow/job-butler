@@ -74,3 +74,34 @@ def test_tailor_service_matches_cancellation(profile: ProfileLoader, tmp_path: P
                 artifacts_dir=tmp_path / "artifacts",
                 cancel=token,
             )
+
+
+def test_tailor_service_tailor_one_cancellation(profile: ProfileLoader, tmp_path: Path) -> None:
+    engine = make_engine(f"sqlite:///{tmp_path / 'jobs.db'}")
+    init_db(engine)
+    prof = profile.load()
+    token = CancelToken()
+    token.cancel()
+    with session_factory(engine)() as session:
+        job = RawJobPosting(
+            "Engineer", "Acme", "Remote", "https://example.com/1", "Python", "custom"
+        )
+        row = repo.upsert_job(session, job, JobScore(score=85, tier="Tier 1", boost=5))
+        session.commit()
+        job_id = row.id
+
+        with pytest.raises(CancelledError):
+            tailor_service.tailor_one(
+                job_id,
+                profile=prof,
+                session=session,
+                llm=MagicMock(),
+                artifacts_dir=tmp_path / "artifacts",
+                cancel=token,
+            )
+
+        # After cancellation, job status should be restored (not stuck in tailoring)
+        updated = repo.get_job(session, job_id)
+        assert updated is not None
+        assert updated.status != "tailoring"
+

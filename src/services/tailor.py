@@ -39,11 +39,12 @@ def tailor_one(
     llm: LLMClient,
     artifacts_dir: Path,
     progress: ProgressFn = no_progress,
+    cancel: CancelToken | None = None,
 ) -> tuple[JobPosting, TailorResult]:
     row = repo.get_job(session, job_id)
     if row is None:
         raise TailorError(f"No job with id {job_id}")
-    result = tailor_job(row, profile, llm, artifacts_dir, session, progress)
+    result = tailor_job(row, profile, llm, artifacts_dir, session, progress, cancel=cancel)
     return row, result
 
 
@@ -64,7 +65,7 @@ def tailor_matches(
         if cancel is not None:
             cancel.check()
         try:
-            result = tailor_job(row, profile, llm, artifacts_dir, session)
+            result = tailor_job(row, profile, llm, artifacts_dir, session, cancel=cancel)
             report.succeeded += 1
             report.items.append(TailoredItem(job=row, result=result))
         except TailorError as exc:

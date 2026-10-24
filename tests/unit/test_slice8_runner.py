@@ -75,3 +75,4 @@ def test_runner_tailor_one_forwards_progress(
     with pytest.raises(RuntimeError):
         runner._run_sync("tailor_one", {"job_id": "job_00000001"}, progress, CancelToken())
     assert seen["progress"] is progress
+    assert isinstance(seen.get("cancel"), CancelToken)
