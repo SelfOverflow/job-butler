@@ -15,8 +15,21 @@ export function useLiveEvents(): { events: AuditEvent[]; connected: boolean } {
   useEffect(
     () =>
       connectEvents((message) => {
-        if (message.type === "snapshot") setEvents(message.events.slice(0, MAX_EVENTS));
-        else if (message.type === "audit") setEvents((current) => [message.event, ...current].slice(0, MAX_EVENTS));
+        if (message.type === "snapshot") {
+          const seen = new Set<string>();
+          const deduped: AuditEvent[] = [];
+          for (const ev of message.events) {
+            if (!seen.has(ev.id)) {
+              seen.add(ev.id);
+              deduped.push(ev);
+            }
+          }
+          setEvents(deduped.slice(0, MAX_EVENTS));
+        } else if (message.type === "audit") {
+          setEvents((current) =>
+            [message.event, ...current.filter((e) => e.id !== message.event.id)].slice(0, MAX_EVENTS),
+          );
+        }
       }, setConnected),
     [],
   );

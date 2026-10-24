@@ -44,4 +44,29 @@ describe("LiveFeed", () => {
     unmount();
     expect(FakeWebSocket.latest().closed).toBe(true);
   });
+
+  it("deduplicates events with the same id to prevent duplicate react keys", () => {
+    render(<LiveFeed />);
+    act(() => {
+      FakeWebSocket.latest().open();
+      FakeWebSocket.latest().emit({
+        type: "snapshot",
+        events: [
+          makeEvent({ id: "dup-1", action: "JOB_DISCOVERED" }),
+          makeEvent({ id: "dup-1", action: "JOB_DISCOVERED" }),
+        ],
+      });
+    });
+    let items = within(screen.getByRole("list")).getAllByRole("listitem");
+    expect(items).toHaveLength(1);
+
+    act(() => {
+      FakeWebSocket.latest().emit({
+        type: "audit",
+        event: makeEvent({ id: "dup-1", action: "JOB_DISCOVERED" }),
+      });
+    });
+    items = within(screen.getByRole("list")).getAllByRole("listitem");
+    expect(items).toHaveLength(1);
+  });
 });
