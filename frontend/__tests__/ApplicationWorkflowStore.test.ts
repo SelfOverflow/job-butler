@@ -21,7 +21,10 @@ describe("ApplicationWorkflowStore", () => {
       progress: { stage: "screenshot", done: 5, total: 5, detail: "Captured screenshot" },
       result: { job_id: "job_01234567", status: "awaiting_review" },
       error: null,
+      requested_by: "human:user",
       created_at: new Date().toISOString(),
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
     };
 
     vi.spyOn(api, "launchCommand").mockResolvedValue({
@@ -69,7 +72,10 @@ describe("ApplicationWorkflowStore", () => {
       progress: { stage: "done", done: 4, total: 4, detail: "Tailored" },
       result: { job_id: "job_need_tailor" },
       error: null,
+      requested_by: "human:user",
       created_at: new Date().toISOString(),
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
     };
 
     const mockPrepareRun: CommandRun = {
@@ -80,7 +86,10 @@ describe("ApplicationWorkflowStore", () => {
       progress: { stage: "screenshot", done: 5, total: 5, detail: "Captured screenshot" },
       result: { job_id: "job_need_tailor", status: "needs_input" },
       error: null,
+      requested_by: "human:user",
       created_at: new Date().toISOString(),
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
     };
 
     vi.spyOn(api, "launchCommand")
