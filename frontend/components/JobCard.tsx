@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink, FileText, Mail, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { ExternalLink, FileText, Mail, RefreshCw, Send, Sparkles, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -140,6 +140,13 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        <Link
+          href={`/applications/?jobId=${job.id}&auto=true`}
+          className="inline-flex items-center gap-1.5 rounded-md bg-zinc-900 px-3 py-1 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition"
+        >
+          <Send size={13} aria-hidden /> Apply
+        </Link>
+
         <Link href={`/jobs/detail/?id=${job.id}`} className={action}>
           View Details
         </Link>

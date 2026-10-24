@@ -11,6 +11,7 @@ import {
   Loader2,
   Mail,
   RefreshCw,
+  Send,
   Sparkles,
 } from "lucide-react";
 
@@ -204,7 +205,15 @@ function JobDetailContent() {
             </div>
           </div>
 
-          {tailored && <PrepareButton jobId={job.id} />}
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/applications/?jobId=${job.id}&auto=true`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-zinc-900 px-3.5 py-1.5 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 transition"
+            >
+              <Send size={14} /> Apply Now
+            </Link>
+            {tailored && <PrepareButton jobId={job.id} />}
+          </div>
         </div>
       </header>
 

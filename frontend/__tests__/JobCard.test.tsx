@@ -43,6 +43,12 @@ describe("JobCard", () => {
     expect(screen.getByLabelText(`Status ${label}`)).toHaveTextContent(label);
   });
 
+  it("links to application process with auto apply flag", () => {
+    render(<JobCard job={makeJob()} />);
+    const applyLink = screen.getByRole("link", { name: /apply/i });
+    expect(applyLink).toHaveAttribute("href", "/applications?jobId=job_1234abcd&auto=true");
+  });
+
   it("opens external postings in a new tab safely", () => {
     render(<JobCard job={makeJob()} />);
     const link = screen.getByRole("link", { name: /posting/i });
