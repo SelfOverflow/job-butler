@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useEffect, useState } from "react";
-import { ArrowLeft, ExternalLink, Filter, Loader2, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowLeft, ExternalLink, Filter, Loader2, RotateCcw, Sparkles } from "lucide-react";
 
 import { ApplicationDetailView } from "@/components/ApplicationDetailView";
 import { ApplicationProcessStepper } from "@/components/ApplicationProcessStepper";
@@ -119,14 +119,55 @@ function ApplicationProcessContent() {
                 </div>
               </div>
             )}
-            <ApplicationProcessStepper step={workflow.step} progressDetail={workflow.progressDetail} />
+            <ApplicationProcessStepper step={workflow.step} failedStep={workflow.failedStep} progressDetail={workflow.progressDetail} />
+            <LiveExecutionFeed />
+          </div>
+        ) : workflow.step === "failed" ? (
+          <div className="flex flex-col gap-5">
+            {job && (
+              <div className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight">{job.title}</h2>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                      <span className="font-medium text-zinc-900 dark:text-zinc-100">{job.company}</span> · {job.location}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800 dark:bg-red-950 dark:text-red-300">
+                    Failed
+                  </span>
+                </div>
+              </div>
+            )}
+            <ApplicationProcessStepper step={workflow.step} failedStep={workflow.failedStep} progressDetail={workflow.progressDetail} />
+
+            {workflow.error && (
+              <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
+                <AlertCircle className="mt-0.5 shrink-0 text-red-600 dark:text-red-400" size={18} />
+                <div className="flex flex-col gap-1.5 flex-1">
+                  <p className="font-semibold">Process Failed During {workflow.failedStep === "tailoring" ? "Resume Tailoring" : "Form Autofill"}</p>
+                  <p className="text-xs leading-relaxed">{workflow.error}</p>
+                  {job && (
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => workflow.startWorkflow(job)}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition"
+                      >
+                        <RotateCcw size={12} /> Retry Application Process
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             <LiveExecutionFeed />
           </div>
         ) : app ? (
           <ApplicationDetailView app={app} onRefresh={refetchApp} />
         ) : (
           <div className="flex flex-col gap-4">
-            <ApplicationProcessStepper step={workflow.step} progressDetail={workflow.progressDetail} />
+            <ApplicationProcessStepper step={workflow.step} failedStep={workflow.failedStep} progressDetail={workflow.progressDetail} />
             <LiveExecutionFeed />
           </div>
         )}

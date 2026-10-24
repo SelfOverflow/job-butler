@@ -16,6 +16,7 @@ export type WorkflowStep =
 export type ApplicationWorkflowState = {
   jobId: string | null;
   step: WorkflowStep;
+  failedStep: "tailoring" | "filling_form" | null;
   progressDetail: string | null;
   progressStage: string | null;
   progressDone: number;
@@ -49,6 +50,7 @@ async function pollRunUntilComplete(runId: string): Promise<CommandRun> {
 export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((set, get) => ({
   jobId: null,
   step: "idle",
+  failedStep: null,
   progressDetail: null,
   progressStage: null,
   progressDone: 0,
@@ -69,6 +71,7 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
     set({
       jobId: null,
       step: "idle",
+      failedStep: null,
       progressDetail: null,
       progressStage: null,
       progressDone: 0,
@@ -139,6 +142,7 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
     set({
       jobId: job.id,
       error: null,
+      failedStep: null,
       step: "idle",
     });
 
@@ -149,6 +153,7 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
       if (!isAlreadyTailored) {
         set({
           step: "tailoring",
+          failedStep: "tailoring",
           progressStage: "tailoring",
           progressDetail: "Initiating resume tailoring...",
           progressDone: 0,
@@ -172,6 +177,7 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
       // Phase 2: Playwright Form Autofill & Verification
       set({
         step: "filling_form",
+        failedStep: "filling_form",
         progressStage: "navigating",
         progressDetail: "Launching browser navigator...",
         progressDone: 0,
@@ -193,6 +199,7 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
       const app = await api.application(job.id);
       set({
         step: app.status as WorkflowStep,
+        failedStep: null,
         progressDetail: null,
         activeRunId: null,
       });

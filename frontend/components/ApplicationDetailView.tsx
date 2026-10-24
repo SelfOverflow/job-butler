@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Lock, ShieldAlert } from "lucide-react";
+import { AlertCircle, ExternalLink, Lock, RotateCcw, ShieldAlert } from "lucide-react";
 import React, { useState } from "react";
 
 import { ApplicationProcessStepper } from "@/components/ApplicationProcessStepper";
@@ -66,7 +66,8 @@ export function ApplicationDetailView({
   app: Application;
   onRefresh?: () => void;
 }) {
-  const { step, progressDetail } = useApplicationWorkflowStore();
+  const workflow = useApplicationWorkflowStore();
+  const { step, progressDetail, failedStep } = workflow;
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +76,7 @@ export function ApplicationDetailView({
   const answerMutation = useSubmitAnswersMutation();
 
   const isExecuting = step === "tailoring" || step === "filling_form";
+  const displayError = error ?? app.error ?? (workflow.jobId === app.job_id ? workflow.error : null);
 
   async function handleAction(fn: () => Promise<unknown>) {
     setBusy(true);
@@ -91,7 +93,7 @@ export function ApplicationDetailView({
 
   return (
     <section className="flex flex-col gap-5">
-      <ApplicationProcessStepper step={step} progressDetail={progressDetail} />
+      <ApplicationProcessStepper step={step} failedStep={failedStep} progressDetail={progressDetail} />
 
       {isExecuting && <LiveExecutionFeed />}
 
@@ -106,9 +108,13 @@ export function ApplicationDetailView({
         </div>
       </div>
 
-      {(app.error || error) && (
-        <div role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/60 dark:text-red-300">
-          {error ?? app.error}
+      {displayError && (
+        <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
+          <AlertCircle className="mt-0.5 shrink-0 text-red-600 dark:text-red-400" size={18} />
+          <div className="flex flex-col gap-1 flex-1">
+            <p className="font-semibold">Application Process Error</p>
+            <p className="text-xs leading-relaxed">{displayError}</p>
+          </div>
         </div>
       )}
 
@@ -204,6 +210,17 @@ export function ApplicationDetailView({
                 className={actionBtn}
               >
                 I applied myself
+              </button>
+            )}
+
+            {app.status === "failed" && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => handleAction(() => hitlMutation.mutateAsync({ jobId: app.job_id, action: "prepare" }))}
+                className="inline-flex items-center gap-1.5 rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-zinc-800 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 transition"
+              >
+                <RotateCcw size={12} /> Retry Application
               </button>
             )}
 

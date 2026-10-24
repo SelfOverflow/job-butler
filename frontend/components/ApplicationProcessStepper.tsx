@@ -1,22 +1,29 @@
 "use client";
 
-import { CheckCircle2, Circle, Clock, FastForward, Loader2 } from "lucide-react";
+import { CheckCircle2, Circle, Clock, FastForward, Loader2, XCircle } from "lucide-react";
 import React from "react";
 
 import type { WorkflowStep } from "@/lib/applicationWorkflowStore";
 
 export function ApplicationProcessStepper({
   step,
+  failedStep,
   progressDetail,
 }: {
   step: WorkflowStep;
+  failedStep?: "tailoring" | "filling_form" | null;
   progressDetail?: string | null;
 }) {
   const isTailoring = step === "tailoring";
+  const isTailorFailed = step === "failed" && failedStep === "tailoring";
   const isTailorSkipped = step === "tailoring_skipped";
-  const isTailorDone = isTailorSkipped || ["filling_form", "awaiting_review", "needs_input", "blocked"].includes(step);
+  const isTailorDone =
+    isTailorSkipped ||
+    (step === "failed" && failedStep === "filling_form") ||
+    ["filling_form", "awaiting_review", "needs_input", "blocked"].includes(step);
 
   const isFilling = step === "filling_form";
+  const isFillFailed = step === "failed" && failedStep === "filling_form";
   const isFillDone = ["awaiting_review", "needs_input", "blocked"].includes(step);
 
   const isReview = ["awaiting_review", "needs_input", "blocked"].includes(step);
@@ -28,6 +35,8 @@ export function ApplicationProcessStepper({
         <div className="flex items-center gap-2.5">
           {isTailoring ? (
             <Loader2 className="animate-spin text-sky-600 dark:text-sky-400" size={20} />
+          ) : isTailorFailed ? (
+            <XCircle className="text-rose-600 dark:text-rose-400" size={20} />
           ) : isTailorSkipped ? (
             <FastForward className="text-zinc-500" size={20} />
           ) : isTailorDone ? (
@@ -38,7 +47,7 @@ export function ApplicationProcessStepper({
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Step 1</p>
             <p className="text-sm font-medium">
-              {isTailorSkipped ? "Tailoring (Skipped)" : "Resume Tailoring"}
+              {isTailorFailed ? "Tailoring (Failed)" : isTailorSkipped ? "Tailoring (Skipped)" : "Resume Tailoring"}
             </p>
           </div>
         </div>
@@ -49,6 +58,8 @@ export function ApplicationProcessStepper({
         <div className="flex items-center gap-2.5">
           {isFilling ? (
             <Loader2 className="animate-spin text-sky-600 dark:text-sky-400" size={20} />
+          ) : isFillFailed ? (
+            <XCircle className="text-rose-600 dark:text-rose-400" size={20} />
           ) : isFillDone ? (
             <CheckCircle2 className="text-emerald-600 dark:text-emerald-400" size={20} />
           ) : (
@@ -56,7 +67,9 @@ export function ApplicationProcessStepper({
           )}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Step 2</p>
-            <p className="text-sm font-medium">Form Autofill (Playwright)</p>
+            <p className="text-sm font-medium">
+              {isFillFailed ? "Autofill (Failed)" : "Form Autofill (Playwright)"}
+            </p>
           </div>
         </div>
 

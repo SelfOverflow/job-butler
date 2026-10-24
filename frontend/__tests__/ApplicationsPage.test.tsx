@@ -129,4 +129,29 @@ describe("ApplicationsPage", () => {
       expect(screen.getByText("Playwright Navigator Live Stream")).toBeInTheDocument();
     });
   });
+
+  it("shows error alert and retry button when an application step fails", async () => {
+    mockSearchParams = new URLSearchParams("jobId=job_ongoing_1");
+    vi.spyOn(api, "job").mockResolvedValue(ONGOING_JOB);
+    vi.spyOn(api, "application").mockRejectedValue(new Error("Not found"));
+
+    useApplicationWorkflowStore.setState({
+      jobId: "job_ongoing_1",
+      step: "failed",
+      failedStep: "filling_form",
+      error: "Navigation timeout: Lever application form failed to load",
+      progressStage: "error",
+      progressDetail: null,
+    });
+
+    render(<ApplicationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Staff Distributed Systems Engineer")).toBeInTheDocument();
+      expect(screen.getByText("Autofill (Failed)")).toBeInTheDocument();
+      const alert = screen.getByRole("alert");
+      expect(alert).toHaveTextContent("Navigation timeout: Lever application form failed to load");
+      expect(screen.getByRole("button", { name: /retry application process/i })).toBeInTheDocument();
+    });
+  });
 });

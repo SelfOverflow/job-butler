@@ -39,6 +39,16 @@ describe("ApplicationProcessStepper", () => {
     render(<ApplicationProcessStepper step="tailoring_skipped" />);
     expect(screen.getByText("Tailoring (Skipped)")).toBeInTheDocument();
   });
+
+  it("shows failed states for tailoring and form filling", () => {
+    const { rerender } = render(
+      <ApplicationProcessStepper step="failed" failedStep="tailoring" />,
+    );
+    expect(screen.getByText("Tailoring (Failed)")).toBeInTheDocument();
+
+    rerender(<ApplicationProcessStepper step="failed" failedStep="filling_form" />);
+    expect(screen.getByText("Autofill (Failed)")).toBeInTheDocument();
+  });
 });
 
 describe("ApplicationDetailView", () => {
@@ -50,5 +60,21 @@ describe("ApplicationDetailView", () => {
     expect(screen.getByText("Submit Application (Locked)")).toBeDisabled();
     expect(screen.getByText("Full Name")).toBeInTheDocument();
     expect(screen.getByText("Mohit Ranjan")).toBeInTheDocument();
+  });
+
+  it("displays error alert and retry button when application step failed", () => {
+    render(
+      <ApplicationDetailView
+        app={{
+          ...SAMPLE_APP,
+          status: "failed",
+          error: "HTTP 404 at application form URL",
+        }}
+      />,
+    );
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("HTTP 404 at application form URL");
+    expect(screen.getByRole("button", { name: /retry application/i })).toBeInTheDocument();
   });
 });

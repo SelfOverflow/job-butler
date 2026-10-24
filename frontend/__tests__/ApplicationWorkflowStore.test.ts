@@ -127,4 +127,76 @@ describe("ApplicationWorkflowStore", () => {
     expect(api.launchCommand).toHaveBeenCalledWith("tailor_one", { job_id: "job_need_tailor" });
     expect(api.launchCommand).toHaveBeenCalledWith("prepare_application", expect.anything());
   });
+
+  it("captures failure when tailoring step fails", async () => {
+    const store = useApplicationWorkflowStore.getState();
+
+    const mockFailedTailorRun: CommandRun = {
+      id: "run_tailor_fail",
+      command: "tailor_one",
+      params: { job_id: "job_tailor_fail" },
+      status: "failed",
+      progress: { stage: "error", done: 1, total: 4, detail: "Gemini API rate limit" },
+      result: null,
+      error: "Gemini API rate limit exceeded",
+      requested_by: "human:user",
+      created_at: new Date().toISOString(),
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
+    };
+
+    vi.spyOn(api, "launchCommand").mockResolvedValueOnce({
+      run_id: "run_tailor_fail",
+      status: "queued",
+      single_flight: false,
+    });
+    vi.spyOn(api, "getRun").mockResolvedValueOnce(mockFailedTailorRun);
+
+    await store.startWorkflow({
+      id: "job_tailor_fail",
+      resume_url: null,
+      status: "discovered",
+    });
+
+    const state = useApplicationWorkflowStore.getState();
+    expect(state.step).toBe("failed");
+    expect(state.failedStep).toBe("tailoring");
+    expect(state.error).toBe("Gemini API rate limit exceeded");
+  });
+
+  it("captures failure when form filling step fails", async () => {
+    const store = useApplicationWorkflowStore.getState();
+
+    const mockFailedPrepRun: CommandRun = {
+      id: "run_prep_fail",
+      command: "prepare_application",
+      params: { job_id: "job_prep_fail" },
+      status: "failed",
+      progress: { stage: "error", done: 2, total: 5, detail: "HTTP 404 at posting" },
+      result: null,
+      error: "HTTP 404: Job posting no longer exists",
+      requested_by: "human:user",
+      created_at: new Date().toISOString(),
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
+    };
+
+    vi.spyOn(api, "launchCommand").mockResolvedValueOnce({
+      run_id: "run_prep_fail",
+      status: "queued",
+      single_flight: false,
+    });
+    vi.spyOn(api, "getRun").mockResolvedValueOnce(mockFailedPrepRun);
+
+    await store.startWorkflow({
+      id: "job_prep_fail",
+      resume_url: "/artifacts/resumes/job_prep_fail_resume.pdf",
+      status: "tailored",
+    });
+
+    const state = useApplicationWorkflowStore.getState();
+    expect(state.step).toBe("failed");
+    expect(state.failedStep).toBe("filling_form");
+    expect(state.error).toBe("HTTP 404: Job posting no longer exists");
+  });
 });
