@@ -18,6 +18,7 @@ type TailorState = {
   upsert: (run: CommandRun) => void;
   hydrate: () => Promise<void>;
   start: (jobId: string) => Promise<void>;
+  stop: (jobId: string) => Promise<void>;
 };
 
 let pollTimer: ReturnType<typeof setTimeout> | undefined;
@@ -47,6 +48,17 @@ export const useTailorStore = create<TailorState>()((set, get) => ({
     if (typeof tracked === "string" && tracked !== jobId) {  // Single-flight: another job is running.
       throw new Error("Another resume is being tailored; try again when it finishes.");
     }
+  },
+  stop: async (jobId) => {
+    const run = get().runs[jobId];
+    if (!run || !isActive(run)) return;
+    await api.cancelRun(run.id);
+    const cancelledRun: CommandRun = {
+      ...run,
+      status: "cancelled",
+      finished_at: new Date().toISOString(),
+    };
+    get().upsert(cancelledRun);
   },
 }));
 

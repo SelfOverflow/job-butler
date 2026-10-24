@@ -45,4 +45,17 @@ describe("tailor store", () => {
     expect(api.launchCommand).toHaveBeenCalledWith("tailor_one", { job_id: "job_1234abcd" });
     expect(isActive(useTailorStore.getState().runs.job_1234abcd)).toBe(true);
   });
+
+  it("cancels an active tailoring run and marks it cancelled", async () => {
+    vi.spyOn(api, "cancelRun").mockResolvedValue({ status: "cancelling" });
+    const { upsert, stop } = useTailorStore.getState();
+    upsert(makeRun({ id: "run_active", status: "running" }));
+
+    await stop("job_1234abcd");
+
+    expect(api.cancelRun).toHaveBeenCalledWith("run_active");
+    const current = useTailorStore.getState().runs.job_1234abcd;
+    expect(current.status).toBe("cancelled");
+    expect(isActive(current)).toBe(false);
+  });
 });

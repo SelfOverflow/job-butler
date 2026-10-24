@@ -29,6 +29,7 @@ export type ApplicationWorkflowState = {
   addLog: (line: string) => void;
   hydrate: () => Promise<void>;
   startWorkflow: (job: { id: string; resume_url?: string | null; status?: string }) => Promise<void>;
+  stopWorkflow: () => Promise<void>;
   updateFromRun: (run: CommandRun) => void;
   reset: () => void;
 };
@@ -164,6 +165,10 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
         set({ activeRunId: tailorRunId });
         const finishedTailor = await pollRunUntilComplete(tailorRunId);
 
+        if (finishedTailor.status === "cancelled") {
+          throw new Error("Resume tailoring was stopped by user");
+        }
+
         if (finishedTailor.status === "failed") {
           throw new Error(finishedTailor.error ?? "Resume tailoring failed");
         }
@@ -191,6 +196,10 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
       set({ activeRunId: prepRunId });
       const finishedPrep = await pollRunUntilComplete(prepRunId);
 
+      if (finishedPrep.status === "cancelled") {
+        throw new Error("Application process was stopped by user");
+      }
+
       if (finishedPrep.status === "failed") {
         throw new Error(finishedPrep.error ?? "Application preparation failed");
       }
@@ -212,5 +221,25 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
         activeRunId: null,
       });
     }
+  },
+
+  stopWorkflow: async () => {
+    const runId = get().activeRunId;
+    const currentStep = get().step;
+    if (runId) {
+      try {
+        await api.cancelRun(runId);
+      } catch {
+        // Ignore cancellation error if run already concluded
+      }
+    }
+    const failedStep = currentStep === "tailoring" ? "tailoring" : "filling_form";
+    set({
+      step: "failed",
+      failedStep,
+      error: `${currentStep === "tailoring" ? "Resume tailoring" : "Application"} process was stopped by user.`,
+      progressDetail: null,
+      activeRunId: null,
+    });
   },
 }));

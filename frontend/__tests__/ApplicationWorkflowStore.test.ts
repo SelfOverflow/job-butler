@@ -199,4 +199,59 @@ describe("ApplicationWorkflowStore", () => {
     expect(state.failedStep).toBe("filling_form");
     expect(state.error).toBe("HTTP 404: Job posting no longer exists");
   });
+
+  it("stops workflow and marks it failed with message when tailoring is cancelled", async () => {
+    const store = useApplicationWorkflowStore.getState();
+
+    const mockCancelledTailorRun: CommandRun = {
+      id: "run_tailor_cancel",
+      command: "tailor_one",
+      params: { job_id: "job_tailor_cancel" },
+      status: "cancelled",
+      progress: { stage: "info", done: 1, total: 4, detail: "Cancelled" },
+      result: null,
+      error: null,
+      requested_by: "human:user",
+      created_at: new Date().toISOString(),
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
+    };
+
+    vi.spyOn(api, "launchCommand").mockResolvedValueOnce({
+      run_id: "run_tailor_cancel",
+      status: "queued",
+      single_flight: false,
+    });
+    vi.spyOn(api, "getRun").mockResolvedValueOnce(mockCancelledTailorRun);
+
+    await store.startWorkflow({
+      id: "job_tailor_cancel",
+      resume_url: null,
+      status: "discovered",
+    });
+
+    const state = useApplicationWorkflowStore.getState();
+    expect(state.step).toBe("failed");
+    expect(state.failedStep).toBe("tailoring");
+    expect(state.error).toContain("stopped");
+    expect(api.launchCommand).not.toHaveBeenCalledWith("prepare_application", expect.anything());
+  });
+
+  it("calls cancelRun and marks workflow stopped when stopWorkflow is invoked", async () => {
+    vi.spyOn(api, "cancelRun").mockResolvedValue({ status: "cancelling" });
+    const store = useApplicationWorkflowStore.getState();
+    useApplicationWorkflowStore.setState({
+      jobId: "job_active",
+      step: "tailoring",
+      activeRunId: "run_active_123",
+    });
+
+    await store.stopWorkflow();
+
+    expect(api.cancelRun).toHaveBeenCalledWith("run_active_123");
+    const state = useApplicationWorkflowStore.getState();
+    expect(state.step).toBe("failed");
+    expect(state.failedStep).toBe("tailoring");
+    expect(state.error).toContain("stopped");
+  });
 });
