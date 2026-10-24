@@ -83,6 +83,11 @@ preferences:
     - {name: "Wise", ats: "greenhouse", board: "wise"}
     - {name: "Spotify", ats: "lever", board: "spotify"}
     - {name: "Linear", ats: "ashby", board: "linear"}
+    - {name: "OpenAI", ats: "ashby", board: "openai"}
+    - {name: "Sarvam AI", ats: "ashby", board: "sarvam"}
+    - {name: "Tower Research Capital", ats: "greenhouse", board: "towerresearchcapital"}
+    - {name: "DigitalOcean", ats: "greenhouse", board: "digitalocean"}
+    - {name: "DuckDuckGo", ats: "greenhouse", board: "duckduckgo"}
 
   job_recency: "1w" # Only discover/save postings published within: 24h | 48h | 72h | 1w | 2w | 4w | 1m | any
   job_max_age: "4w" # Deactivate stored jobs older than this (posting date, else discovery date)
