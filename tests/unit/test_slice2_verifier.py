@@ -75,9 +75,13 @@ def test_gone_status_codes_are_closed(client: httpx.Client, status: int) -> None
     [
         "Sorry, this job is no longer available.",
         "This position has been filled.",
+        "This position has been closed.",
         "We are no longer accepting applications for this role.",
         "The job you are looking for is no longer open.",
         "This job posting has expired.",
+        "This job is not active.",
+        "This job is not published.",
+        "Job not found.",
     ],
 )
 def test_expired_markers_are_closed(client: httpx.Client, marker: str) -> None:

@@ -16,9 +16,11 @@ import httpx
 TIMEOUT = 15.0
 _EXPIRED = re.compile(
     r"no longer (available|open|accepting applications)"
-    r"|position has been filled"
+    r"|position has been (filled|closed)"
     r"|posting has expired"
-    r"|job (is|has been) closed",
+    r"|job (is|has been) (closed|not active|not published)"
+    r"|job not found"
+    r"|this position (is|has been) closed",
     re.IGNORECASE,
 )
 _ASHBY_APP_DATA = re.compile(r"window\.__appData\s*=\s*(\{.*?\});\s*</script>", re.DOTALL)

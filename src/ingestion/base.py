@@ -6,6 +6,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from src.ingestion.posting_guard import clean_html_payload, sanitize_posting_text
+
 # progress(stage, done, total, detail): called with done=0 when a stage starts and
 # after each completed step, so callers can render progress without coupling.
 ProgressFn = Callable[[str, int, int, str], None]
@@ -56,8 +58,9 @@ def contains_phrase(haystack: tuple[str, ...], needle: tuple[str, ...]) -> bool:
 
 def html_to_text(markup: str) -> str:
     """Plain text from (possibly entity-escaped) HTML, whitespace collapsed."""
-    stripped = re.sub(r"<[^>]+>", " ", html.unescape(markup))
-    return " ".join(html.unescape(stripped).split())
+    clean = clean_html_payload(markup)
+    stripped = re.sub(r"<[^>]+>", " ", html.unescape(clean))
+    return sanitize_posting_text(" ".join(html.unescape(stripped).split()))
 
 
 _BLOCK_END = re.compile(r"</(p|div|h[1-6]|ul|ol|li|section|table|tr)>|<br\s*/?>", re.I)
@@ -78,14 +81,16 @@ def html_to_markdown(markup: str) -> str:
     Keeps `## ` headings, `- ` bullets and paragraph breaks so descriptions render with
     structure; word content is identical to `html_to_text`, so scoring is unaffected.
     """
-    text = html.unescape(markup).replace("\n", " ")
+    clean = clean_html_payload(markup)
+    text = html.unescape(clean).replace("\n", " ")
     text = _HEADING.sub(r"\n\n## \1\n\n", text)
     text = _BOLD_PARA.sub(r"\n\n## \2\n\n", text)
     text = re.sub(r"<li[^>]*>", "\n- ", text, flags=re.I)
     text = _BLOCK_END.sub(lambda m: "\n" if m.group(0).lower().startswith("<br") else "\n\n", text)
     text = html.unescape(re.sub(r"<[^>]+>", " ", text))
     md = plain_to_markdown(text)
-    return re.sub(r"(?m)^(- .*)\n\n(?=- )", r"\1\n", md)  # Tight lists.
+    sanitized = sanitize_posting_text(md)
+    return re.sub(r"(?m)^(- .*)\n\n(?=- )", r"\1\n", sanitized)  # Tight lists.
 
 
 def to_naive_utc(moment: datetime) -> datetime:
