@@ -123,8 +123,13 @@ def prepare(
     artifacts_dir: Path,
     answers: dict[str, str] | None = None,
     open_page: OpenPage = browser_page,
+    progress: Callable[[str, int, int, str], None] | None = None,
 ) -> ApplicationRecord:
     """Open the form, detect barriers, fill verified answers, screenshot. Never submits."""
+    def notify(stage: str, done: int, total: int, detail: str) -> None:
+        if progress is not None:
+            progress(stage, done, total, detail)
+
     row, paths = _eligible_job(session, job_id, profile, artifacts_dir)
     existing = repo.get_application(session, row.id)
     answers = answers if answers is not None else (existing.answers if existing else {})
@@ -132,22 +137,30 @@ def prepare(
     shot.parent.mkdir(parents=True, exist_ok=True)
     common: dict[str, Any] = {"answers": answers, "screenshot": None, "error": None}
 
+    notify("navigating", 1, 5, f"Opening application URL: {apply_url(row.url)}")
     try:
         with open_page() as page:
             response = page.goto(apply_url(row.url), wait_until="domcontentloaded")
             if response is not None and response.status >= 400:
                 raise ApplyError(f"HTTP {response.status} at {page.url}")
+            notify("checking_barriers", 2, 5, "Scanning page for barriers (CAPTCHA / Login)")
             if barrier := detect_barrier(page.url, page.content()):
                 page.screenshot(path=shot, full_page=True)
                 blocked = {**common, "screenshot": str(shot), "plan": [], "questions": []}
                 return _record(
                     session, row.id, ApplicationStatus.BLOCKED, barrier=barrier.value, **blocked
                 )
+            notify("inspecting_form", 3, 5, "Inspecting form inputs and controls")
             fields = inspect_form(page)
             if not fields:
                 raise ApplyError("No application form found on the page")
             plan = map_fields(fields, profile, paths, answers)
-            fill_form(page, plan)
+
+            def on_field(done_f: int, tot_f: int, label: str, kind: str) -> None:
+                notify("filling_form", 4, 5, f"Filling field {done_f}/{tot_f}: {label} ({kind})")
+
+            fill_form(page, plan, on_step=on_field)
+            notify("capturing_screenshot", 5, 5, f"Capturing verification screenshot: {shot.name}")
             page.screenshot(path=shot, full_page=True)
     except (ApplyError, PlaywrightError) as exc:
         return _record(session, row.id, ApplicationStatus.FAILED, **{**common, "error": str(exc)})

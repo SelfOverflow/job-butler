@@ -111,6 +111,23 @@ def pending(session: SessionDep) -> list[ApplicationOut]:
     return [_out(r) for r in repo.list_applications(session, statuses=PENDING_STATUSES)]
 
 
+@router.get("/applications", response_model=list[ApplicationOut])
+def applications(session: SessionDep, status: str | None = None) -> list[ApplicationOut]:
+    """All applications, optionally filtered by status (newest first)."""
+    statuses = [status] if status else None
+    return [_out(r) for r in repo.list_applications(session, statuses=statuses)]
+
+
+@router.get("/{job_id}", response_model=ApplicationOut)
+def get_application(job_id: JobId, session: SessionDep) -> ApplicationOut:
+    """Retrieve application status and plan for a specific job."""
+    _require_job(session, job_id)
+    record = repo.get_application(session, job_id)
+    if record is None:
+        raise HTTPException(404, f"No application record for {job_id}")
+    return _out(record)
+
+
 @router.get("/{job_id}/screenshot")
 def screenshot(job_id: JobId, session: SessionDep) -> FileResponse:
     record = repo.get_application(session, job_id)

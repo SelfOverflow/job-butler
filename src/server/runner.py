@@ -285,6 +285,7 @@ class CommandRunner:
                     profile=profile,
                     artifacts_dir=self.settings.artifacts_dir,
                     answers=params.get("answers"),
+                    progress=progress,
                 )
                 return {
                     "job_id": rec.job_id,

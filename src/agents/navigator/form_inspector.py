@@ -1,5 +1,6 @@
 """Read an application form's controls from a live page, and fill a FillPlan into it."""
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,7 @@ from playwright.sync_api import Page
 from src.agents.navigator.field_mapper import FieldSpec, FillPlan
 
 _INSPECT_JS = (Path(__file__).parent / "inspect_form.js").read_text(encoding="utf-8")
+StepCallback = Callable[[int, int, str, str], None]
 
 
 def inspect_form(page: Page) -> list[FieldSpec]:
@@ -26,9 +28,16 @@ def inspect_form(page: Page) -> list[FieldSpec]:
     ]
 
 
-def fill_form(page: Page, plan: FillPlan) -> None:
-    for item in plan.planned:
+def fill_form(
+    page: Page,
+    plan: FillPlan,
+    on_step: StepCallback | None = None,
+) -> None:
+    total = len(plan.planned)
+    for i, item in enumerate(plan.planned, start=1):
         spec, value = item.field, item.value
+        if on_step is not None:
+            on_step(i, total, spec.label, spec.kind)
         if spec.kind in ("select", "radio"):
             option_value = spec.option_values[spec.options.index(value)]
             if spec.kind == "select":
