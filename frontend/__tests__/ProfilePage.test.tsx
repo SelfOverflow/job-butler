@@ -109,5 +109,19 @@ describe("Profile page", () => {
     );
     expect(await screen.findByText(/added bullet b_test_123/i)).toBeInTheDocument();
   });
+
+  it("renders the master resume markdown preview", async () => {
+    mockFetch((url) => {
+      if (url.endsWith("/export-master")) {
+        return "# Jane Doe\n\n## Professional Experience\n\n- Engineered platform";
+      }
+      return url.endsWith("/backups") ? [] : PROFILE;
+    });
+
+    render(<ProfilePage />);
+    expect(await screen.findByRole("heading", { name: "Master Resume Preview (Markdown)" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Jane Doe" })).toBeInTheDocument();
+    expect(screen.getByText("Engineered platform")).toBeInTheDocument();
+  });
 });
 

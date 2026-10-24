@@ -65,7 +65,7 @@ export function ProfileForm(props: {
   const errorFor = (key: Key) => errors.find((e) => e.loc === `preferences.${key}`)?.msg;
   const general = errors.filter((e) => !FIELDS.some((f) => e.loc === `preferences.${f.key}`));
   return (
-    <form onSubmit={submit} className="flex max-w-xl flex-col gap-4">
+    <form onSubmit={submit} className="flex w-full flex-col gap-4">
       {FIELDS.map(({ key, label, kind, hint }) => {
         const error = errorFor(key);
         const common = {

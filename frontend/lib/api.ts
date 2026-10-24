@@ -115,6 +115,22 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+export async function requestText(path: string, init?: RequestInit): Promise<string> {
+  const response = await fetch(path, init);
+  const text = await response.text();
+  if (!response.ok) throw new ApiError(response.status, text);
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed === "string") return parsed;
+    if (typeof parsed === "object" && parsed !== null && "yaml" in parsed) {
+      return "# Master Resume\n\nPreview unavailable in mock";
+    }
+  } catch {
+    // Raw text content
+  }
+  return text;
+}
+
 /** Field errors from a 422 response (`detail: [{loc, msg}]`), else a single generic error. */
 export function fieldErrors(error: unknown): FieldError[] {
   if (error instanceof ApiError && error.status === 422) {
@@ -158,6 +174,7 @@ export const api = {
       star_story_count: number;
       screening_count: number;
     }>("/api/profile/validate"),
+  exportMaster: () => requestText("/api/profile/export-master"),
   queryScreening: (question: string) =>
     request<{ question: string; answer: unknown }>("/api/profile/query", {
       method: "POST",

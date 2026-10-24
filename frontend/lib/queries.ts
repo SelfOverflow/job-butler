@@ -13,6 +13,7 @@ export const queryKeys = {
   job: (id: string) => ["jobs", id] as const,
   audit: (filters: AuditFilters, offset = 0) => ["audit", filters, offset] as const,
   profile: ["profile"] as const,
+  masterResume: ["masterResume"] as const,
   backups: ["backups"] as const,
   trends: ["trends"] as const,
   upskill: ["upskill"] as const,
@@ -79,6 +80,13 @@ export function useProfileQuery() {
   });
 }
 
+export function useMasterResumeQuery() {
+  return useQuery({
+    queryKey: queryKeys.masterResume,
+    queryFn: api.exportMaster,
+  });
+}
+
 export function useBackupsQuery() {
   return useQuery({
     queryKey: queryKeys.backups,
@@ -92,6 +100,7 @@ export function useUpdateProfileMutation() {
     mutationFn: (update: ProfileUpdate) => api.updateProfile(update),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.masterResume });
       queryClient.invalidateQueries({ queryKey: queryKeys.backups });
     },
   });
@@ -103,6 +112,7 @@ export function useRestoreBackupMutation() {
     mutationFn: (name: string) => api.restoreBackup(name),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.masterResume });
       queryClient.invalidateQueries({ queryKey: queryKeys.backups });
     },
   });
@@ -127,6 +137,7 @@ export function useAddBulletMutation() {
       api.addBullet(roleId, text, skills ?? []),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.masterResume });
     },
   });
 }

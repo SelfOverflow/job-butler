@@ -230,7 +230,7 @@ skills_inventory:
 work_experience:
   - id: "exp_oaknorth_lead"
     company: "OakNorth India"
-    title: "Technical Lead (Individual Contributor)"
+    title: "Mobile Fullstack Engineer II"
     location: "Gurugram, Haryana, India"
     start_date: "2025-07"
     end_date: null
@@ -266,7 +266,7 @@ work_experience:
 
   - id: "exp_tejas_sr_eng"
     company: "Tejas Networks Ltd"
-    title: "Senior Engineer"
+    title: "Senior Software Engineer"
     location: "Gurugram, Haryana, India"
     start_date: "2024-04"
     end_date: "2025-07"
@@ -298,7 +298,7 @@ work_experience:
 
   - id: "exp_tejas_rd_eng"
     company: "Tejas Networks Ltd"
-    title: "Research & Development Engineer"
+    title: "Software Engineer"
     location: "Gurugram, Haryana, India"
     start_date: "2021-07"
     end_date: "2024-04"

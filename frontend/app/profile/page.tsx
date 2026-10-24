@@ -4,11 +4,13 @@ import { useState } from "react";
 import { CheckCircle2, Download, ShieldCheck } from "lucide-react";
 
 import { BackupList } from "@/components/BackupList";
+import { MarkdownPreview } from "@/components/MarkdownPreview";
 import { ProfileForm } from "@/components/ProfileForm";
 import { YamlEditor } from "@/components/YamlEditor";
 import {
   useAddBulletMutation,
   useBackupsQuery,
+  useMasterResumeQuery,
   useProfileQuery,
   useQueryScreeningMutation,
   useRestoreBackupMutation,
@@ -19,6 +21,7 @@ import {
 export default function ProfilePage() {
   const { data = null, error: profileError } = useProfileQuery();
   const { data: backups = [], error: backupsError } = useBackupsQuery();
+  const { data: masterResumeMarkdown = "" } = useMasterResumeQuery();
 
   const updateProfileMutation = useUpdateProfileMutation();
   const restoreBackupMutation = useRestoreBackupMutation();
@@ -182,10 +185,21 @@ export default function ProfilePage() {
       )}
 
       {data?.profile && (
-        <>
-          <h2 className={heading}>Preferences</h2>
-          <ProfileForm key={data.yaml} initial={data.profile.preferences} onSave={save} />
-        </>
+        <div className="flex w-full flex-col items-start gap-6 lg:flex-row">
+          <div className="flex w-full flex-1 min-w-0 flex-col gap-3">
+            <h2 className={heading}>Preferences</h2>
+            <ProfileForm key={data.yaml} initial={data.profile.preferences} onSave={save} />
+          </div>
+          <div className="flex w-full flex-1 min-w-0 flex-col gap-3">
+            {masterResumeMarkdown ? (
+              <MarkdownPreview markdown={masterResumeMarkdown} />
+            ) : (
+              <div className="rounded-xl border border-zinc-200 bg-white p-5 text-sm text-zinc-500 shadow-xs dark:border-zinc-800 dark:bg-zinc-950">
+                Loading master resume preview…
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Screening Questions Query Tester */}
