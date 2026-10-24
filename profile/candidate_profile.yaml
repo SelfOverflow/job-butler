@@ -23,11 +23,15 @@ personal_info:
 preferences:
   target_roles:
     - "Senior Full-Stack Engineer"
+    - "Fullstack Engineer"
     - "Technical Lead"
     - "Lead Mobile Engineer"
     - "Senior React Native Engineer"
     - "Distributed Systems Engineer"
     - "Staff Software Engineer"
+    - "Senior Software Engineer"
+    - "Software Engineer II"
+    - "Software Engineer"
 
   sourcing_hierarchy:
     tier1_india_domestic:
