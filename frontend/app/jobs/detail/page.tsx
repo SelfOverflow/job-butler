@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Send,
   Sparkles,
+  Square,
 } from "lucide-react";
 
 import { AtsReviewPanel } from "@/components/AtsReviewPanel";
@@ -45,6 +46,7 @@ function JobDetailContent() {
   const [jobOverride, setJobOverride] = useState<Partial<JobDetail> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
+  const [stopping, setStopping] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [cacheBuster, setCacheBuster] = useState(() => Date.now());
 
@@ -54,6 +56,7 @@ function JobDetailContent() {
   // Shared store: survives navigation and is re-synced from the server on mount.
   const run = useTailorRun(id);
   const startTailoring = useTailorStore((state) => state.start);
+  const stopTailoring = useTailorStore((state) => state.stop);
   const running = isActive(run);
   const tailoring = launching || running;
   const progress: CommandProgress | null = running && run
@@ -73,6 +76,9 @@ function JobDetailContent() {
         setCacheBuster(Date.now());
         setJobOverride(null);
         refetchJob();
+      } else if (now.status === "cancelled") {
+        setJobOverride({ status: "discovered" });
+        setError("Resume tailoring was stopped");
       } else {
         setJobOverride({ status: now.status === "failed" ? "tailor_failed" : undefined });
         setError(now.error ?? "Resume tailoring failed");
@@ -90,6 +96,19 @@ function JobDetailContent() {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLaunching(false);
+    }
+  };
+
+  const handleStopTailoring = async () => {
+    if (!id) return;
+    setStopping(true);
+    try {
+      await stopTailoring(id);
+      setError("Resume tailoring was stopped by user");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setStopping(false);
     }
   };
 
@@ -293,6 +312,17 @@ function JobDetailContent() {
                   </>
                 ) : null}
                 <p className="text-xs text-zinc-500">{progress?.detail || "Running Drafter & Reviewer loop..."}</p>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    disabled={stopping}
+                    onClick={handleStopTailoring}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:bg-zinc-900 dark:text-red-400 dark:hover:bg-red-950/50 transition disabled:opacity-50"
+                  >
+                    <Square size={12} className="fill-current" />
+                    {stopping ? "Stopping…" : "Stop Tailoring"}
+                  </button>
+                </div>
               </div>
             </div>
           ) : tailored ? (

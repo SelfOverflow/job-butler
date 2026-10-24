@@ -46,6 +46,24 @@ describe("JobDetailPage", () => {
     expect(screen.getByLabelText("Status Tailoring…")).toBeInTheDocument();
   });
 
+  it("allows stopping the tailoring process via Stop Tailoring button", async () => {
+    vi.spyOn(api, "cancelRun").mockResolvedValue({ status: "cancelling" });
+    mockFetch((url) => {
+      if (url === "/api/jobs/job_1234abcd") return makeJobDetail({ status: "tailoring", resume_url: null });
+      if (url === "/api/commands/runs") return [makeRun({ progress: { done: 2, total: 4, detail: "Fitting Typst..." } })];
+      if (url === "/api/commands/runs/run_1") return makeRun({ progress: { done: 2, total: 4, detail: "Fitting Typst..." } });
+      return {};
+    });
+
+    render(<JobDetailPage />);
+
+    const stopBtn = await screen.findByRole("button", { name: /stop tailoring/i });
+    expect(stopBtn).toBeInTheDocument();
+
+    await userEvent.click(stopBtn);
+    expect(api.cancelRun).toHaveBeenCalledWith("run_1");
+  });
+
   it("renders job information and description on the left column", async () => {
     const job = makeJobDetail({
       title: "Senior Full-Stack Engineer",

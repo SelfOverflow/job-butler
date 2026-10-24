@@ -154,4 +154,57 @@ describe("ApplicationsPage", () => {
       expect(screen.getByRole("button", { name: /retry application process/i })).toBeInTheDocument();
     });
   });
+
+  it("allows stopping the tailoring process in ongoing application details", async () => {
+    mockSearchParams = new URLSearchParams("jobId=job_ongoing_1");
+    vi.spyOn(api, "job").mockResolvedValue(ONGOING_JOB);
+    vi.spyOn(api, "cancelRun").mockResolvedValue({ status: "cancelling" });
+
+    useApplicationWorkflowStore.setState({
+      jobId: "job_ongoing_1",
+      step: "tailoring",
+      activeRunId: "run_tailor_999",
+      progressStage: "tailoring",
+      progressDetail: "Drafting resume bullets with LLM...",
+      progressDone: 1,
+      progressTotal: 4,
+    });
+
+    render(<ApplicationsPage />);
+
+    const stopBtn = await screen.findByRole("button", { name: /stop tailoring/i });
+    expect(stopBtn).toBeInTheDocument();
+
+    await stopBtn.click();
+
+    expect(api.cancelRun).toHaveBeenCalledWith("run_tailor_999");
+    await waitFor(() => {
+      expect(screen.getByText("Tailoring (Failed)")).toBeInTheDocument();
+      expect(screen.getByText(/Resume tailoring process was stopped by user/i)).toBeInTheDocument();
+    });
+  });
+
+  it("allows stopping tailoring from the ongoing application card on the listing page", async () => {
+    vi.spyOn(api, "applications").mockResolvedValue(SAMPLE_APPS);
+    vi.spyOn(api, "job").mockResolvedValue(ONGOING_JOB);
+    vi.spyOn(api, "cancelRun").mockResolvedValue({ status: "cancelling" });
+
+    useApplicationWorkflowStore.setState({
+      jobId: "job_ongoing_1",
+      step: "tailoring",
+      activeRunId: "run_tailor_999",
+      progressStage: "tailoring",
+      progressDetail: "Drafting resume bullets with LLM...",
+      progressDone: 1,
+      progressTotal: 4,
+    });
+
+    render(<ApplicationsPage />);
+
+    const stopBtn = await screen.findByRole("button", { name: /stop tailoring/i });
+    expect(stopBtn).toBeInTheDocument();
+
+    await stopBtn.click();
+    expect(api.cancelRun).toHaveBeenCalledWith("run_tailor_999");
+  });
 });

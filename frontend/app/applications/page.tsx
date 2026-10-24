@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { Suspense, useEffect, useState } from "react";
-import { AlertCircle, ArrowLeft, ExternalLink, Filter, Loader2, RotateCcw, Sparkles } from "lucide-react";
+import { AlertCircle, ArrowLeft, ExternalLink, Filter, Loader2, RotateCcw, Sparkles, Square } from "lucide-react";
 
 import { ApplicationDetailView } from "@/components/ApplicationDetailView";
 import { ApplicationProcessStepper } from "@/components/ApplicationProcessStepper";
@@ -112,10 +112,20 @@ function ApplicationProcessContent() {
                       <span className="font-medium text-zinc-900 dark:text-zinc-100">{job.company}</span> · {job.location}
                     </p>
                   </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800 dark:bg-sky-900/60 dark:text-sky-300 animate-pulse">
-                    <span className="h-2 w-2 rounded-full bg-sky-500"></span>
-                    {workflow.step === "tailoring" ? "Tailoring Resume" : "Autofilling Form"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800 dark:bg-sky-900/60 dark:text-sky-300 animate-pulse">
+                      <span className="h-2 w-2 rounded-full bg-sky-500"></span>
+                      {workflow.step === "tailoring" ? "Tailoring Resume" : "Autofilling Form"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => workflow.stopWorkflow()}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50 dark:border-red-900/60 dark:bg-zinc-900 dark:text-red-400 dark:hover:bg-red-950/50 transition"
+                    >
+                      <Square size={12} className="fill-current" />
+                      {workflow.step === "tailoring" ? "Stop Tailoring" : "Stop Process"}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -226,12 +236,22 @@ function ApplicationProcessContent() {
                 Ongoing Application Process
               </h2>
             </div>
-            <Link
-              href={`/applications/?jobId=${ongoingJob.id}`}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-100 hover:underline"
-            >
-              View Live Execution &rarr;
-            </Link>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => workflow.stopWorkflow()}
+                className="inline-flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 hover:underline"
+              >
+                <Square size={11} className="fill-current" />
+                {workflow.step === "tailoring" ? "Stop Tailoring" : "Stop Process"}
+              </button>
+              <Link
+                href={`/applications/?jobId=${ongoingJob.id}`}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-100 hover:underline"
+              >
+                View Live Execution &rarr;
+              </Link>
+            </div>
           </div>
 
           <Link
