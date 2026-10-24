@@ -84,6 +84,11 @@ preferences:
     locations: ["India", "United Kingdom"] # One search per target role and location
     results_per_search: 10
 
+  # Freehire tech jobs discovery (unauthenticated public tech aggregator REST API).
+  freehire:
+    enabled: false
+    results_per_role: 10
+
   cv_page_budget_rules:
     domestic: 1       # Exactly 1 page for domestic applications
     international: 2  # Exactly 2 pages for international relocation applications

@@ -94,6 +94,13 @@ class LinkedInSearch(_Model):
     results_per_search: int = Field(default=10, ge=1, le=25)
 
 
+class FreehireSearch(_Model):
+    """Freehire tech job aggregator discovery."""
+
+    enabled: bool = False
+    results_per_role: int = Field(default=10, ge=1, le=25)
+
+
 class Preferences(_Model):
     target_roles: tuple[NonEmptyStr, ...] = Field(min_length=1)
     # Ordered highest priority first; keys are free-form tier names.
@@ -102,6 +109,7 @@ class Preferences(_Model):
     cv_page_budget_rules: PageBudget
     watched_companies: tuple[WatchedCompany, ...] = ()
     linkedin: LinkedInSearch = LinkedInSearch()
+    freehire: FreehireSearch = FreehireSearch()
     # Overrides the total computed from work_experience dates (e.g. to exclude internships).
     years_of_experience: float | None = Field(default=None, ge=0)
     job_recency: Recency = "1w"  # Only discover and save postings published this recently.

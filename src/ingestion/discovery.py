@@ -28,6 +28,7 @@ from src.ingestion.firecrawl_client import (
 )
 from src.ingestion.recency import RECENCY_HOURS, search_tbs
 from src.ingestion.sources import FETCHERS, fetch_watched
+from src.ingestion.sources.freehire import search_freehire
 from src.ingestion.sources.linkedin import LinkedInClient, LinkedInJob, RateLimitedError
 from src.profile.models import CandidateProfile, WatchedCompany
 
@@ -195,6 +196,7 @@ def discover(
     http: httpx.Client,
     progress: ProgressFn = no_progress,
     linkedin: LinkedInClient | None = None,
+    use_freehire: bool | None = None,
 ) -> tuple[list[RawJobPosting], list[str]]:
     """Search, collect boards, drop excluded employers, and fetch every board."""
     errors: list[str] = []
@@ -214,8 +216,39 @@ def discover(
                 errors.append(f"{query}: {exc}")
             progress("search", done, len(queries), query)
 
+    freehire_jobs: list[RawJobPosting] = []
+    should_freehire = (
+        use_freehire
+        if use_freehire is not None
+        else profile.preferences.freehire.enabled
+    )
+    if should_freehire:
+        prefs = profile.preferences
+        hours = RECENCY_HOURS[prefs.job_recency]
+        days = max(1, hours // 24) if hours else None
+        limit = prefs.freehire.results_per_role
+        progress("freehire", 0, len(prefs.target_roles), "")
+        for done, role in enumerate(prefs.target_roles, start=1):
+            try:
+                found = search_freehire(role, http, limit=limit, days=days)
+                freehire_jobs.extend(found)
+            except httpx.HTTPError as exc:
+                errors.append(f"Freehire {role}: {exc}")
+            progress("freehire", done, len(prefs.target_roles), role)
+
+    freehire_boards = boards_from_results(
+        [
+            SearchResult(url=j.url, title=j.title, description=j.description)
+            for j in freehire_jobs
+        ]
+    )
+
     boards: dict[tuple[str, str], WatchedCompany] = {}
-    for board in [*profile.preferences.watched_companies, *boards_from_results(results)]:
+    for board in [
+        *profile.preferences.watched_companies,
+        *boards_from_results(results),
+        *freehire_boards,
+    ]:
         boards.setdefault((board.ats, board.board), board)
     excluded = profile.preferences.excluded_employers
     wanted = [b for b in boards.values() if not is_excluded_employer(b.name, excluded)]
@@ -231,4 +264,4 @@ def discover(
 
     # Watched career portals come first so they win on duplicates, then searched boards.
     jobs, fetch_errors = fetch_watched(wanted, http, progress)
-    return jobs + linkedin_jobs, errors + fetch_errors
+    return jobs + linkedin_jobs + freehire_jobs, errors + fetch_errors
