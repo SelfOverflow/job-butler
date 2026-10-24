@@ -29,6 +29,7 @@ from src.ingestion.firecrawl_client import (
 from src.ingestion.recency import RECENCY_HOURS, search_tbs
 from src.ingestion.sources import FETCHERS, fetch_watched
 from src.ingestion.sources.freehire import search_freehire
+from src.ingestion.sources.greenhouse import search_greenhouse
 from src.ingestion.sources.linkedin import LinkedInClient, LinkedInJob, RateLimitedError
 from src.profile.models import CandidateProfile, WatchedCompany
 
@@ -197,6 +198,7 @@ def discover(
     progress: ProgressFn = no_progress,
     linkedin: LinkedInClient | None = None,
     use_freehire: bool | None = None,
+    use_greenhouse: bool | None = None,
 ) -> tuple[list[RawJobPosting], list[str]]:
     """Search, collect boards, drop excluded employers, and fetch every board."""
     errors: list[str] = []
@@ -243,11 +245,39 @@ def discover(
         ]
     )
 
+    greenhouse_jobs: list[RawJobPosting] = []
+    should_greenhouse = (
+        use_greenhouse
+        if use_greenhouse is not None
+        else profile.preferences.greenhouse.enabled
+    )
+    if should_greenhouse:
+        prefs = profile.preferences
+        hours = RECENCY_HOURS[prefs.job_recency]
+        days = max(1, hours // 24) if hours else None
+        limit = prefs.greenhouse.results_per_role
+        progress("greenhouse", 0, len(prefs.target_roles), "")
+        for done, role in enumerate(prefs.target_roles, start=1):
+            try:
+                found = search_greenhouse(role, http, limit=limit, days=days)
+                greenhouse_jobs.extend(found)
+            except httpx.HTTPError as exc:
+                errors.append(f"Greenhouse {role}: {exc}")
+            progress("greenhouse", done, len(prefs.target_roles), role)
+
+    greenhouse_boards = boards_from_results(
+        [
+            SearchResult(url=j.url, title=j.title, description=j.description)
+            for j in greenhouse_jobs
+        ]
+    )
+
     boards: dict[tuple[str, str], WatchedCompany] = {}
     for board in [
         *profile.preferences.watched_companies,
         *boards_from_results(results),
         *freehire_boards,
+        *greenhouse_boards,
     ]:
         boards.setdefault((board.ats, board.board), board)
     excluded = profile.preferences.excluded_employers
@@ -264,4 +294,4 @@ def discover(
 
     # Watched career portals come first so they win on duplicates, then searched boards.
     jobs, fetch_errors = fetch_watched(wanted, http, progress)
-    return jobs + linkedin_jobs + freehire_jobs, errors + fetch_errors
+    return jobs + linkedin_jobs + freehire_jobs + greenhouse_jobs, errors + fetch_errors

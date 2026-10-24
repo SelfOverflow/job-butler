@@ -100,6 +100,11 @@ preferences:
     locations: ["India", "United Kingdom", "Germany", "Netherlands", "Canada", "United States", "United Arab Emirates", "Singapore"] # One search per target role and location
     results_per_search: 10
 
+  # Greenhouse tech jobs discovery across global companies (unauthenticated).
+  greenhouse:
+    enabled: true
+    results_per_role: 15
+
   # Freehire tech jobs discovery (unauthenticated public tech aggregator REST API).
   freehire:
     enabled: true

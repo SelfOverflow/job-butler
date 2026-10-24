@@ -49,7 +49,8 @@ def run(
             )
         else:
             typer.echo(
-                "[!] FIRECRAWL_API_KEY not set: only preferences.watched_companies are scanned."
+                "[!] FIRECRAWL_API_KEY not set: scanning public platforms "
+                "(Greenhouse, Freehire, LinkedIn, watched companies)."
             )
         with progress_bars() as progress:
             report = scout_service.sweep(

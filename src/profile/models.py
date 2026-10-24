@@ -101,6 +101,13 @@ class FreehireSearch(_Model):
     results_per_role: int = Field(default=10, ge=1, le=25)
 
 
+class GreenhouseSearch(_Model):
+    """Greenhouse direct job search across all companies globally (unauthenticated)."""
+
+    enabled: bool = False
+    results_per_role: int = Field(default=15, ge=1, le=50)
+
+
 class Preferences(_Model):
     target_roles: tuple[NonEmptyStr, ...] = Field(min_length=1)
     # Ordered highest priority first; keys are free-form tier names.
@@ -108,6 +115,7 @@ class Preferences(_Model):
     excluded_employers: tuple[NonEmptyStr, ...] = ()
     cv_page_budget_rules: PageBudget
     watched_companies: tuple[WatchedCompany, ...] = ()
+    greenhouse: GreenhouseSearch = GreenhouseSearch()
     linkedin: LinkedInSearch = LinkedInSearch()
     freehire: FreehireSearch = FreehireSearch()
     # Overrides the total computed from work_experience dates (e.g. to exclude internships).
