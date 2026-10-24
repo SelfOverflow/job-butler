@@ -41,5 +41,14 @@ describe("Sidebar", () => {
     expect(dashboardLink).toHaveAttribute("aria-current", "page");
     expect(commandsLink).not.toHaveAttribute("aria-current");
   });
+
+  it("highlights Application process when pathname is /applications/", () => {
+    currentPathname = "/applications/";
+    render(<Sidebar />);
+
+    const appLink = screen.getByRole("link", { name: /application process/i });
+    expect(appLink).toHaveAttribute("aria-current", "page");
+    expect(appLink.getAttribute("href")).toMatch(/^\/applications\/?$/);
+  });
 });
 
