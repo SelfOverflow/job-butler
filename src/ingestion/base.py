@@ -67,12 +67,48 @@ _BLOCK_END = re.compile(r"</(p|div|h[1-6]|ul|ol|li|section|table|tr)>|<br\s*/?>"
 _HEADING = re.compile(r"<h[1-6][^>]*>(.*?)</h[1-6]>", re.I | re.S)
 _BOLD_PARA = re.compile(r"<p[^>]*>\s*<(strong|b)>(.*?)</\1>\s*</p>", re.I | re.S)
 
+_KNOWN_SECTIONS = (
+    r"Accountabilities|Responsibilities|Requirements|Qualifications|"
+    r"Required Qualifications|Preferred Qualifications|Minimum Qualifications|"
+    r"Basic Qualifications|Key Responsibilities|What You(?:'|’)?ll Do|"
+    r"What You(?:'|’)?ll Bring|What We Offer|What We(?:'|’)?re Looking For|"
+    r"What You Need|About Us|About the Company|About the Role|About the Team|"
+    r"About [A-Z][a-zA-Z\s]+ Team|Role Overview|Job Overview|Technical Skills|"
+    r"Nice to Have|Preferred Skills|Perks & Benefits|Benefits|Compensation|"
+    r"Who We Are|The Role|Why Join Us|How You Will Contribute|Our Values|"
+    r"Life at [A-Z][a-zA-Z]+|Equal Opportunity Employer|"
+    r"ABOUT THE [A-Z\s]+|THE ROLE|WHAT YOU(?:'|’)?LL DO|WHAT YOU(?:'|’)?LL BRING|"
+    r"REQUIRED QUALIFICATIONS|PREFERRED QUALIFICATIONS|MINIMUM QUALIFICATIONS|"
+    r"WHO WE ARE|WHY JOIN US|COMPENSATION AND BENEFITS"
+)
+_SECTION_RE = re.compile(rf"(?:^|(?<=[.!?\n])\s+)((?:{_KNOWN_SECTIONS}):?)(?=\s|$)", re.I)
+_COLON_RE = re.compile(r"(?:^|(?<=[.!?\n])\s*)([A-Z][A-Za-z0-9& -]{2,35}:)(?!\/\/)\s*")
+_BULLET_RE = re.compile(r"\s+[•\u2022]\s*")
+_DASH_RE = re.compile(r"\s+-\s+(?=[A-Z])")
+_HEADING_SPLIT_RE = re.compile(r"^(## [^\n]+?):?\s+([A-Z])", flags=re.MULTILINE)
+
+
+def format_unstructured_description(text: str) -> str:
+    """Reconstruct headings and bullet lists from unformatted single-paragraph descriptions."""
+    if not text:
+        return ""
+    t = text.strip()
+    if t.count("\n") > 2:
+        return t
+    t = _SECTION_RE.sub(r"\n\n## \1\n\n", t)
+    t = _COLON_RE.sub(r"\n- **\1** ", t)
+    t = _BULLET_RE.sub(r"\n- ", t)
+    t = _DASH_RE.sub(r"\n- ", t)
+    t = _HEADING_SPLIT_RE.sub(r"\1\n\n\2", t)
+    return t.strip()
+
 
 def plain_to_markdown(text: str) -> str:
     """Normalise plain text into lines and blank-line separated paragraphs."""
     lines = [" ".join(line.split()) for line in text.replace("\xa0", " ").splitlines()]
     out = "\n".join(lines)
-    return re.sub(r"\n{3,}", "\n\n", out).strip()
+    cleaned = re.sub(r"\n{3,}", "\n\n", out).strip()
+    return format_unstructured_description(cleaned)
 
 
 def html_to_markdown(markup: str) -> str:

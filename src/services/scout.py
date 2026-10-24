@@ -3,7 +3,7 @@
 import httpx
 from sqlalchemy.orm import Session
 
-from src.ingestion.base import ProgressFn, no_progress
+from src.ingestion.base import ProgressFn, format_unstructured_description, no_progress
 from src.ingestion.firecrawl_client import FirecrawlClient
 from src.ingestion.pipeline import SweepReport, prune_ineligible, run_sweep, verify_stored
 from src.ingestion.verifier import verify as verifier_verify
@@ -86,6 +86,18 @@ def prune_one(session: Session, job_id: str) -> JobPosting:
 
 def list_jobs(session: Session, min_score: int | None = None) -> list[JobPosting]:
     return repo.list_active(session, min_score=min_score)
+
+
+def format_descriptions(session: Session) -> int:
+    """Normalize and format unstructured job descriptions in the database."""
+    count = 0
+    for row in repo.list_active(session, active_only=False):
+        formatted = format_unstructured_description(row.description)
+        if formatted != row.description:
+            row.description = formatted
+            count += 1
+    session.commit()
+    return count
 
 
 def verify_one(

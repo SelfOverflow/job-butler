@@ -154,3 +154,28 @@ def test_cli_scout_prune_command(db_url: str) -> None:
     good_id = repo.job_id(good)
     assert f"[✓] Pruned {good_id}: Tech Lead at Hooli" in _invoke("prune", "--job-id", good_id)
     assert "Job not found: job_missing" in _invoke("prune", "--job-id", "job_missing", exit_code=1)
+
+
+def test_cli_scout_format_command(db_url: str) -> None:
+    unformatted = RawJobPosting(
+        "Backend Engineer",
+        "Hooli",
+        "Remote",
+        "https://x/format_test",
+        (
+            "Responsibilities Full Stack: build apps. API: build apis. "
+            "Requirements 5+ years experience."
+        ),
+        "greenhouse",
+    )
+    _seed(db_url, (unformatted, JobScore(90, None, 0), True))
+
+    out = _invoke("format")
+    assert "[✓] Formatted 1 stored job description(s)" in out
+
+    engine = make_engine(db_url)
+    with session_factory(engine)() as session:
+        job = repo.get_job(session, repo.job_id(unformatted))
+        assert job is not None
+        assert "## Responsibilities" in job.description
+        assert "- **Full Stack:**" in job.description

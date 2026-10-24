@@ -147,3 +147,11 @@ def verify(
     typer.echo(f"[✓] Pruned {pruned} stored job(s) that no longer fit the profile")
     summary = ", ".join(f"{status} {n}" for status, n in counts.items())
     typer.echo(f"[✓] Verified: {summary}")
+
+
+@scout_app.command("format")
+def format_cmd() -> None:
+    """Format stored job descriptions into structured sections and bullet lists."""
+    with db_session() as session:
+        count = scout_service.format_descriptions(session)
+    typer.echo(f"[✓] Formatted {count} stored job description(s)")
