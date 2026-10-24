@@ -63,8 +63,11 @@ describe("JobCard Actions", () => {
       resolveLaunch = res;
     });
     const launchSpy = vi.spyOn(api, "launchCommand").mockReturnValue(launchPromise);
+    vi.spyOn(api, "getRun").mockResolvedValue(
+      makeRun({ id: "run_verify_456", status: "succeeded", result: { status: "live" } }),
+    );
 
-    const job = makeJob({ last_verified_at: null });
+    const job = makeJob({ last_verified_at: null, is_active: true });
     render(<JobCard job={job} />);
 
     const verifyBtn = screen.getByRole("button", { name: /re-verify/i });
@@ -76,6 +79,29 @@ describe("JobCard Actions", () => {
 
     resolveLaunch({ run_id: "run_verify_456", status: "queued", single_flight: false });
     expect(await screen.findByText("Live")).toBeInTheDocument();
+  });
+
+  it("marks job as Closed when Re-verify discovers link is dead", async () => {
+    vi.spyOn(api, "launchCommand").mockResolvedValue({
+      run_id: "run_verify_closed",
+      status: "queued",
+      single_flight: false,
+    });
+    vi.spyOn(api, "getRun").mockResolvedValue(
+      makeRun({
+        id: "run_verify_closed",
+        status: "succeeded",
+        result: { status: "closed", reason: "http 404" },
+      }),
+    );
+
+    const job = makeJob({ is_active: true });
+    render(<JobCard job={job} />);
+
+    const verifyBtn = screen.getByRole("button", { name: /re-verify/i });
+    await userEvent.click(verifyBtn);
+
+    expect(await screen.findByText("Closed")).toBeInTheDocument();
   });
 
   it("prunes the job after confirmation and notifies the list", async () => {

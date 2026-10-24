@@ -20,7 +20,9 @@ _EXPIRED = re.compile(
     r"|posting has expired"
     r"|job (is|has been) (closed|not active|not published)"
     r"|job not found"
-    r"|this position (is|has been) closed",
+    r"|this position (is|has been) closed"
+    r"|we couldn't find anything here"
+    r"|might have closed, or it has been removed",
     re.IGNORECASE,
 )
 _ASHBY_APP_DATA = re.compile(r"window\.__appData\s*=\s*(\{.*?\});\s*</script>", re.DOTALL)

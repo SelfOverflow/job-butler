@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, FileText, Mail, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { PrepareButton } from "@/components/PrepareButton";
-import { type Job } from "@/lib/api";
-import { useLaunchCommandMutation, usePruneJobMutation } from "@/lib/queries";
+import { api, type Job } from "@/lib/api";
+import { queryKeys, useLaunchCommandMutation, usePruneJobMutation } from "@/lib/queries";
 import { isActive, useTailorRun, useTailorStore } from "@/lib/tailorStore";
 import { ageLabel } from "@/lib/recency";
 
@@ -37,13 +38,20 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
         ? "tailor_failed"
         : job.status;
   const step = isActive(run) && run?.progress.total ? ` ${run.progress.done ?? 0}/${run.progress.total}` : "";
-  const [verifiedLive, setVerifiedLive] = useState(Boolean(job.last_verified_at));
+  const [liveness, setLiveness] = useState<"live" | "closed" | "unverified">(
+    !job.is_active ? "closed" : job.last_verified_at ? "live" : "unverified",
+  );
   const [error, setError] = useState<string | null>(null);
   const [confirmPrune, setConfirmPrune] = useState(false);
   const [pruning, setPruning] = useState(false);
 
+  const queryClient = useQueryClient();
   const pruneJobMutation = usePruneJobMutation();
   const launchCommandMutation = useLaunchCommandMutation();
+
+  useEffect(() => {
+    setLiveness(!job.is_active ? "closed" : job.last_verified_at ? "live" : "unverified");
+  }, [job.is_active, job.last_verified_at]);
 
   const handlePrune = async () => {
     setPruning(true);
@@ -76,8 +84,21 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
     setVerifying(true);
     setError(null);
     try {
-      await launchCommandMutation.mutateAsync({ name: "scout_verify", params: { job_id: job.id } });
-      setVerifiedLive(true);
+      const res = await launchCommandMutation.mutateAsync({ name: "scout_verify", params: { job_id: job.id } });
+      let run = await api.getRun(res.run_id).catch(() => null);
+      for (let i = 0; i < 15 && run && (run.status === "queued" || run.status === "running"); i++) {
+        await new Promise((r) => setTimeout(r, 200));
+        run = await api.getRun(res.run_id).catch(() => null);
+      }
+      const outcome = (run?.result as { status?: string } | null)?.status;
+      if (outcome === "closed") {
+        setLiveness("closed");
+      } else if (outcome === "live") {
+        setLiveness("live");
+      } else {
+        setLiveness("live");
+      }
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobs });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -106,9 +127,21 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
       <div className="flex flex-wrap items-center gap-2 text-xs">
         <JobStatusBadge status={status} />
         {job.tier_label && <span className={`${pill} bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300`}>{job.tier_label}</span>}
-        <span className={`${pill} ${verifiedLive ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"}`}>
-          {verifiedLive ? "Live" : "Unverified"}
-        </span>
+        {liveness === "closed" ? (
+          <span className={`${pill} bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-400`}>
+            Closed
+          </span>
+        ) : (
+          <span
+            className={`${pill} ${
+              liveness === "live"
+                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+            }`}
+          >
+            {liveness === "live" ? "Live" : "Unverified"}
+          </span>
+        )}
         <span className="text-zinc-500">{ageLabel(job)}</span>
         <span className="text-zinc-500">{job.source}</span>
       </div>

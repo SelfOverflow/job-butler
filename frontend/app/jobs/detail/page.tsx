@@ -18,7 +18,7 @@ import { AtsReviewPanel } from "@/components/AtsReviewPanel";
 import { JobDescription } from "@/components/JobDescription";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { PrepareButton } from "@/components/PrepareButton";
-import type { JobDetail } from "@/lib/api";
+import { api, type JobDetail } from "@/lib/api";
 import type { CommandProgress } from "@/lib/commands";
 import { useJobQuery, useLaunchCommandMutation } from "@/lib/queries";
 import { ageLabel } from "@/lib/recency";
@@ -96,7 +96,12 @@ function JobDetailContent() {
     if (!id) return;
     setVerifying(true);
     try {
-      await launchCommandMutation.mutateAsync({ name: "scout_verify", params: { job_id: id } });
+      const res = await launchCommandMutation.mutateAsync({ name: "scout_verify", params: { job_id: id } });
+      let run = await api.getRun(res.run_id).catch(() => null);
+      for (let i = 0; i < 15 && run && (run.status === "queued" || run.status === "running"); i++) {
+        await new Promise((r) => setTimeout(r, 200));
+        run = await api.getRun(res.run_id).catch(() => null);
+      }
       await refetchJob();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -181,11 +186,19 @@ function JobDetailContent() {
                   {job.tier_label}
                 </span>
               )}
-              <span
-                className={`${pill} ${job.last_verified_at ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"}`}
-              >
-                {job.last_verified_at ? "Live Link" : "Unverified"}
-              </span>
+              {!job.is_active ? (
+                <span className={`${pill} bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-400`}>
+                  Closed Link
+                </span>
+              ) : job.last_verified_at ? (
+                <span className={`${pill} bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400`}>
+                  Live Link
+                </span>
+              ) : (
+                <span className={`${pill} bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400`}>
+                  Unverified
+                </span>
+              )}
               <span className="text-xs text-zinc-500">{ageLabel(job)}</span>
               <span className="text-xs text-zinc-500">Source: {job.source}</span>
             </div>
