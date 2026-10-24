@@ -13,6 +13,7 @@ import { useApplicationWorkflowStore } from "@/lib/applicationWorkflowStore";
 import { useApplicationQuery, useApplicationsQuery, useJobQuery } from "@/lib/queries";
 
 const STATUS_BADGE: Record<string, string> = {
+  in_progress: "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 animate-pulse",
   awaiting_review: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
   needs_input: "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300",
   blocked: "bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300",
@@ -23,6 +24,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
+  in_progress: "In Progress",
   awaiting_review: "Ready for Review",
   needs_input: "Needs Input",
   blocked: "Blocked",
@@ -37,12 +39,23 @@ function ApplicationProcessContent() {
   const jobId = searchParams.get("jobId");
   const auto = searchParams.get("auto") === "true";
 
+  const workflow = useApplicationWorkflowStore();
+
   const { data: job, isLoading: jobLoading } = useJobQuery(jobId ?? "");
   const { data: app, refetch: refetchApp } = useApplicationQuery(jobId ?? "");
   const { data: allApps = [], isLoading: appsLoading } = useApplicationsQuery();
 
-  const workflow = useApplicationWorkflowStore();
+  const ongoingJobId =
+    workflow.step === "tailoring" || workflow.step === "filling_form"
+      ? workflow.jobId
+      : null;
+  const { data: ongoingJob } = useJobQuery(ongoingJobId ?? "");
+
   const [filter, setFilter] = useState<string>("all");
+
+  useEffect(() => {
+    workflow.hydrate().catch(() => {});
+  }, [workflow]);
 
   useEffect(() => {
     if (job && auto && workflow.jobId !== job.id && workflow.step === "idle") {
@@ -50,21 +63,10 @@ function ApplicationProcessContent() {
     }
   }, [job, auto, workflow]);
 
-  const activeApp: Application | null = app ?? (job ? {
-    job_id: job.id,
-    title: job.title,
-    company: job.company,
-    url: job.url,
-    status: (workflow.step === "filling_form" || workflow.step === "tailoring" ? "awaiting_review" : (workflow.step as Application["status"])),
-    barrier: null,
-    plan: [],
-    questions: [],
-    answers: {},
-    error: workflow.error,
-    screenshot_url: null,
-    updated_at: new Date().toISOString(),
-    submitted_at: null,
-  } : null);
+  const isOngoingForThisJob =
+    Boolean(jobId) &&
+    (workflow.step === "tailoring" || workflow.step === "filling_form") &&
+    workflow.jobId === jobId;
 
   if (jobId) {
     if (jobLoading && !job) {
@@ -99,8 +101,29 @@ function ApplicationProcessContent() {
           )}
         </header>
 
-        {activeApp ? (
-          <ApplicationDetailView app={activeApp} onRefresh={refetchApp} />
+        {isOngoingForThisJob ? (
+          <div className="flex flex-col gap-5">
+            {job && (
+              <div className="flex flex-col gap-2 rounded-xl border border-sky-200 bg-sky-50/50 p-5 shadow-sm dark:border-sky-900/60 dark:bg-sky-950/30">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight">{job.title}</h2>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                      <span className="font-medium text-zinc-900 dark:text-zinc-100">{job.company}</span> · {job.location}
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800 dark:bg-sky-900/60 dark:text-sky-300 animate-pulse">
+                    <span className="h-2 w-2 rounded-full bg-sky-500"></span>
+                    {workflow.step === "tailoring" ? "Tailoring Resume" : "Autofilling Form"}
+                  </span>
+                </div>
+              </div>
+            )}
+            <ApplicationProcessStepper step={workflow.step} progressDetail={workflow.progressDetail} />
+            <LiveExecutionFeed />
+          </div>
+        ) : app ? (
+          <ApplicationDetailView app={app} onRefresh={refetchApp} />
         ) : (
           <div className="flex flex-col gap-4">
             <ApplicationProcessStepper step={workflow.step} progressDetail={workflow.progressDetail} />
@@ -111,7 +134,34 @@ function ApplicationProcessContent() {
     );
   }
 
-  const filteredApps = allApps.filter((a) => (filter === "all" ? true : a.status === filter));
+  // Synthesize ongoing application into listing if active
+  const ongoingApp: Application | null = ongoingJob
+    ? {
+        job_id: ongoingJob.id,
+        title: ongoingJob.title,
+        company: ongoingJob.company,
+        url: ongoingJob.url,
+        status: "in_progress" as unknown as Application["status"],
+        barrier: null,
+        plan: [],
+        questions: [],
+        answers: {},
+        error: workflow.error,
+        screenshot_url: null,
+        updated_at: new Date().toISOString(),
+        submitted_at: null,
+      }
+    : null;
+
+  const combinedApps = ongoingApp
+    ? [ongoingApp, ...allApps.filter((a) => a.job_id !== ongoingApp.job_id)]
+    : allApps;
+
+  const filteredApps = combinedApps.filter((a) => {
+    if (filter === "all") return true;
+    if (filter === "in_progress") return a.status === ("in_progress" as unknown);
+    return a.status === filter;
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -122,12 +172,69 @@ function ApplicationProcessContent() {
         </p>
       </header>
 
+      {/* Prominent Ongoing Application Card */}
+      {ongoingJob && (
+        <section aria-label="Ongoing application" className="flex flex-col gap-3 rounded-xl border border-sky-300 bg-sky-50/70 p-4 shadow-sm dark:border-sky-800 dark:bg-sky-950/40">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75"></span>
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-sky-500"></span>
+              </span>
+              <h2 className="text-sm font-semibold text-sky-950 dark:text-sky-200">
+                Ongoing Application Process
+              </h2>
+            </div>
+            <Link
+              href={`/applications/?jobId=${ongoingJob.id}`}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-sky-700 hover:text-sky-900 dark:text-sky-300 dark:hover:text-sky-100 hover:underline"
+            >
+              View Live Execution &rarr;
+            </Link>
+          </div>
+
+          <Link
+            href={`/applications/?jobId=${ongoingJob.id}`}
+            className="group flex flex-col gap-2 rounded-lg border border-sky-200 bg-white p-3.5 transition hover:border-sky-400 dark:border-sky-900/60 dark:bg-zinc-900"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-sm group-hover:text-sky-600 dark:group-hover:text-sky-400 transition">
+                  {ongoingJob.title}
+                </h3>
+                <p className="text-xs text-zinc-500">{ongoingJob.company} · {ongoingJob.location}</p>
+              </div>
+              <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/60 dark:text-sky-300">
+                {workflow.step === "tailoring" ? "Tailoring Resume" : "Autofilling Form"}
+              </span>
+            </div>
+
+            {workflow.progressDetail && (
+              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-mono truncate">
+                › {workflow.progressDetail}
+              </p>
+            )}
+
+            {workflow.progressTotal > 0 && (
+              <div className="w-full bg-zinc-100 rounded-full h-1.5 dark:bg-zinc-800 overflow-hidden">
+                <div
+                  className="bg-sky-500 h-1.5 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${Math.min(100, Math.round((workflow.progressDone / workflow.progressTotal) * 100))}%`,
+                  }}
+                />
+              </div>
+            )}
+          </Link>
+        </section>
+      )}
+
       {/* Filter Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-zinc-200 pb-3 dark:border-zinc-800">
         <span className="inline-flex items-center gap-1 text-xs text-zinc-400 mr-2">
           <Filter size={12} /> Status:
         </span>
-        {["all", "awaiting_review", "needs_input", "blocked", "submitted"].map((tab) => (
+        {["all", "in_progress", "awaiting_review", "needs_input", "blocked", "submitted"].map((tab) => (
           <button
             key={tab}
             type="button"
@@ -162,36 +269,53 @@ function ApplicationProcessContent() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {filteredApps.map((a) => (
-            <article
-              key={a.job_id}
-              className="flex flex-col justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h3 className="truncate font-semibold text-sm">
-                    <Link href={`/applications/?jobId=${a.job_id}`} className="hover:underline">
-                      {a.title}
-                    </Link>
-                  </h3>
-                  <p className="text-xs text-zinc-500">{a.company}</p>
+          {filteredApps.map((a) => {
+            const isItemOngoing = a.status === ("in_progress" as unknown);
+            return (
+              <article
+                key={a.job_id}
+                className={`flex flex-col justify-between gap-3 rounded-xl border p-4 shadow-sm transition ${
+                  isItemOngoing
+                    ? "border-sky-300 bg-sky-50/30 dark:border-sky-800 dark:bg-sky-950/20"
+                    : "border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-semibold text-sm">
+                      <Link href={`/applications/?jobId=${a.job_id}`} className="hover:underline">
+                        {a.title}
+                      </Link>
+                    </h3>
+                    <p className="text-xs text-zinc-500">{a.company}</p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
+                      STATUS_BADGE[a.status] ?? "bg-zinc-100"
+                    }`}
+                  >
+                    {STATUS_LABEL[a.status] ?? a.status}
+                  </span>
                 </div>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_BADGE[a.status] ?? "bg-zinc-100"}`}>
-                  {STATUS_LABEL[a.status] ?? a.status}
-                </span>
-              </div>
 
-              <div className="flex items-center justify-between border-t border-zinc-100 pt-2 text-xs text-zinc-500 dark:border-zinc-800">
-                <span>{a.plan.length} fields planned</span>
-                <Link
-                  href={`/applications/?jobId=${a.job_id}`}
-                  className="font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100 hover:underline"
-                >
-                  Inspect &rarr;
-                </Link>
-              </div>
-            </article>
-          ))}
+                {isItemOngoing && workflow.progressDetail ? (
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 font-mono truncate">
+                    › {workflow.progressDetail}
+                  </p>
+                ) : null}
+
+                <div className="flex items-center justify-between border-t border-zinc-100 pt-2 text-xs text-zinc-500 dark:border-zinc-800">
+                  <span>{isItemOngoing ? "Autofilling form…" : `${a.plan.length} fields planned`}</span>
+                  <Link
+                    href={`/applications/?jobId=${a.job_id}`}
+                    className="font-medium text-zinc-700 hover:text-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100 hover:underline"
+                  >
+                    {isItemOngoing ? "View Live Execution \u2192" : "Inspect \u2192"}
+                  </Link>
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </div>

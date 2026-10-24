@@ -26,6 +26,7 @@ export type ApplicationWorkflowState = {
   isHeaded: boolean;
   setHeaded: (headed: boolean) => void;
   addLog: (line: string) => void;
+  hydrate: () => Promise<void>;
   startWorkflow: (job: { id: string; resume_url?: string | null; status?: string }) => Promise<void>;
   updateFromRun: (run: CommandRun) => void;
   reset: () => void;
@@ -77,8 +78,47 @@ export const useApplicationWorkflowStore = create<ApplicationWorkflowState>()((s
       activeRunId: null,
     }),
 
+  hydrate: async () => {
+    try {
+      const runs = await api.runs();
+      if (!Array.isArray(runs)) return;
+      const activeRun = runs.find(
+        (r) =>
+          (r.command === "prepare_application" || r.command === "tailor_one") &&
+          (r.status === "queued" || r.status === "running") &&
+          typeof r.params?.job_id === "string",
+      );
+      if (activeRun && typeof activeRun.params?.job_id === "string") {
+        set({
+          jobId: activeRun.params.job_id,
+          activeRunId: activeRun.id,
+          step: activeRun.command === "tailor_one" ? "tailoring" : "filling_form",
+          progressStage: activeRun.progress?.stage ?? null,
+          progressDetail: activeRun.progress?.detail ?? null,
+          progressDone: activeRun.progress?.done ?? 0,
+          progressTotal: activeRun.progress?.total ?? 0,
+        });
+      }
+    } catch {
+      // Ignore hydration errors
+    }
+  },
+
   updateFromRun: (run) => {
-    if (run.id !== get().activeRunId) return;
+    const isAppCommand = run.command === "prepare_application" || run.command === "tailor_one";
+    const jid = typeof run.params?.job_id === "string" ? run.params.job_id : null;
+    const isActive = run.status === "queued" || run.status === "running";
+
+    if (isAppCommand && jid && isActive && get().step !== "filling_form" && get().step !== "tailoring") {
+      set({
+        jobId: jid,
+        activeRunId: run.id,
+        step: run.command === "tailor_one" ? "tailoring" : "filling_form",
+      });
+    }
+
+    if (run.id !== get().activeRunId && jid !== get().jobId) return;
+
     if (run.progress) {
       const stage = run.progress.stage ?? get().progressStage;
       const detail = run.progress.detail ?? get().progressDetail;
