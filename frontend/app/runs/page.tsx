@@ -1,21 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
-import { CommandRun } from "@/lib/commands";
+import { useState } from "react";
+import type { CommandRun } from "@/lib/commands";
 import { RunDrawer } from "@/components/RunDrawer";
+import { useRunsQuery } from "@/lib/queries";
 
 export default function RunsHistoryPage() {
-  const [runs, setRuns] = useState<CommandRun[]>([]);
+  const { data: runs = [], isLoading: loading } = useRunsQuery();
   const [selectedRun, setSelectedRun] = useState<CommandRun | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api
-      .runs()
-      .then(setRuns)
-      .finally(() => setLoading(false));
-  }, []);
 
   return (
     <div className="space-y-6">

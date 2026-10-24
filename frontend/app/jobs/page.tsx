@@ -1,16 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Trash2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { JobCard } from "@/components/JobCard";
-import { api, type Job, type Recency } from "@/lib/api";
+import type { Job, Recency } from "@/lib/api";
+import { queryKeys, useJobsQuery, usePruneJobsMutation } from "@/lib/queries";
 import { RECENCY_OPTIONS, withinRecency } from "@/lib/recency";
 
 const SCORE_FLOORS = [0, 60, 70, 80, 90];
 
 export default function JobsPage() {
-  const [jobs, setJobs] = useState<Job[] | null>(null);
+  const queryClient = useQueryClient();
+  const { data: jobs = null, error: jobsError } = useJobsQuery();
+  const pruneMutation = usePruneJobsMutation();
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [minScore, setMinScore] = useState(0);
@@ -18,19 +22,14 @@ export default function JobsPage() {
   const [pruning, setPruning] = useState(false);
   const [pruneNote, setPruneNote] = useState<string | null>(null);
 
-  const load = useCallback(() => api.jobs().then(setJobs, (e: Error) => setError(e.message)), []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const displayError = error ?? (jobsError ? jobsError.message : null);
 
   const handlePruneAll = async () => {
     setPruning(true);
     setPruneNote(null);
     try {
-      const { pruned } = await api.pruneJobs();
+      const { pruned } = await pruneMutation.mutateAsync();
       setPruneNote(`Pruned ${pruned} job(s)`);
-      await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -38,7 +37,9 @@ export default function JobsPage() {
     }
   };
 
-  const removeJob = (id: string) => setJobs((current) => current?.filter((j) => j.id !== id) ?? null);
+  const removeJob = (id: string) => {
+    queryClient.setQueryData<Job[]>(queryKeys.jobs, (current) => current?.filter((j) => j.id !== id) ?? []);
+  };
 
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -104,12 +105,12 @@ export default function JobsPage() {
         </div>
       </header>
 
-      {error && (
+      {displayError && (
         <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300">
-          Could not load jobs: {error}
+          Could not load jobs: {displayError}
         </p>
       )}
-      {jobs === null && !error && <p className="text-sm text-zinc-500">Loading…</p>}
+      {jobs === null && !displayError && <p className="text-sm text-zinc-500">Loading…</p>}
       {jobs?.length === 0 && (
         <p className="text-sm text-zinc-500">
           No jobs yet. Run <code>job-butler scout run</code> to discover some.

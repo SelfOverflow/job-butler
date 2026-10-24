@@ -7,7 +7,8 @@ import { ExternalLink, FileText, Mail, RefreshCw, Sparkles, Trash2 } from "lucid
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { PrepareButton } from "@/components/PrepareButton";
-import { api, type Job } from "@/lib/api";
+import { type Job } from "@/lib/api";
+import { useLaunchCommandMutation, usePruneJobMutation } from "@/lib/queries";
 import { isActive, useTailorRun, useTailorStore } from "@/lib/tailorStore";
 import { ageLabel } from "@/lib/recency";
 
@@ -41,11 +42,14 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
   const [confirmPrune, setConfirmPrune] = useState(false);
   const [pruning, setPruning] = useState(false);
 
+  const pruneJobMutation = usePruneJobMutation();
+  const launchCommandMutation = useLaunchCommandMutation();
+
   const handlePrune = async () => {
     setPruning(true);
     setError(null);
     try {
-      await api.pruneJob(job.id);
+      await pruneJobMutation.mutateAsync(job.id);
       setConfirmPrune(false);
       onPruned?.(job.id);
     } catch (err) {
@@ -72,7 +76,7 @@ export function JobCard({ job, onPruned }: { job: Job; onPruned?: (id: string) =
     setVerifying(true);
     setError(null);
     try {
-      await api.launchCommand("scout_verify", { job_id: job.id });
+      await launchCommandMutation.mutateAsync({ name: "scout_verify", params: { job_id: job.id } });
       setVerifiedLive(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

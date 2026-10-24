@@ -1,32 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
 import { CheckCircle2, XCircle } from "lucide-react";
-
-type SettingsData = {
-  auth_enabled: boolean;
-  gemini_model: string;
-  gemini_configured: boolean;
-  firecrawl_configured: boolean;
-  openai_configured: boolean;
-  anthropic_configured: boolean;
-  max_daily_scrape_credits: number;
-};
+import { useSettingsQuery } from "@/lib/queries";
 
 export default function SettingsPage() {
-  const [data, setData] = useState<SettingsData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api
-      .settings()
-      .then(setData)
-      .finally(() => setLoading(false));
-  }, []);
+  const { data = null, isLoading: loading, isError } = useSettingsQuery();
 
   if (loading) return <p className="text-xs text-zinc-500">Loading settings...</p>;
-  if (!data) return <p className="text-xs text-rose-500">Failed to load settings.</p>;
+  if (!data || isError) return <p className="text-xs text-rose-500">Failed to load settings.</p>;
 
   return (
     <div className="space-y-6">

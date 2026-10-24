@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { formatTime } from "@/components/AuditLogViewer";
 import { BarChart } from "@/components/BarChart";
-import { api, type Trends, type UpskillReport } from "@/lib/api";
+import { useTrendsQuery, useUpskillQuery } from "@/lib/queries";
 
 const TOP = 12;
 
@@ -18,19 +16,9 @@ function Tile({ label, value }: { label: string; value: string | number }) {
 }
 
 export default function AnalyticsPage() {
-  const [trends, setTrends] = useState<Trends | null>(null);
-  const [roi, setRoi] = useState<UpskillReport | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    Promise.all([api.trends(), api.upskill()]).then(
-      ([t, u]) => {
-        setTrends(t);
-        setRoi(u);
-      },
-      (e: Error) => setError(e.message),
-    );
-  }, []);
+  const { data: trends = null, error: trendsError } = useTrendsQuery();
+  const { data: roi = null, error: upskillError } = useUpskillQuery();
+  const error = trendsError?.message ?? upskillError?.message ?? null;
 
   const demand = (trends?.demand ?? []).slice(0, TOP);
   const upskill = (roi?.upskill ?? []).slice(0, TOP);

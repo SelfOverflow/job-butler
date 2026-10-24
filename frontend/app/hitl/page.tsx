@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { ApplicationCard } from "@/components/ApplicationCard";
-import { api, type Application } from "@/lib/api";
+import { usePendingApplicationsQuery } from "@/lib/queries";
 
 export default function HitlPage() {
-  const [apps, setApps] = useState<Application[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.pending().then(setApps, (e: Error) => setError(e.message));
-  }, []);
+  const { data: apps = null, error: appsError } = usePendingApplicationsQuery();
+  const error = appsError?.message ?? null;
 
   return (
     <section className="flex flex-col gap-4">

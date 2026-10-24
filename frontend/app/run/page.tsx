@@ -1,34 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { COMMAND_CATALOGUE, CommandRun } from "@/lib/commands";
 import { CommandCard } from "@/components/CommandCard";
+import { useCancelRunMutation, useLaunchCommandMutation, useRunsQuery } from "@/lib/queries";
 import { connectEvents } from "@/lib/websocket";
 
 export default function CommandCenterPage() {
-  const [runs, setRuns] = useState<Record<string, CommandRun>>({});
-  const [error, setError] = useState<string | null>(null);
+  const { data: runItems, error: runsError } = useRunsQuery();
+  const launchMutation = useLaunchCommandMutation();
+  const cancelMutation = useCancelRunMutation();
+
+  const [liveRuns, setLiveRuns] = useState<Record<string, CommandRun>>({});
+  const error = runsError ? runsError.message : null;
+
+  const runs = useMemo(() => {
+    const byCommand: Record<string, CommandRun> = {};
+    for (const item of runItems ?? []) {
+      if (!byCommand[item.command]) {
+        byCommand[item.command] = item;
+      }
+    }
+    return { ...byCommand, ...liveRuns };
+  }, [runItems, liveRuns]);
 
   useEffect(() => {
-    // Initial load of latest runs
-    api
-      .runs()
-      .then((items) => {
-        const byCommand: Record<string, CommandRun> = {};
-        for (const item of items) {
-          if (!byCommand[item.command]) {
-            byCommand[item.command] = item;
-          }
-        }
-        setRuns(byCommand);
-      })
-      .catch((err) => setError(err.message));
-
     // Connect to live WebSocket feed for progress and completion updates
     const stop = connectEvents((msg) => {
       if (msg.type === "command" && msg.run) {
-        setRuns((prev) => ({
+        setLiveRuns((prev) => ({
           ...prev,
           [msg.run.command]: msg.run,
         }));
@@ -40,9 +41,9 @@ export default function CommandCenterPage() {
 
   const handleLaunch = async (name: string, params: Record<string, unknown>) => {
     try {
-      const res = await api.launchCommand(name, params);
+      const res = await launchMutation.mutateAsync({ name, params });
       const active = await api.getRun(res.run_id);
-      setRuns((prev) => ({ ...prev, [name]: active }));
+      setLiveRuns((prev) => ({ ...prev, [name]: active }));
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : String(err));
     }
@@ -50,9 +51,9 @@ export default function CommandCenterPage() {
 
   const handleCancel = async (runId: string) => {
     try {
-      await api.cancelRun(runId);
+      await cancelMutation.mutateAsync(runId);
       const updated = await api.getRun(runId);
-      setRuns((prev) => ({ ...prev, [updated.command]: updated }));
+      setLiveRuns((prev) => ({ ...prev, [updated.command]: updated }));
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : String(err));
     }

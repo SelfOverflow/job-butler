@@ -20,9 +20,9 @@ describe("Dashboard", () => {
     render(<Dashboard />);
 
     const metric = async (label: string) => within((await screen.findByText(label)).closest("div")!);
-    expect((await metric("Active jobs")).getByText("2")).toBeInTheDocument();
-    expect((await metric("Tailored")).getByText("1")).toBeInTheDocument();
-    expect((await metric("Average fit")).getByText("80")).toBeInTheDocument();
+    expect(await (await metric("Active jobs")).findByText("2")).toBeInTheDocument();
+    expect(await (await metric("Tailored")).findByText("1")).toBeInTheDocument();
+    expect(await (await metric("Average fit")).findByText("80")).toBeInTheDocument();
     expect(await screen.findByText(/412 discovered → 19 saved \(7 new\)/)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Lead Mobile Engineer" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Live feed" })).toBeInTheDocument();

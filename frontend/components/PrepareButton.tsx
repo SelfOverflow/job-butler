@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { api, ApiError } from "@/lib/api";
+import { ApiError } from "@/lib/api";
+import { useHitlActionMutation } from "@/lib/queries";
 
 const OUTCOME: Record<string, string> = {
   needs_input: "Needs your answers",
@@ -14,6 +15,7 @@ const OUTCOME: Record<string, string> = {
 
 /** Fills the application for review. Never submits: approval happens on /hitl. */
 export function PrepareButton({ jobId }: { jobId: string }) {
+  const hitlMutation = useHitlActionMutation();
   const [busy, setBusy] = useState(false);
   const [outcome, setOutcome] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export function PrepareButton({ jobId }: { jobId: string }) {
     setBusy(true);
     setError(null);
     try {
-      const app = await api.hitl(jobId, "prepare");
+      const app = await hitlMutation.mutateAsync({ jobId, action: "prepare" });
       setOutcome(OUTCOME[app.status] ?? app.status);
     } catch (e) {
       const detail = e instanceof ApiError ? (e.body as { detail?: string } | null)?.detail : undefined;

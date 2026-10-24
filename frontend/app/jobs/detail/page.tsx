@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   ArrowLeft,
   Download,
@@ -18,8 +18,9 @@ import { AtsReviewPanel } from "@/components/AtsReviewPanel";
 import { JobDescription } from "@/components/JobDescription";
 import { JobStatusBadge } from "@/components/JobStatusBadge";
 import { PrepareButton } from "@/components/PrepareButton";
-import { api, type JobDetail } from "@/lib/api";
+import type { JobDetail } from "@/lib/api";
 import type { CommandProgress } from "@/lib/commands";
+import { useJobQuery, useLaunchCommandMutation } from "@/lib/queries";
 import { ageLabel } from "@/lib/recency";
 import { isActive, useTailorRun, useTailorStore } from "@/lib/tailorStore";
 
@@ -37,12 +38,17 @@ function JobDetailContent() {
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
 
-  const [job, setJob] = useState<JobDetail | null>(null);
-  const [loading, setLoading] = useState(() => Boolean(id));
+  const { data: fetchedJob, isLoading: loading, error: jobError, refetch: refetchJob } = useJobQuery(id ?? "");
+  const launchCommandMutation = useLaunchCommandMutation();
+
+  const [jobOverride, setJobOverride] = useState<Partial<JobDetail> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [cacheBuster, setCacheBuster] = useState(() => Date.now());
+
+  const job = fetchedJob ? { ...fetchedJob, ...jobOverride } : null;
+  const displayError = error ?? (jobError ? jobError.message : null);
 
   // Shared store: survives navigation and is re-synced from the server on mount.
   const run = useTailorRun(id);
@@ -56,24 +62,6 @@ function JobDetailContent() {
       : null;
   const tailored = Boolean(job?.resume_url) || run?.status === "succeeded";
 
-  const loadJob = useCallback((jobId: string) => {
-    return api.job(jobId).then(
-      (data) => {
-        setJob(data);
-        setError(null);
-        setLoading(false);
-      },
-      (err: Error) => {
-        setError(err.message);
-        setLoading(false);
-      },
-    );
-  }, []);
-
-  useEffect(() => {
-    if (id) loadJob(id);
-  }, [id, loadJob]);
-
   // When a run seen in flight finishes, refresh the job and the PDF preview.
   useEffect(() => {
     if (!id) return;
@@ -82,13 +70,14 @@ function JobDetailContent() {
       if (!now || isActive(now) || !isActive(previous.runs[id])) return;
       if (now.status === "succeeded") {
         setCacheBuster(Date.now());
-        loadJob(id);
+        setJobOverride(null);
+        refetchJob();
       } else {
-        setJob((j) => j && { ...j, status: now.status === "failed" ? "tailor_failed" : j.status });
+        setJobOverride({ status: now.status === "failed" ? "tailor_failed" : undefined });
         setError(now.error ?? "Resume tailoring failed");
       }
     });
-  }, [id, loadJob]);
+  }, [id, refetchJob]);
 
   const handleTailor = async () => {
     if (!id) return;
@@ -107,8 +96,8 @@ function JobDetailContent() {
     if (!id) return;
     setVerifying(true);
     try {
-      await api.launchCommand("scout_verify", { job_id: id });
-      await loadJob(id);
+      await launchCommandMutation.mutateAsync({ name: "scout_verify", params: { job_id: id } });
+      await refetchJob();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -136,11 +125,11 @@ function JobDetailContent() {
     );
   }
 
-  if (error && !job) {
+  if (displayError && !job) {
     return (
       <div className="flex flex-col gap-4 py-8">
         <div role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/60 dark:text-red-300">
-          Could not load job: {error}
+          Could not load job: {displayError}
         </div>
         <Link href="/jobs/" className={`self-start ${actionBtn}`}>
           <ArrowLeft size={16} /> Back to Jobs

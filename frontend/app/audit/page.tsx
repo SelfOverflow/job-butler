@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 import { AuditLogViewer } from "@/components/AuditLogViewer";
-import { api, type AuditEvent, type AuditFilters } from "@/lib/api";
+import { api, type AuditFilters } from "@/lib/api";
 
 const ACTORS = ["agent:scout", "agent:tailor", "agent:navigator", "agent:autopilot", "human:user"];
 const ACTIONS = ["SCOUT_SWEEP", "JOB_DISCOVERED", "LINK_VERIFIED", "RESUME_TAILORED", "PROFILE_UPDATED", "FORM_SUBMITTED", "HITL_ESCALATED"];
@@ -25,26 +26,21 @@ function Filter(props: { label: string; options: string[]; value?: string; onCha
 
 export default function AuditPage() {
   const [filters, setFilters] = useState<AuditFilters>({});
-  const [events, setEvents] = useState<AuditEvent[] | null>(null);
-  const [nextOffset, setNextOffset] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    api.audit(filters).then(
-      (page) => {
-        setEvents(page.items);
-        setNextOffset(page.next_offset);
-      },
-      (e: Error) => setError(e.message),
-    );
-  }, [filters]);
+  const {
+    data,
+    error: queryError,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["audit-infinite", filters],
+    queryFn: ({ pageParam = 0 }) => api.audit(filters, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.next_offset ?? undefined,
+  });
 
-  async function loadMore() {
-    if (nextOffset === null) return;
-    const page = await api.audit(filters, nextOffset);
-    setEvents((current) => [...(current ?? []), ...page.items]);
-    setNextOffset(page.next_offset);
-  }
+  const events = data ? data.pages.flatMap((p) => p.items) : null;
+  const error = queryError ? queryError.message : null;
 
   const set = (key: keyof AuditFilters) => (value: string) => setFilters((f) => ({ ...f, [key]: value || undefined }));
   return (
@@ -59,8 +55,8 @@ export default function AuditPage() {
       </header>
       {error && <p role="alert" className="text-sm text-red-600">Could not load the audit log: {error}</p>}
       {events === null && !error ? <p className="text-sm text-zinc-500">Loading…</p> : <AuditLogViewer events={events ?? []} />}
-      {nextOffset !== null && (
-        <button type="button" onClick={loadMore} className="self-center rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
+      {hasNextPage && (
+        <button type="button" onClick={() => fetchNextPage()} className="self-center rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800">
           Load more
         </button>
       )}

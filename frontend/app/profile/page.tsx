@@ -1,17 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { CheckCircle2, Download, ShieldCheck } from "lucide-react";
 
 import { BackupList } from "@/components/BackupList";
 import { ProfileForm } from "@/components/ProfileForm";
 import { YamlEditor } from "@/components/YamlEditor";
-import { api, type Backup, type ProfileResponse } from "@/lib/api";
+import {
+  useAddBulletMutation,
+  useBackupsQuery,
+  useProfileQuery,
+  useQueryScreeningMutation,
+  useRestoreBackupMutation,
+  useUpdateProfileMutation,
+  useValidateProfileMutation,
+} from "@/lib/queries";
 
 export default function ProfilePage() {
-  const [data, setData] = useState<ProfileResponse | null>(null);
-  const [backups, setBackups] = useState<Backup[]>([]);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { data = null, error: profileError } = useProfileQuery();
+  const { data: backups = [], error: backupsError } = useBackupsQuery();
+
+  const updateProfileMutation = useUpdateProfileMutation();
+  const restoreBackupMutation = useRestoreBackupMutation();
+  const validateProfileMutation = useValidateProfileMutation();
+  const queryScreeningMutation = useQueryScreeningMutation();
+  const addBulletMutation = useAddBulletMutation();
+
+  const [localLoadError, setLocalLoadError] = useState<string | null>(null);
+  const loadError = localLoadError ?? profileError?.message ?? backupsError?.message ?? null;
 
   // Validation state
   const [validating, setValidating] = useState(false);
@@ -37,41 +53,23 @@ export default function ProfilePage() {
   const [bulletResult, setBulletResult] = useState<string | null>(null);
   const [addingBullet, setAddingBullet] = useState(false);
 
-  const load = useCallback(
-    () =>
-      Promise.all([api.profile(), api.backups()]).then(
-        ([profile, list]) => {
-          setData(profile);
-          setBackups(list);
-        },
-        (e: Error) => setLoadError(e.message),
-      ),
-    [],
-  );
-  useEffect(() => {
-    load();
-  }, [load]);
-
   const save = async (set: Record<string, string>) => {
-    await api.updateProfile({ set });
-    await load();
+    await updateProfileMutation.mutateAsync({ set });
   };
   const saveYaml = async (yaml: string) => {
-    await api.updateProfile({ yaml });
-    await load();
+    await updateProfileMutation.mutateAsync({ yaml });
   };
   const restore = async (name: string) => {
-    await api.restoreBackup(name);
-    await load();
+    await restoreBackupMutation.mutateAsync(name);
   };
 
   const handleValidate = async () => {
     setValidating(true);
     try {
-      const res = await api.validateProfile();
+      const res = await validateProfileMutation.mutateAsync();
       setValidation(res);
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : String(e));
+      setLocalLoadError(e instanceof Error ? e.message : String(e));
     } finally {
       setValidating(false);
     }
@@ -84,7 +82,7 @@ export default function ProfilePage() {
     setQueryError(null);
     setQueryResult(null);
     try {
-      const res = await api.queryScreening(queryText.trim());
+      const res = await queryScreeningMutation.mutateAsync(queryText.trim());
       setQueryResult(String(res.answer));
     } catch (err) {
       setQueryError(err instanceof Error ? err.message : String(err));
@@ -103,11 +101,14 @@ export default function ProfilePage() {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-      const res = await api.addBullet(bulletRole.trim(), bulletText.trim(), skills);
+      const res = await addBulletMutation.mutateAsync({
+        roleId: bulletRole.trim(),
+        text: bulletText.trim(),
+        skills,
+      });
       setBulletResult(`Added bullet ${res.bullet_id}`);
       setBulletText("");
       setBulletSkills("");
-      await load();
     } catch (err) {
       setBulletResult(`Failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {

@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { formatTime } from "@/components/AuditLogViewer";
 import { JobCard } from "@/components/JobCard";
 import { LiveFeed } from "@/components/LiveFeed";
-import { api, type AuditEvent, type Job } from "@/lib/api";
+import type { AuditEvent } from "@/lib/api";
+import { useAuditQuery, useJobsQuery } from "@/lib/queries";
 
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
@@ -22,13 +21,9 @@ function sweepSummary(sweep: AuditEvent): string {
 }
 
 export default function Dashboard() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [sweep, setSweep] = useState<AuditEvent | null | undefined>(undefined);
-
-  useEffect(() => {
-    api.jobs().then(setJobs, () => setJobs([]));
-    api.audit({ action: "SCOUT_SWEEP" }).then((page) => setSweep(page.items[0] ?? null), () => setSweep(null));
-  }, []);
+  const { data: jobs = [] } = useJobsQuery();
+  const { data: sweepPage, isFetched } = useAuditQuery({ action: "SCOUT_SWEEP" });
+  const sweep = isFetched ? (sweepPage?.items[0] ?? null) : undefined;
 
   const tailored = jobs.filter((j) => j.resume_url).length;
   const average = jobs.length ? Math.round(jobs.reduce((sum, j) => sum + j.score, 0) / jobs.length) : "—";

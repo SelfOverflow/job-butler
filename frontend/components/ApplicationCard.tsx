@@ -3,7 +3,8 @@
 import { useState } from "react";
 
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { api, type Application, type HitlAction, type Question } from "@/lib/api";
+import type { Application, HitlAction, Question } from "@/lib/api";
+import { useHitlActionMutation, useSubmitAnswersMutation } from "@/lib/queries";
 
 const STATUS: Record<string, string> = {
   needs_input: "Needs your answers",
@@ -40,6 +41,9 @@ export function ApplicationCard({ initial }: { initial: Application }) {
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hitlMutation = useHitlActionMutation();
+  const answerMutation = useSubmitAnswersMutation();
+
   async function run(call: () => Promise<Application>) {
     setBusy(true);
     setError(null);
@@ -52,7 +56,7 @@ export function ApplicationCard({ initial }: { initial: Application }) {
       setConfirming(false);
     }
   }
-  const act = (action: HitlAction) => run(() => api.hitl(app.job_id, action));
+  const act = (action: HitlAction) => run(() => hitlMutation.mutateAsync({ jobId: app.job_id, action }));
 
   return (
     <article aria-label={`${app.title} at ${app.company}`} className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
@@ -79,7 +83,7 @@ export function ApplicationCard({ initial }: { initial: Application }) {
               <QuestionInput q={q} value={answers[q.label] ?? ""} onChange={(v) => setAnswers((a) => ({ ...a, [q.label]: v }))} />
             </label>
           ))}
-          <button type="button" disabled={busy} className={primary} onClick={() => run(() => api.answer(app.job_id, answers))}>
+          <button type="button" disabled={busy} className={primary} onClick={() => run(() => answerMutation.mutateAsync({ jobId: app.job_id, answers }))}>
             {busy ? "Working…" : "Save answers & re-check"}
           </button>
         </div>
